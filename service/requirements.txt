@@ -1,0 +1,10 @@
+annotated-types==0.7.0
+greenlet==3.3.0
+playwright==1.57.0
+pydantic==2.12.5
+pydantic_core==2.41.5
+pyee==13.0.0
+setuptools==80.9.0
+typing-inspection==0.4.2
+typing_extensions==4.15.0
+wheel==0.45.1
