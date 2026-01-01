@@ -1,3 +1,4 @@
+aiohttp==3.10.11
 annotated-types==0.7.0
 greenlet==3.3.0
 playwright==1.57.0
