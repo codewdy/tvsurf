@@ -4,5 +4,3 @@ class BaseModel(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(
         validate_default=True
     )
-
-Enum = pydantic.StrEnum

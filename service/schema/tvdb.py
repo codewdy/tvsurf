@@ -1,5 +1,6 @@
-from .dtype import BaseModel, Enum
+from .dtype import BaseModel
 from datetime import datetime
+from enum import Enum
 
 class SourceUrl(BaseModel):
     source_key: str
@@ -7,7 +8,7 @@ class SourceUrl(BaseModel):
     channel_name: str
     url: str
 
-class DownloadStatus(Enum):
+class DownloadStatus(str, Enum):
     RUNNING = "running"
     SUCCESS = "success"
     FAILED = "failed"
