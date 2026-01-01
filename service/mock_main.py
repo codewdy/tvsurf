@@ -1,4 +1,4 @@
-from lib.context import Context
+from .lib.context import Context
 import sys
 import asyncio
 from aiohttp import web
