@@ -36,19 +36,19 @@ class TrackStatus(BaseModel):
     tracking: bool
     latest_update: datetime
 
-class Session(BaseModel):
-    series: int
+class TV(BaseModel):
     name: str
     source: Source
     storage: Storage
     track: TrackStatus
+    albums: list[int]
 
-class Series(BaseModel):
+class Album(BaseModel):
     name: str
-    sessions: list[int]
+    tvs: list[int]
 
 class TVDB(BaseModel):
-    sessions: dict[int, Session]
-    series: dict[int, Series]
-    new_session_id: int = 1
-    new_series_id: int = 1
+    albums: dict[int, Album]
+    tvs: dict[int, TV]
+    new_album_id: int = 1
+    new_tv_id: int = 1
