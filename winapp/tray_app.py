@@ -11,11 +11,7 @@ import threading
 import webbrowser
 import pystray
 from PIL import Image, ImageDraw
-
-# 添加项目根目录到路径，以便导入service模块
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+from service.mock_main import start
 
 
 def start_service_in_thread():
@@ -26,7 +22,6 @@ def start_service_in_thread():
     def _start_service():
         """在后台线程中启动service"""
         try:
-            from service.mock_main import start
             print("正在启动service...")
             start()
         except Exception as e:

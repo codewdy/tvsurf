@@ -1,2 +1,5 @@
 pyrightconfig.json
 __pycache__
+build
+dist
+winapp/build.json
