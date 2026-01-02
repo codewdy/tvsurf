@@ -10,4 +10,3 @@ def chromium_path():
 
 def searcher_config_path():
     return os.path.join(os.path.dirname(__file__), "..", "searcher.json")
-
