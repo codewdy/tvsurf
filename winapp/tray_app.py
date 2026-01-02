@@ -10,7 +10,7 @@ import webbrowser
 import pystray
 from PIL import Image, ImageDraw
 from .instance_check import check_single_instance, release_instance_check
-from .service_manager import start_service_in_thread, wait_for_service_ready, SERVICE_PORT
+from .service_manager import start_service_in_thread, wait_for_service_ready, SERVICE_PORT, stop_service
 
 
 class TrayApp:
@@ -54,9 +54,10 @@ class TrayApp:
         """退出应用程序"""
         print("正在退出应用程序...")
         self.running = False
-        icon.stop()
         # 释放单实例检测资源
         release_instance_check()
+        stop_service()
+        icon.stop()
     
     def on_left_click(self, icon, item):
         """双击托盘图标时打开服务页面"""
@@ -132,6 +133,7 @@ def main():
     finally:
         # 确保释放单实例检测资源
         release_instance_check()
+        stop_service()
 
 
 if __name__ == '__main__':

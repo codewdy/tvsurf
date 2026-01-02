@@ -8,11 +8,12 @@
 import threading
 import time
 import socket
-from service.mock_main import start
+from service.main import start, stop
 
 
 # 服务端口号
 SERVICE_PORT = 9399
+service_thread : threading.Thread | None = None
 
 
 def wait_for_service_ready(port: int = SERVICE_PORT, timeout: int = 10) -> bool:
@@ -63,9 +64,16 @@ def start_service_in_thread(port: int = SERVICE_PORT) -> int:
             traceback.print_exc()
     
     # 启动service线程
+    global service_thread
     service_thread = threading.Thread(target=_start_service, daemon=True)
     service_thread.start()
     
     # 返回端口号
     return port
 
+def stop_service():
+    """停止service"""
+    stop()
+    global service_thread
+    if service_thread is not None:
+        service_thread.join()
