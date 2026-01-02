@@ -7,38 +7,15 @@ Windows系统托盘应用程序
 
 import sys
 import os
-import threading
 import webbrowser
 import pystray
 from PIL import Image, ImageDraw
-from service.mock_main import start
-
-
-def start_service_in_thread():
-    """
-    启动service并返回端口号
-    将mock_main相关的功能收敛到这个函数中
-    """
-    def _start_service():
-        """在后台线程中启动service"""
-        try:
-            print("正在启动service...")
-            start()
-        except Exception as e:
-            print(f"启动service时发生错误: {e}")
-            import traceback
-            traceback.print_exc()
-    
-    # 启动service线程
-    service_thread = threading.Thread(target=_start_service, daemon=True)
-    service_thread.start()
-    
-    # 返回端口号
-    return 9399
+from .instance_check import check_single_instance, release_instance_check
+from .service_manager import start_service_in_thread, wait_for_service_ready, SERVICE_PORT
 
 
 class TrayApp:
-    def __init__(self, service_port=9399):
+    def __init__(self, service_port=SERVICE_PORT):
         self.icon = None
         self.running = True
         self.service_port = service_port
@@ -79,6 +56,8 @@ class TrayApp:
         print("正在退出应用程序...")
         self.running = False
         icon.stop()
+        # 释放单实例检测资源
+        release_instance_check()
     
     def on_left_click(self, icon, item):
         """双击托盘图标时打开服务页面"""
@@ -112,8 +91,34 @@ class TrayApp:
 
 def main():
     """主函数"""
+    # 检测是否已有实例运行
+    if check_single_instance():
+        # 已有实例运行，只打开浏览器页面后退出
+        print("检测到已有实例运行，只打开浏览器页面...")
+        url = f"http://localhost:{SERVICE_PORT}"
+        try:
+            webbrowser.open(url)
+            print(f"已打开 {url}")
+        except Exception as e:
+            print(f"打开浏览器时发生错误: {e}")
+        return
+    
+    # 首次启动，正常启动服务和托盘应用
     # 启动service并获取端口号
     service_port = start_service_in_thread()
+    
+    # 等待服务启动完成
+    print("等待服务启动...")
+    if wait_for_service_ready(service_port, timeout=10):
+        print("服务已启动，自动打开浏览器页面...")
+        # 自动打开浏览器页面
+        url = f"http://localhost:{service_port}"
+        try:
+            webbrowser.open(url)
+        except Exception as e:
+            print(f"打开浏览器时发生错误: {e}")
+    else:
+        print("警告: 等待服务启动超时，但将继续运行...")
     
     # 创建托盘应用，传入端口号
     app = TrayApp(service_port=service_port)
@@ -125,6 +130,9 @@ def main():
         print(f"发生错误: {e}")
         import traceback
         traceback.print_exc()
+    finally:
+        # 确保释放单实例检测资源
+        release_instance_check()
 
 
 if __name__ == '__main__':
