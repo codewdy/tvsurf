@@ -1,10 +1,13 @@
 from service.server.api import api
-from service.schema.api import Echo
+from service.schema.api import Echo, SearchTV
 from service.lib.context import Context
+from service.searcher.searchers import Searchers
+
 
 class Tracker:
     def __init__(self):
         self.context: Context = Context()
+        self.searchers = Searchers()
 
     async def start(self):
         print("Tracker started")
@@ -18,3 +21,8 @@ class Tracker:
     async def echo(self, request: Echo.Request):
         msg = request.message
         return Echo.Response(message=msg)
+
+    @api
+    async def search_tv(self, request: SearchTV.Request):
+        keyword = request.keyword
+        return SearchTV.Response(source=await self.searchers.search(keyword))
