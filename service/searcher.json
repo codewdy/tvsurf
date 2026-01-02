@@ -1,0 +1,103 @@
+{
+    "searchers": [
+        {
+            "key": "girigirilove",
+            "name": "girigiri愛動漫",
+            "enable": true,
+            "subject_searcher": {
+                "search_url": "https://bgm.girigirilove.com/search/-------------/?wd={keyword}",
+                "type": "web_a",
+                "token": ".detail-info h3",
+                "a": ".detail-info > a:first-child",
+                "cover": ".detail-pic img",
+                "cover_attr": "data-src"
+            },
+            "channel_searcher": {
+                "type": "web_a",
+                "channel_names": ".anthology-tab > .swiper-wrapper a",
+                "episode_lists": ".anthology-list-box",
+                "episodes_from_list": "a"
+            },
+            "resource_searcher": {
+                "type": "browser"
+            },
+            "self_test": {
+                "keyword": "三月的狮子"
+            }
+        },
+        {
+            "key": "dytt",
+            "name": "电影天堂",
+            "enable": true,
+            "subject_searcher": {
+                "search_url": "http://dyttzy.tv/index.php/vod/search.html?wd={keyword}",
+                "type": "web_a",
+                "token": "th > a.group div.font-medium div.overflow-hidden:first-child",
+                "a": "th > a.group",
+                "cover": "th > a.group img",
+                "cover_attr": "src"
+            },
+            "channel_searcher": {
+                "type": "web_a",
+                "episode_lists": ".dyttm3u8",
+                "episodes_from_list": "a.text-ellipsis"
+            },
+            "resource_searcher": {
+                "type": "raw"
+            },
+            "self_test": {
+                "keyword": "生活大爆炸"
+            }
+        },
+        {
+            "key": "renrenpro",
+            "name": "人人影视Pro",
+            "enable": true,
+            "subject_searcher": {
+                "search_url": "https://www.renren.pro/search?wd={keyword}",
+                "type": "web_a",
+                "token": "main .content .module .module-list .video-info-header h3 a",
+                "a": "main .content .module .module-list .video-info-header h3 a",
+                "cover": "main .content .module .module-list .video-cover img",
+                "cover_attr": "data-src"
+            },
+            "channel_searcher": {
+                "type": "web_a",
+                "episode_lists": ".module-blocklist",
+                "episodes_from_list": "a"
+            },
+            "resource_searcher": {
+                "type": "browser"
+            },
+            "self_test": {
+                "keyword": "生活大爆炸"
+            }
+        },
+        {
+            "key": "myripon",
+            "name": "忘忧草",
+            "enable": true,
+            "subject_searcher": {
+                "search_url": "https://www.myripon.com/index.php/vod/search.html?wd={keyword}",
+                "type": "web_a",
+                "token": ".video-info > .video-info-header > h3 a",
+                "a": ".video-info > .video-info-header > h3 a",
+                "cover": ".module-item-cover img",
+                "cover_attr": "data-src"
+            },
+            "channel_searcher": {
+                "type": "web_a",
+                "channel_names": ".module-tab-item span",
+                "episode_lists": ".module-blocklist .scroll-content",
+                "episodes_from_list": "a span",
+                "episode_links_from_list": "a"
+            },
+            "resource_searcher": {
+                "type": "browser"
+            },
+            "self_test": {
+                "keyword": "掟上今日子的备忘录"
+            }
+        }
+    ]
+}
