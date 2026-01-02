@@ -5,7 +5,6 @@ Windows系统托盘应用程序
 提供退出功能
 """
 
-import sys
 import os
 import webbrowser
 import pystray
