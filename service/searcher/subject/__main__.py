@@ -2,7 +2,7 @@ import json
 import asyncio
 import sys
 from service.lib.context import Context
-from service.lib.context import searcher_config_path
+from service.lib.path import searcher_config_path
 from . import create_subject_searcher
 
 src = sys.argv[-2]

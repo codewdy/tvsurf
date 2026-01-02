@@ -1,7 +1,7 @@
 from functools import cache
 import asyncio
 from service.lib.context import Context
-from service.lib.context import searcher_config_path
+from service.lib.path import searcher_config_path
 from .searcher import Searcher
 from pathlib import Path
 import json
@@ -30,7 +30,8 @@ if __name__ == "__main__":
     import json
     import asyncio
     import sys
-    from service.lib.context import Context, searcher_config_path
+    from service.lib.context import Context
+    from service.lib.path import searcher_config_path
 
     keyword = sys.argv[-1]
 

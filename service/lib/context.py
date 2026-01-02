@@ -1,17 +1,8 @@
 from playwright.async_api import async_playwright, Playwright, Browser
 from typing import AsyncContextManager
 import threading
-import sys
-import os
 import aiohttp
-
-def chromium_path():
-    if hasattr(sys, "_MEIPASS"):
-        return os.path.join(sys._MEIPASS, "chrome-win64", "chrome.exe")  # type: ignore[attr-defined]
-    return None
-
-def searcher_config_path():
-    return os.path.join(os.path.dirname(__file__), "..", "searcher.json")
+from .path import chromium_path
 
 
 class ContextMeta(type):
@@ -31,6 +22,7 @@ class ContextMeta(type):
     def client(cls):
         return cls.current.client
 
+
 class Context(metaclass=ContextMeta):
     _current_holder = threading.local()
 
@@ -43,7 +35,8 @@ class Context(metaclass=ContextMeta):
         self.browser: Browser = await self.playwright_ctx.chromium.launch(executable_path=chromium_path())
 
         # aiohttp
-        self.client = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))
+        self.client = aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=10))
         await self.client.__aenter__()
 
         return self

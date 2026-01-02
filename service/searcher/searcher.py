@@ -49,7 +49,8 @@ if __name__ == "__main__":
     import json
     import asyncio
     import sys
-    from service.lib.context import Context, searcher_config_path
+    from service.lib.context import Context
+    from service.lib.path import searcher_config_path
 
     src = sys.argv[-2]
     keyword = sys.argv[-1]
