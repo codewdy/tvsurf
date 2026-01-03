@@ -11,3 +11,4 @@ typing_extensions==4.15.0
 wheel==0.45.1
 beautifulsoup4==4.14.3
 lxml==6.0.2
+aiofiles==25.1.0

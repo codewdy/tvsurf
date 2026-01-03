@@ -42,4 +42,4 @@ class ParallelHolder:
         self.tasks[id] = task
         task.add_done_callback(lambda _: self.callback(id))
         self.schedule_task()
-        return id
+        return task

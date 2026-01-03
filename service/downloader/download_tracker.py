@@ -5,7 +5,7 @@ from service.schema.downloader import DownloadProgress
 class SpeedTracker:
     def __init__(self):
         self._records = []
-        self._window_size : float = 60
+        self._window_size: float = 60
 
     def add_bytes_downloaded(self, bytes_downloaded):
         current_time = time.time()
@@ -64,8 +64,6 @@ class DownloadTracker:
 
     def add_fragment(self, size: float):
         self.size_tracker.add_fragment(size)
-        self.downloaded_size += size
-        self.speed_tracker.add_bytes_downloaded(size)
 
     def add_bytes_downloaded(self, bytes: int):
         self.downloaded_size += bytes

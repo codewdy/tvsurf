@@ -6,6 +6,7 @@ from .path import chromium_path
 from .error_handler import ErrorHandler
 from .logger import get_logger
 import logging
+from service.schema.config import Config
 
 
 class ContextMeta(type):
@@ -42,14 +43,20 @@ class ContextMeta(type):
     def warning(cls, msg: str, *args, **kwargs):
         cls.current.logger.warning(msg, *args, **kwargs)
 
+    @property
+    def config(cls):
+        return cls.current.config
+
 
 class Context(metaclass=ContextMeta):
     _current_holder = threading.local()
 
     def __init__(
         self,
+        config: Config | None = None,
         logger: logging.Logger | None = None,
     ):
+        self.config = config or Config()
         self.logger = logger or get_logger(logging.INFO)
         self.error_handler = ErrorHandler()
         self.error_handler.add_handler(

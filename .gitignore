@@ -4,3 +4,4 @@ build
 dist
 winapp/build.json
 result.json
+ffmpeg.exe

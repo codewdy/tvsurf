@@ -1,5 +1,6 @@
 import sys
 import os
+import platform
 
 
 def chromium_path():
@@ -10,3 +11,11 @@ def chromium_path():
 
 def searcher_config_path():
     return os.path.join(os.path.dirname(__file__), "..", "searcher.json")
+
+
+def ffmpeg_path():
+    if hasattr(sys, "_MEIPASS"):
+        return os.path.join(sys._MEIPASS, "ffmpeg.exe")  # type: ignore[attr-defined]
+    if platform.system() == "Windows":
+        return os.path.join(os.path.dirname(__file__), "..", "..", "ffmpeg.exe")
+    return "ffmpeg"
