@@ -1,5 +1,6 @@
 from .subject import create_subject_searcher
 from .channel import create_channel_searcher
+from .resource import create_resource_searcher
 from service.schema.tvdb import Source, SourceUrl
 import asyncio
 from service.lib.context import Context
@@ -11,6 +12,7 @@ class Searcher:
         self.name = config["name"]
         self.subject_searcher = create_subject_searcher(config["subject_searcher"])
         self.channel_searcher = create_channel_searcher(config["channel_searcher"])
+        self.resource_searcher = create_resource_searcher(config["resource_searcher"])
 
     async def search(self, keyword: str) -> list[Source]:
         results = []
@@ -46,6 +48,9 @@ class Searcher:
                         )
                     )
         return results
+
+    async def get_resource(self, url: str) -> str:
+        return await self.resource_searcher.search(url)
 
 
 if __name__ == "__main__":

@@ -25,7 +25,11 @@ interface SearchTVResponse {
   source: Source[];
 }
 
-export function meta({}: Route.MetaArgs) {
+interface AddTVResponse {
+  id: number;
+}
+
+export function meta({ }: Route.MetaArgs) {
   return [
     { title: "搜索电视剧" },
     { name: "description", content: "搜索电视剧资源" },
@@ -37,6 +41,9 @@ export default function Search() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Source[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [addingIds, setAddingIds] = useState<Set<number>>(new Set());
+  const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
+  const [addError, setAddError] = useState<Map<number, string>>(new Map());
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,10 +78,60 @@ export default function Search() {
     }
   };
 
+  const handleAddTV = async (source: Source, index: number) => {
+    setAddingIds((prev) => new Set(prev).add(index));
+    setAddError((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(index);
+      return newMap;
+    });
+
+    try {
+      const response = await fetch("/api/add_tv", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name: source.name,
+          source: source,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`添加失败: ${response.statusText} - ${errorText}`);
+      }
+
+      const data: AddTVResponse = await response.json();
+      setAddedIds((prev) => new Set(prev).add(index));
+      console.log(`TV 添加成功，ID: ${data.id}`);
+    } catch (err) {
+      const errorMessage =
+        err instanceof Error ? err.message : "添加时发生错误";
+      setAddError((prev) => new Map(prev).set(index, errorMessage));
+      console.error("Add TV error:", err);
+    } finally {
+      setAddingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(index);
+        return newSet;
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 max-w-6xl">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8">搜索电视剧</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">搜索电视剧</h1>
+          <a
+            href="/downloads"
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+          >
+            查看下载进度
+          </a>
+        </div>
 
         {/* 搜索表单 */}
         <form onSubmit={handleSearch} className="mb-8">
@@ -161,6 +218,26 @@ export default function Search() {
                         </ul>
                       </details>
                     )}
+                    <div className="mt-4">
+                      {addedIds.has(index) ? (
+                        <div className="px-4 py-2 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm text-center">
+                          ✓ 已添加
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => handleAddTV(source, index)}
+                          disabled={addingIds.has(index)}
+                          className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        >
+                          {addingIds.has(index) ? "添加中..." : "添加到列表"}
+                        </button>
+                      )}
+                      {addError.has(index) && (
+                        <div className="mt-2 px-3 py-2 bg-red-50 border border-red-200 rounded text-red-700 text-xs">
+                          {addError.get(index)}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

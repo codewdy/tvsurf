@@ -1,9 +1,10 @@
 from service.server.api import api
-from service.schema.api import Echo, SearchTV
+from service.schema.api import Echo, SearchTV, AddTV, GetDownloadProgress
 from service.lib.context import Context
 from service.searcher.searchers import Searchers
 import os
 from .db import DB
+from .local_manager import LocalManager
 
 
 class Tracker:
@@ -11,6 +12,7 @@ class Tracker:
         self.context: Context = Context()
         self.searchers = Searchers()
         self.db = DB()
+        self.local_manager = LocalManager()
 
     async def start(self):
         print("Tracker started")
@@ -18,9 +20,12 @@ class Tracker:
         os.makedirs(self.context.config.data_dir, exist_ok=True)
         self.db.start()
         Context.set_data("db", self.db)
+        await self.local_manager.start()
 
     async def stop(self):
         print("Tracker stopped")
+        await self.local_manager.stop()
+        self.db.stop()
         await self.context.__aexit__(None, None, None)
 
     @api
@@ -32,3 +37,15 @@ class Tracker:
     async def search_tv(self, request: SearchTV.Request):
         keyword = request.keyword
         return SearchTV.Response(source=await self.searchers.search(keyword))
+
+    @api
+    async def add_tv(self, request: AddTV.Request):
+        name = request.name
+        source = request.source
+        return AddTV.Response(id=await self.local_manager.add_tv(name, source))
+
+    @api
+    async def get_download_progress(self, request: GetDownloadProgress.Request):
+        return GetDownloadProgress.Response(
+            progress=self.local_manager.get_download_progress()
+        )

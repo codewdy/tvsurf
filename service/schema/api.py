@@ -1,5 +1,6 @@
 from .dtype import BaseModel
 from .tvdb import Source
+from .downloader import DownloadProgressWithName
 
 
 class Echo:
@@ -16,3 +17,20 @@ class SearchTV(BaseModel):
 
     class Response(BaseModel):
         source: list[Source]
+
+
+class AddTV(BaseModel):
+    class Request(BaseModel):
+        name: str
+        source: Source
+
+    class Response(BaseModel):
+        id: int
+
+
+class GetDownloadProgress(BaseModel):
+    class Request(BaseModel):
+        pass
+
+    class Response(BaseModel):
+        progress: list[DownloadProgressWithName]

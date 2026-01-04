@@ -38,6 +38,10 @@ class DB:
         self.save_interval = Context.config.db.save_interval
         self.save_task = asyncio.create_task(self._save_loop())
 
+    def stop(self):
+        self.save()
+        self.save_task.cancel()
+
     async def _save_loop(self):
         while True:
             await asyncio.sleep(self.save_interval.total_seconds())
@@ -47,7 +51,7 @@ class DB:
         filename = os.path.join(self.dir, name + ".json")
         if filename not in self.units:
             self.units[name] = DBUnit(filename, model)
-        return self.units[name]
+        return self.units[name].data
 
     def save(self):
         for unit in self.units.values():

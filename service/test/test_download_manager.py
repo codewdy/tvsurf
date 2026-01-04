@@ -1,6 +1,6 @@
 import sys
 from service.lib.context import Context
-from service.downloader.task import TaskDownloaderManager, DownloadTask
+from service.downloader.task import TaskDownloadManager, DownloadTask
 from service.downloader.progress import human_readable_progress
 import asyncio
 import aiofiles
@@ -33,7 +33,7 @@ async def run():
         async with aiofiles.tempfile.TemporaryDirectory(
             prefix="test_download_manager_"
         ) as temp_dir:
-            manager = TaskDownloaderManager()
+            manager = TaskDownloadManager()
             await manager.start()
             manager.add_task(
                 url=url,
@@ -71,7 +71,12 @@ async def run():
             while True:
                 await asyncio.sleep(1)
                 all_progress = manager.get_progress()
-                print([human_readable_progress(progress) for progress in all_progress])
+                print(
+                    [
+                        f"{progress.name}: {human_readable_progress(progress.progress)}"
+                        for progress in all_progress
+                    ]
+                )
                 if len(all_progress) == 0:
                     break
 

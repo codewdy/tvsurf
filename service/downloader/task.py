@@ -4,7 +4,8 @@ from service.lib.parallel_holder import ParallelHolder
 from service.lib.context import Context
 import asyncio
 from .m3u8 import M3U8Downloader
-from service.schema.downloader import DownloadProgress
+from service.schema.downloader import DownloadProgress, DownloadProgressWithName
+import traceback
 
 
 @dataclass
@@ -59,6 +60,7 @@ class TaskDownloader:
                 )
                 break
             except Exception as e:
+                traceback.print_exc()
                 if i == 1:
                     raise
                 else:
@@ -78,7 +80,7 @@ class TaskDownloader:
             self.downloader = None
 
 
-class TaskDownloaderManager:
+class TaskDownloadManager:
     async def start(self):
         self.tasks: list[DownloadTask] = []
         self.runner = ParallelHolder(
@@ -124,5 +126,10 @@ class TaskDownloaderManager:
             if task.task:
                 task.task.cancel()
 
-    def get_progress(self) -> list[DownloadProgress]:
-        return [task.downloader.get_progress() for task in self.tasks]  # type: ignore
+    def get_progress(self) -> list[DownloadProgressWithName]:
+        return [
+            DownloadProgressWithName(
+                name=task.name, progress=task.downloader.get_progress()  # type: ignore
+            )
+            for task in self.tasks
+        ]

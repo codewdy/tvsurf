@@ -6,24 +6,31 @@ from .searcher import Searcher
 from pathlib import Path
 import json
 from service.schema.tvdb import Source
+from service.schema.tvdb import SourceUrl
 
 
 @cache
 def searcher_list():
     with open(searcher_config_path(), "r") as f:
         searcher_config = json.load(f)
-    return [Searcher(config) for config in searcher_config["searchers"] if config["enable"]]
+    return [
+        Searcher(config) for config in searcher_config["searchers"] if config["enable"]
+    ]
 
 
 class Searchers:
     def __init__(self):
         self.searchers = searcher_list()
-        self.searcher_dict = {
-            searcher.key: searcher for searcher in self.searchers}
+        self.searcher_dict = {searcher.key: searcher for searcher in self.searchers}
 
     async def search(self, keyword: str) -> list[Source]:
-        results = await asyncio.gather(*[searcher.search(keyword) for searcher in self.searchers])
+        results = await asyncio.gather(
+            *[searcher.search(keyword) for searcher in self.searchers]
+        )
         return sum(results, [])
+
+    async def get_resource(self, source: SourceUrl) -> str:
+        return await self.searcher_dict[source.source_key].get_resource(source.url)
 
 
 if __name__ == "__main__":
@@ -41,6 +48,12 @@ if __name__ == "__main__":
             rst = await searchers.search(keyword)
             print(rst)
             with open("result.json", "w") as f:
-                f.write(json.dumps([i.model_dump(mode="json")
-                        for i in rst], ensure_ascii=False, indent=2))
+                f.write(
+                    json.dumps(
+                        [i.model_dump(mode="json") for i in rst],
+                        ensure_ascii=False,
+                        indent=2,
+                    )
+                )
+
     asyncio.run(run())
