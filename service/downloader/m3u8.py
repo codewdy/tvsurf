@@ -90,32 +90,29 @@ class M3U8Downloader:
 
     async def run(self):
         async with aiofiles.tempfile.TemporaryDirectory(prefix="tvsurf-") as tmp:
-            self.download_tracker.update("下载元信息")
+            self.download_tracker.update("下载元信息", False)
             src_m3u8_file = os.path.join(tmp, "src.m3u8")
             urls = await self.download_meta(src_m3u8_file)
-            self.download_tracker.update("下载中")
+            self.download_tracker.update("下载中", True)
             self.download_tracker.set_fragment_count(len(urls))
             fragments = []
-            download_task = []
             runner = ParallelHolder(
                 max_concurrent=Context.config.download.max_concurrent_fragments
             )
-            for i, url in enumerate(urls):
-                fn = os.path.join(tmp, f"fragment_{i}.ts")
-                fragments.append(fn)
-                download_task.append(
+            async with runner:
+                for i, url in enumerate(urls):
+                    fn = os.path.join(tmp, f"fragment_{i}.ts")
+                    fragments.append(fn)
                     runner.schedule(
                         SimpleDownloader(url, fn, self.download_tracker).run()
                     )
-                )
-            for task in download_task:
-                await task
-            self.download_tracker.update("转码中")
+                await runner.wait_all()
+            self.download_tracker.update("转码中", False)
             splitext = os.path.splitext(self.dst)
             tmpname = splitext[0] + ".tmp" + splitext[1]
             await self.ffmpeg(src_m3u8_file, fragments, tmpname)
             await aiofiles.os.rename(tmpname, self.dst)
-            self.download_tracker.update("完成")
+            self.download_tracker.update("完成", False)
 
     def get_progress(self) -> DownloadProgress:
         return self.download_tracker.get_progress()

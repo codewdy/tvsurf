@@ -14,7 +14,7 @@ class SimpleDownloader:
         async with Context.client.get(
             self.src,
             headers=HEADERS,
-            timeout=aiohttp.ClientTimeout(total=Context.config.download.timeout),
+            timeout=aiohttp.ClientTimeout(total=Context.config.download.connect_timeout.total_seconds()),
         ) as resp:
             resp.raise_for_status()
             if self.download_tracker is not None:

@@ -1,12 +1,22 @@
-from .dtype import BaseModel
+from .dtype import BaseModel, TimeDelta
+from datetime import timedelta
 
 
 class DownloadConfig(BaseModel):
-    timeout: int = 300
+    connect_timeout: TimeDelta = "5m"  # type: ignore
     chunk_size: int = 1024 * 1024
     max_concurrent_fragments: int = 5
     max_concurrent_downloads: int = 3
+    max_retries: int = 3
+    download_timeout: TimeDelta = "1h"  # type: ignore
+    retry_interval: TimeDelta = "5m"  # type: ignore
+
+
+class DBConfig(BaseModel):
+    save_interval: TimeDelta = "1m"  # type: ignore
 
 
 class Config(BaseModel):
+    data_dir: str = "data"
+    db: DBConfig = DBConfig()
     download: DownloadConfig = DownloadConfig()

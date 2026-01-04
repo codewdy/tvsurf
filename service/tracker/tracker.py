@@ -2,16 +2,22 @@ from service.server.api import api
 from service.schema.api import Echo, SearchTV
 from service.lib.context import Context
 from service.searcher.searchers import Searchers
+import os
+from .db import DB
 
 
 class Tracker:
     def __init__(self):
         self.context: Context = Context()
         self.searchers = Searchers()
+        self.db = DB()
 
     async def start(self):
         print("Tracker started")
         await self.context.__aenter__()
+        os.makedirs(self.context.config.data_dir, exist_ok=True)
+        self.db.start()
+        Context.set_data("db", self.db)
 
     async def stop(self):
         print("Tracker stopped")

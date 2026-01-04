@@ -7,6 +7,7 @@ from .error_handler import ErrorHandler
 from .logger import get_logger
 import logging
 from service.schema.config import Config
+from typing import Any
 
 
 class ContextMeta(type):
@@ -43,6 +44,12 @@ class ContextMeta(type):
     def warning(cls, msg: str, *args, **kwargs):
         cls.current.logger.warning(msg, *args, **kwargs)
 
+    def data(cls, name: str):
+        return cls.current.data[name]
+
+    def set_data(cls, name: str, d: Any):
+        cls.current.data[name] = d
+
     @property
     def config(cls):
         return cls.current.config
@@ -65,6 +72,7 @@ class Context(metaclass=ContextMeta):
         self.error_handler.add_handler(
             "critical", lambda title, error: self.logger.critical(f"{title}: {error}")
         )
+        self.data = {}
 
     async def __aenter__(self):
         self._current_holder.context = self

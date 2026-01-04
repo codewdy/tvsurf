@@ -10,6 +10,18 @@ class ParallelHolder:
         self.running_tasks: set[int] = set()
         self.id_counter = 0
 
+    async def __aenter__(self):
+        return self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        for task in self.tasks.values():
+            task.cancel()
+        await asyncio.gather(*self.tasks.values(), return_exceptions=True)
+        return True
+
+    async def wait_all(self):
+        await asyncio.gather(*self.tasks.values())
+
     def schedule_task(self):
         if len(self.running_tasks) >= self.max_concurrent:
             return

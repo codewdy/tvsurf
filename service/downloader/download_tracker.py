@@ -55,9 +55,11 @@ class DownloadTracker:
         self.speed_tracker = SpeedTracker()
         self.size_tracker = SizeTracker()
         self.downloaded_size = 0
+        self.downloading = False
 
-    def update(self, status: str):
+    def update(self, status: str, downloading: bool):
         self.status = status
+        self.downloading = downloading
 
     def set_fragment_count(self, count: int):
         self.size_tracker.set_fragment_count(count)
@@ -72,6 +74,7 @@ class DownloadTracker:
     def get_progress(self) -> DownloadProgress:
         return DownloadProgress(
             status=self.status,
+            downloading=self.downloading,
             total_size=self.size_tracker.get_total_size(),
             downloaded_size=self.downloaded_size,
             speed=self.speed_tracker.get_speed(),

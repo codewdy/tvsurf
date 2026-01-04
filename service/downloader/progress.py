@@ -61,7 +61,9 @@ def human_readable_progress(progress: DownloadProgress) -> str:
         人类可读的进度字符串，例如：
         "下载中: 1.5 MB / 10.0 MB (15.0%) - 500 KB/s - 剩余 17秒"
     """
-    status = progress.status or "准备中"
+    if not progress.downloading:
+        return progress.status
+    status = progress.status
     downloaded = format_bytes(progress.downloaded_size)
     total = format_bytes(progress.total_size)
     speed = format_speed(progress.speed)
