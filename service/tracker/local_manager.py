@@ -82,6 +82,9 @@ class LocalManager:
         pass
 
     async def add_tv(self, name: str, source: Source):
+        for i in self.tvdb.tvs.values():
+            if i.name == name:
+                raise KeyError(f"TV {name} 已存在")
         id = self.tvdb.new_tv_id
         self.tvdb.new_tv_id += 1
         tv = TV(
