@@ -44,6 +44,9 @@ class ContextMeta(type):
     def warning(cls, msg: str, *args, **kwargs):
         cls.current.logger.warning(msg, *args, **kwargs)
 
+    def has_data(cls, name: str):
+        return name in cls.current.data
+
     def data(cls, name: str):
         return cls.current.data[name]
 

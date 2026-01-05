@@ -48,6 +48,8 @@ class DB:
             self.save()
 
     def manage(self, name: str, model: Type[BaseModel]):
+        if name in self.units:
+            return self.units[name].data
         filename = os.path.join(self.dir, name + ".json")
         if filename not in self.units:
             self.units[name] = DBUnit(filename, model)

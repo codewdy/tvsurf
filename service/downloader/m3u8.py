@@ -11,6 +11,7 @@ from service.lib.run_cmd import run_cmd
 from service.lib.path import ffmpeg_path
 from service.schema.downloader import DownloadProgress
 from service.lib.parallel_holder import ParallelHolder
+from .m3u8_adblocker import M3U8AdBlocker
 
 
 class M3U8Downloader:
@@ -18,6 +19,7 @@ class M3U8Downloader:
         self.src = src
         self.dst = dst
         self.download_tracker = DownloadTracker()
+        self.ad_block = M3U8AdBlocker()
 
     def select_sub_list(self, lines):
         r = re.compile(r"RESOLUTION=([0-9]+)x([0-9]+)")
@@ -68,6 +70,8 @@ class M3U8Downloader:
                 else:
                     newlines.append(fragments[current_fragment] + "\n")
                     current_fragment += 1
+
+        newlines = await self.ad_block.process_lines(newlines)
 
         with open(src_m3u8, "w") as f:
             f.writelines(newlines)

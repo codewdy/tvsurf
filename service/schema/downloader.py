@@ -12,3 +12,7 @@ class DownloadProgress(BaseModel):
 class DownloadProgressWithName(BaseModel):
     name: str
     progress: DownloadProgress
+
+
+class AdBlockDB(BaseModel):
+    ts_black_list: set[str] = set()
