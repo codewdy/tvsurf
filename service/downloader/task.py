@@ -5,7 +5,6 @@ from service.lib.context import Context
 import asyncio
 from .m3u8 import M3U8Downloader
 from service.schema.downloader import DownloadProgress, DownloadProgressWithName
-import traceback
 
 
 @dataclass
@@ -60,7 +59,6 @@ class TaskDownloader:
                 )
                 break
             except Exception as e:
-                traceback.print_exc()
                 if i == 1:
                     raise
                 else:
