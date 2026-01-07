@@ -11,7 +11,7 @@ from service.schema.tvdb import SourceUrl
 
 @cache
 def searcher_list():
-    with open(searcher_config_path(), "r") as f:
+    with open(searcher_config_path(), "r", encoding="utf-8") as f:
         searcher_config = json.load(f)
     return [
         Searcher(config) for config in searcher_config["searchers"] if config["enable"]

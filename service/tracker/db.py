@@ -9,11 +9,11 @@ class DBUnit:
     def __init__(self, filename: str, model: Type[BaseModel]):
         self.filename = filename
         if os.path.exists(filename):
-            with open(filename, "r") as f:
+            with open(filename, "r", encoding="utf-8") as f:
                 self.data = model.model_validate_json(f.read())
         else:
             self.data = model()
-            with open(filename, "w") as f:
+            with open(filename, "w", encoding="utf-8") as f:
                 f.write(self.data.model_dump_json(indent=2))
         self.dirty = False
         self.data._commit = self.commit
@@ -23,7 +23,7 @@ class DBUnit:
 
     def save(self):
         if self.dirty:
-            with open(self.filename, "w") as f:
+            with open(self.filename, "w", encoding="utf-8") as f:
                 f.write(self.data.model_dump_json(indent=2))
             self.dirty = False
 

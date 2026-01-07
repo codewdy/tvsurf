@@ -6,8 +6,14 @@ config = json.load(open("build.json"))
 a = Analysis(
     ['tray_app.py'],
     pathex=['..'],
-    binaries=[],
-    datas=[(config["chrome-win64"], 'chrome-win64')],
+    binaries=[
+        (config["ffmpeg"], 'ffmpeg'),
+    ],
+    datas=[
+        (config["chrome-win64"], 'chrome-win64'),
+        ("../test-web/build/client", "web"),
+        ("../service/searcher.json", "searcher"),
+        ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -28,7 +34,7 @@ exe = EXE(
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=False,
+    console=True,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
