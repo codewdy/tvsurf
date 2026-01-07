@@ -43,7 +43,7 @@ class BrowserResourceSearcher(BaseResourceSearcher):
         parsed_url = urlparse(video_url)
         query_params = parse_qs(parsed_url.query)
         if "url" in query_params:
-            video_url = query_params["url"][0]
+            video_url = query_params["url"][0].decode("utf-8")
         return video_url
 
 

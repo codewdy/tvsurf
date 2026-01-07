@@ -27,6 +27,10 @@ class ContextMeta(type):
     def client(cls):
         return cls.current.client
 
+    @property
+    def error_handler(cls):
+        return cls.current.error_handler
+
     def handle_error(cls, title: str, type: str = "error", rethrow=False):
         return cls.current.error_handler.handle_error_context(
             title, type, rethrow=rethrow
