@@ -6,5 +6,6 @@ export default [
   route("downloads", "routes/downloads.tsx"),
   route("errors", "routes/errors.tsx"),
   route("system_setup", "routes/system_setup.tsx"),
+  route("login", "routes/login.tsx"),
   route("whoami", "routes/whoami.tsx"),
 ] satisfies RouteConfig;

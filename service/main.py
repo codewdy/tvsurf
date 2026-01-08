@@ -39,14 +39,16 @@ def start():
         if tracker.need_system_setup():
             return "/system_setup?redirect=" + base64.b64encode(path.encode()).decode()
         if not tracker.token_validate(token):
-            return "/system_setup?redirect=" + base64.b64encode(path.encode()).decode()
+            return "/login?redirect=" + base64.b64encode(path.encode()).decode()
         return None
 
     # 注册路由
     # app.router.add_get("/", handle_main)
     app.add_routes(create_routes(tracker))
     app.add_routes(
-        web_routes("/", web_path(), "index.html", ["system_setup"], redirect_func)
+        web_routes(
+            "/", web_path(), "index.html", ["system_setup", "login"], redirect_func
+        )
     )
 
     app.on_startup.append(lambda app: tracker.start())

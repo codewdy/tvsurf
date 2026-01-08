@@ -61,6 +61,14 @@ class Tracker:
             )
         return SystemSetup.Response(token=token)
 
+    @login
+    async def login(self, request: Login.Request):
+        return Login.Response(
+            token=self.user_manager.get_user_token(
+                request.username, request.password_md5
+            )
+        )
+
     @api("user")
     async def whoami(self, user: User, request: Whoami.Request):
         return Whoami.Response(

@@ -11,6 +11,7 @@ __all__ = [
     "GetErrors",
     "RemoveErrors",
     "SystemSetup",
+    "Login",
     "Whoami",
 ]
 
@@ -69,6 +70,15 @@ class SystemSetup(BaseModel):
         username: str
         password_md5: str
         single_user_mode: bool
+
+    class Response(BaseModel):
+        token: str
+
+
+class Login(BaseModel):
+    class Request(BaseModel):
+        username: str
+        password_md5: str
 
     class Response(BaseModel):
         token: str

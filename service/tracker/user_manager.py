@@ -46,6 +46,21 @@ class UserManager:
             (user for user in self.db.users.values() if user.token == token), None
         )
 
+    def get_user_token(self, username: str, password_md5: str):
+        if self.db.single_user_mode:
+            return self.db.users[_SINGLE_USER_NAME]
+        user = next(
+            (
+                user
+                for user in self.db.users.values()
+                if user.username == username and user.password_md5 == password_md5
+            ),
+            None,
+        )
+        if user is None:
+            raise Exception("用户名或密码错误")
+        return user.token
+
     @property
     def single_user_mode(self):
         return self.db.single_user_mode
