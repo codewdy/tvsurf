@@ -20,10 +20,10 @@ class DownloadTask:
 
 
 class TaskDownloader:
-    def __init__(self, task: DownloadTask):
+    def __init__(self, task: DownloadTask) -> None:
         self.task = task
         self.status = "排队中"
-        self.downloader = None
+        self.downloader: Optional[M3U8Downloader] = None
 
     def get_progress(self) -> DownloadProgress:
         if self.downloader is None:
@@ -36,7 +36,7 @@ class TaskDownloader:
             )
         return self.downloader.get_progress()
 
-    async def run(self):
+    async def run(self) -> None:
         try:
             with Context.handle_error(
                 f"下载任务 {self.task.name} 错误", type="critical", rethrow=True
@@ -50,7 +50,7 @@ class TaskDownloader:
                 with Context.handle_error(f"on_error {self.task.name} 错误"):
                     self.task.on_error(e)
 
-    async def run_internal(self):
+    async def run_internal(self) -> None:
         for i in range(Context.config.download.max_retries, 0, -1):
             try:
                 await asyncio.wait_for(
@@ -59,7 +59,6 @@ class TaskDownloader:
                 )
                 break
             except Exception as e:
-                print("run_internal error", e)
                 if i == 1:
                     raise
                 else:
@@ -68,7 +67,7 @@ class TaskDownloader:
                         Context.config.download.retry_interval.total_seconds()
                     )
 
-    async def run_once(self):
+    async def run_once(self) -> None:
         try:
             self.status = "获取视频地址"
             url = await self.task.url() if callable(self.task.url) else self.task.url
@@ -80,14 +79,14 @@ class TaskDownloader:
 
 
 class TaskDownloadManager:
-    async def start(self):
+    async def start(self) -> None:
         self.tasks: list[DownloadTask] = []
         self.runner = ParallelHolder(
             max_concurrent=Context.config.download.max_concurrent_downloads
         )
         await self.runner.__aenter__()
 
-    async def stop(self):
+    async def stop(self) -> None:
         await self.runner.__aexit__(None, None, None)
 
     def add_task(
@@ -98,7 +97,7 @@ class TaskDownloadManager:
         metadata: Any,
         on_finished: Optional[Callable[[], None]],
         on_error: Optional[Callable[[Exception], None]],
-    ):
+    ) -> None:
         task = DownloadTask(
             url=url,
             dst=dst,
@@ -113,7 +112,7 @@ class TaskDownloadManager:
         task.task = self.runner.schedule(downloader.run)
         task.task.add_done_callback(lambda _: self.tasks.remove(task))
 
-    def remove_filtered_task(self, filter: Callable[[Any], bool]):
+    def remove_filtered_task(self, filter: Callable[[Any], bool]) -> None:
         remove_tasks = [task for task in self.tasks if filter(task.metadata)]
         for task in remove_tasks:
             if task.task:

@@ -5,12 +5,12 @@ from datetime import datetime
 
 
 class ErrorDB:
-    async def start(self):
+    async def start(self) -> None:
         self.error_db = Context.data("db").manage("error_db", ErrorDBSchema)
         Context.error_handler.add_handler("error", self.handle_error)
         Context.error_handler.add_handler("critical", self.handle_critical_error)
 
-    def handle_error(self, title: str, error: str):
+    def handle_error(self, title: str, error: str) -> None:
         self.error_db.errors.append(
             Error(
                 id=self.error_db.next_error_id,
@@ -23,7 +23,7 @@ class ErrorDB:
         self.error_db.next_error_id += 1
         self.error_db.commit()
 
-    def handle_critical_error(self, title: str, error: str):
+    def handle_critical_error(self, title: str, error: str) -> None:
         self.error_db.errors.append(
             Error(
                 id=self.error_db.next_error_id,
@@ -39,7 +39,7 @@ class ErrorDB:
     def get_errors(self) -> list[Error]:
         return self.error_db.errors
 
-    def remove_errors(self, ids: list[int]):
+    def remove_errors(self, ids: list[int]) -> None:
         self.error_db.errors = [
             error for error in self.error_db.errors if error.id not in ids
         ]

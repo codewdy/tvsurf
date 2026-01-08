@@ -1,5 +1,5 @@
 from playwright.async_api import async_playwright, Playwright, Browser
-from typing import AsyncContextManager
+from typing import AsyncContextManager, Any, Optional
 import threading
 import aiohttp
 from .path import chromium_path
@@ -7,58 +7,59 @@ from .error_handler import ErrorHandler
 from .logger import get_logger
 import logging
 from service.schema.config import Config
-from typing import Any
 
 
 class ContextMeta(type):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._current_holder = threading.local()
 
     @property
-    def current(cls):
+    def current(cls) -> "Context":
         return cls._current_holder.context
 
     @property
-    def browser(cls):
+    def browser(cls) -> Browser:
         return cls.current.browser
 
     @property
-    def client(cls):
+    def client(cls) -> aiohttp.ClientSession:
         return cls.current.client
 
     @property
-    def error_handler(cls):
+    def error_handler(cls) -> "ErrorHandler":
         return cls.current.error_handler
 
-    def handle_error(cls, title: str, type: str = "error", rethrow=False):
+    def handle_error(
+        cls, title: str, type: str = "error", rethrow: bool = False
+    ) -> Any:
         return cls.current.error_handler.handle_error_context(
             title, type, rethrow=rethrow
         )
 
-    def info(cls, msg: str, *args, **kwargs):
+    def info(cls, msg: str, *args: Any, **kwargs: Any) -> None:
         cls.current.logger.info(msg, *args, **kwargs)
 
-    def debug(cls, msg: str, *args, **kwargs):
+    def debug(cls, msg: str, *args: Any, **kwargs: Any) -> None:
         cls.current.logger.debug(msg, *args, **kwargs)
 
-    def error(cls, msg: str, *args, **kwargs):
+    def error(cls, msg: str, *args: Any, **kwargs: Any) -> None:
         cls.current.logger.error(msg, *args, **kwargs)
 
-    def warning(cls, msg: str, *args, **kwargs):
+    def warning(cls, msg: str, *args: Any, **kwargs: Any) -> None:
         cls.current.logger.warning(msg, *args, **kwargs)
 
-    def has_data(cls, name: str):
+    def has_data(cls, name: str) -> bool:
         return name in cls.current.data
 
-    def data(cls, name: str):
+    def data(cls, name: str) -> Any:
         return cls.current.data[name]
 
-    def set_data(cls, name: str, d: Any):
+    def set_data(cls, name: str, d: Any) -> None:
         cls.current.data[name] = d
 
     @property
-    def config(cls):
+    def config(cls) -> Config:
         return cls.current.config
 
 
@@ -81,7 +82,7 @@ class Context(metaclass=ContextMeta):
         )
         self.data = {}
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> "Context":
         self._current_holder.context = self
 
         # playwright
@@ -97,7 +98,12 @@ class Context(metaclass=ContextMeta):
 
         return self
 
-    async def __aexit__(self, exc_type, exc, tb):
+    async def __aexit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc: Optional[BaseException],
+        tb: Any,
+    ) -> None:
         try:
             await self.browser.close()
         except Exception:

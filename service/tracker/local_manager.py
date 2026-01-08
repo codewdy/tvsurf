@@ -11,18 +11,18 @@ import asyncio
 
 
 class TVDownloadManager:
-    def __init__(self, tvdb: TVDB):
+    def __init__(self, tvdb: TVDB) -> None:
         self.tvdb = tvdb
 
-    async def start(self):
+    async def start(self) -> None:
         self.task_manager = TaskDownloadManager()
         await self.task_manager.start()
         self.searchers = Searchers()
 
-    async def stop(self):
+    async def stop(self) -> None:
         await self.task_manager.stop()
 
-    def submit(self, tv_id: int, episode_id: int):
+    def submit(self, tv_id: int, episode_id: int) -> None:
         tv = self.tvdb.tvs[tv_id]
         if tv.storage.episodes[episode_id].status != DownloadStatus.RUNNING:
             return
@@ -37,23 +37,23 @@ class TVDownloadManager:
             lambda error: self.on_download_error(tv_id, episode_id, error),
         )
 
-    def submit_episodes(self, tv_id: int, ep_start: int):
+    def submit_episodes(self, tv_id: int, ep_start: int) -> None:
         tv = self.tvdb.tvs[tv_id]
         for i in range(ep_start, len(tv.source.episodes)):
             self.submit(tv_id, i)
 
-    async def cancel(self, tv_id: int):
+    async def cancel(self, tv_id: int) -> None:
         raise NotImplementedError("Not implemented")
 
     def get_download_progress(self) -> list[DownloadProgressWithName]:
         return self.task_manager.get_progress()
 
-    def on_download_finished(self, tv_id: int, episode_id: int):
+    def on_download_finished(self, tv_id: int, episode_id: int) -> None:
         tv = self.tvdb.tvs[tv_id]
         tv.storage.episodes[episode_id].status = DownloadStatus.SUCCESS
         self.tvdb.commit()
 
-    def on_download_error(self, tv_id: int, episode_id: int, error: Exception):
+    def on_download_error(self, tv_id: int, episode_id: int, error: Exception) -> None:
         tv = self.tvdb.tvs[tv_id]
         tv.storage.episodes[episode_id].status = DownloadStatus.FAILED
         self.tvdb.commit()
@@ -65,20 +65,20 @@ class Updater:
         tvdb: TVDB,
         on_update: Callable[[int, Source], Awaitable[None]],
         on_no_update: Callable[[int], Awaitable[None]],
-    ):
+    ) -> None:
         self.tvdb = tvdb
         self.on_update = on_update
         self.on_no_update = on_no_update
 
-    async def start(self):
+    async def start(self) -> None:
         self.searchers = Searchers()
         self.update_task = asyncio.create_task(self.update_loop())
 
-    async def stop(self):
+    async def stop(self) -> None:
         self.update_task.cancel()
         await asyncio.gather(self.update_task, return_exceptions=True)
 
-    async def update_tv(self, tv_id: int):
+    async def update_tv(self, tv_id: int) -> None:
         tv = self.tvdb.tvs[tv_id]
         new_source = await self.searchers.update_source(tv.source)
         if new_source is not None:
@@ -86,7 +86,7 @@ class Updater:
         else:
             await self.on_no_update(tv_id)
 
-    async def update_all(self):
+    async def update_all(self) -> None:
         with Context.handle_error(title="update_all", type="critical"):
             async with ParallelHolder(Context.config.tracker.update_parallel) as holder:
                 for i, tv in self.tvdb.tvs.items():
@@ -96,13 +96,13 @@ class Updater:
         self.tvdb.last_update = datetime.now()
         self.tvdb.commit()
 
-    def should_update(self):
+    def should_update(self) -> bool:
         return (
             datetime.now() - self.tvdb.last_update
             > Context.config.tracker.update_interval
         )
 
-    async def update_loop(self):
+    async def update_loop(self) -> None:
         with Context.handle_error(title="update_loop", type="critical"):
             while True:
                 if self.should_update():
@@ -119,7 +119,7 @@ class Updater:
 
 
 class LocalManager:
-    async def start(self):
+    async def start(self) -> None:
         self.tvdb: TVDB = Context.data("db").manage("tvdb", TVDB)
         self.download_manager = TVDownloadManager(self.tvdb)
         self.updater = Updater(self.tvdb, self.on_update, self.on_no_update)
@@ -127,21 +127,21 @@ class LocalManager:
         await self.resume_download_on_start()
         await self.updater.start()
 
-    async def stop(self):
+    async def stop(self) -> None:
         await self.updater.stop()
         await self.download_manager.stop()
 
-    async def resume_download_on_start(self):
+    async def resume_download_on_start(self) -> None:
         for i, tv in self.tvdb.tvs.items():
             self.download_manager.submit_episodes(i, 0)
 
-    async def on_update(self, id: int, source: Source):
+    async def on_update(self, id: int, source: Source) -> None:
         tv = self.tvdb.tvs[id]
         tv.source = source
         self.allocate_local(tv)
         self.tvdb.commit()
 
-    async def on_no_update(self, id: int):
+    async def on_no_update(self, id: int) -> None:
         tv = self.tvdb.tvs[id]
         if (
             tv.track.latest_update
@@ -150,7 +150,7 @@ class LocalManager:
             tv.track.tracking = False
             self.tvdb.commit()
 
-    async def add_tv(self, name: str, source: Source):
+    async def add_tv(self, name: str, source: Source) -> int:
         for i in self.tvdb.tvs.values():
             if i.name == name:
                 raise KeyError(f"TV {name} 已存在")
@@ -170,7 +170,7 @@ class LocalManager:
         self.tvdb.commit()
         return id
 
-    def allocate_local(self, tv: TV):
+    def allocate_local(self, tv: TV) -> None:
         ext = ".mp4"
         start_index = len(tv.storage.episodes)
         filenames = set(ep.filename for ep in tv.storage.episodes)

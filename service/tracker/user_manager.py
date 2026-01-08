@@ -1,19 +1,20 @@
 from service.lib.context import Context
 from service.schema.user_db import UserDB, User
 from uuid import uuid4
+from typing import Optional
 
 
 _SINGLE_USER_NAME = "user"
 
 
 class UserManager:
-    async def start(self):
+    async def start(self) -> None:
         self.db = Context.data("db").manage("user_db", UserDB)
 
-    def has_user(self):
+    def has_user(self) -> bool:
         return len(self.db.users) > 0
 
-    def set_single_user_mode(self):
+    def set_single_user_mode(self) -> str:
         if self.has_user():
             raise Exception("系统已设置")
         token = str(uuid4())
@@ -27,7 +28,7 @@ class UserManager:
         self.db.commit()
         return token
 
-    def add_user(self, username: str, password_md5: str, group: list[str]):
+    def add_user(self, username: str, password_md5: str, group: list[str]) -> str:
         if self.db.single_user_mode:
             raise Exception("单用户模式下无法添加用户")
         if username in self.db.users:
@@ -39,16 +40,16 @@ class UserManager:
         self.db.commit()
         return token
 
-    def get_user(self, token: str):
+    def get_user(self, token: Optional[str]) -> Optional[User]:
         if self.db.single_user_mode:
             return self.db.users[_SINGLE_USER_NAME]
         return next(
             (user for user in self.db.users.values() if user.token == token), None
         )
 
-    def get_user_token(self, username: str, password_md5: str):
+    def get_user_token(self, username: str, password_md5: str) -> str:
         if self.db.single_user_mode:
-            return self.db.users[_SINGLE_USER_NAME]
+            return self.db.users[_SINGLE_USER_NAME].token
         user = next(
             (
                 user
@@ -62,5 +63,5 @@ class UserManager:
         return user.token
 
     @property
-    def single_user_mode(self):
+    def single_user_mode(self) -> bool:
         return self.db.single_user_mode

@@ -11,7 +11,7 @@ from typing import Optional
 
 
 @cache
-def searcher_list():
+def searcher_list() -> list[Searcher]:
     with open(searcher_config_path(), "r", encoding="utf-8") as f:
         searcher_config = json.load(f)
     return [
@@ -20,9 +20,11 @@ def searcher_list():
 
 
 class Searchers:
-    def __init__(self):
+    def __init__(self) -> None:
         self.searchers = searcher_list()
-        self.searcher_dict = {searcher.key: searcher for searcher in self.searchers}
+        self.searcher_dict: dict[str, Searcher] = {
+            searcher.key: searcher for searcher in self.searchers
+        }
 
     async def search(self, keyword: str) -> list[Source]:
         results = await asyncio.gather(
@@ -51,7 +53,7 @@ if __name__ == "__main__":
 
     keyword = sys.argv[-1]
 
-    async def run():
+    async def run() -> None:
         async with Context():
             searchers = Searchers()
             rst = await searchers.search(keyword)

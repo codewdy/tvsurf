@@ -6,9 +6,10 @@ from aiohttp.web_runner import _raise_graceful_exit
 from service.lib.path import web_path
 from service.server.web import web_routes
 import base64
+from typing import Optional
 
 
-async def handle_main(_request):
+async def handle_main(_request: web.Request) -> web.StreamResponse:
     """处理测试请求"""
     return web.Response(text="main")
 
@@ -16,7 +17,7 @@ async def handle_main(_request):
 _loop: asyncio.AbstractEventLoop | None = None
 
 
-def stop():
+def stop() -> None:
     """停止 HTTP 服务"""
     global _loop
     if _loop is None:
@@ -26,14 +27,14 @@ def stop():
     _loop = None
 
 
-def start():
+def start() -> None:
     """启动 HTTP 服务"""
     global _loop
     tracker = Tracker()
 
     app = web.Application()
 
-    def redirect_func(token: str, path: str):
+    def redirect_func(token: Optional[str], path: str) -> Optional[str]:
         if path == "/favicon.ico" or path.startswith("/assets/"):
             return None
         if tracker.need_system_setup():

@@ -1,15 +1,23 @@
 import os
 from aiohttp import web
+from typing import Callable, Optional
+from aiohttp.web import RouteDef
 
 
 class WebHandler:
-    def __init__(self, path, default, logins, redirect_func):
+    def __init__(
+        self,
+        path: str,
+        default: str,
+        logins: list[str],
+        redirect_func: Callable[[Optional[str], str], Optional[str]],
+    ) -> None:
         self.path = path
         self.default = default
         self.logins = logins
         self.redirect_func = redirect_func
 
-    async def __call__(self, request):
+    async def __call__(self, request: web.Request) -> web.StreamResponse:
         path = (
             request.match_info["path"] if "path" in request.match_info else self.default
         )
@@ -31,7 +39,13 @@ class WebHandler:
             )
 
 
-def web_routes(web_path, path, default, logins, redirect_func):
+def web_routes(
+    web_path: str,
+    path: str,
+    default: str,
+    logins: list[str],
+    redirect_func: Callable[[Optional[str], str], Optional[str]],
+) -> list[RouteDef]:
     if not web_path.endswith("/"):
         web_path += "/"
     handler = WebHandler(path, default, logins, redirect_func)
