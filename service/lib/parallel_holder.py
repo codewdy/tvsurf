@@ -1,5 +1,5 @@
 import asyncio
-from typing import Awaitable
+from typing import Awaitable, Callable
 
 
 class ParallelHolder:
@@ -17,10 +17,9 @@ class ParallelHolder:
         for task in self.tasks.values():
             task.cancel()
         await asyncio.gather(*self.tasks.values(), return_exceptions=True)
-        return True
 
     async def wait_all(self):
-        await asyncio.gather(*self.tasks.values())
+        return await asyncio.gather(*self.tasks.values())
 
     def schedule_task(self):
         if len(self.running_tasks) >= self.max_concurrent:
@@ -40,7 +39,7 @@ class ParallelHolder:
             self.running_tasks.remove(id)
         self.schedule_task()
 
-    def schedule(self, coro: Awaitable):
+    def schedule(self, coro: Callable[[], Awaitable]):
         id = self.id_counter
         self.id_counter += 1
         event = asyncio.Event()
@@ -48,7 +47,7 @@ class ParallelHolder:
 
         async def task_wrapper():
             await event.wait()
-            await coro
+            await coro()
 
         task = asyncio.create_task(task_wrapper())
         self.tasks[id] = task

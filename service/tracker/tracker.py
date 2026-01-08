@@ -29,6 +29,7 @@ class Tracker:
         print("Tracker stopped")
         await self.local_manager.stop()
         self.db.stop()
+        print("Tracker stopped successfully")
         await self.context.__aexit__(None, None, None)
 
     @api

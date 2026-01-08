@@ -59,6 +59,7 @@ class TaskDownloader:
                 )
                 break
             except Exception as e:
+                print("run_internal error", e)
                 if i == 1:
                     raise
                 else:
@@ -89,12 +90,6 @@ class TaskDownloadManager:
     async def stop(self):
         await self.runner.__aexit__(None, None, None)
 
-    def wrap_callback(self, task: DownloadTask, func: Optional[Callable]):
-        def callback(*args, **kwargs):
-            if func:
-                func(*args, **kwargs)
-            self.tasks.remove(task)
-
     def add_task(
         self,
         url: Union[Callable[[], Awaitable[str]], str],
@@ -115,7 +110,7 @@ class TaskDownloadManager:
         self.tasks.append(task)
         downloader = TaskDownloader(task)
         task.downloader = downloader
-        task.task = self.runner.schedule(downloader.run())
+        task.task = self.runner.schedule(downloader.run)
         task.task.add_done_callback(lambda _: self.tasks.remove(task))
 
     def remove_filtered_task(self, filter: Callable[[Any], bool]):
