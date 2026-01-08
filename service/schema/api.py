@@ -11,6 +11,7 @@ __all__ = [
     "GetErrors",
     "RemoveErrors",
     "SystemSetup",
+    "Whoami",
 ]
 
 
@@ -70,3 +71,12 @@ class SystemSetup(BaseModel):
 
     class Response(BaseModel):
         token: str
+
+
+class Whoami(BaseModel):
+    class Request(BaseModel):
+        pass
+
+    class Response(BaseModel):
+        username: str
+        group: list[str]

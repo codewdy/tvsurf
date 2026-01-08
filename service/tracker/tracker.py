@@ -6,6 +6,7 @@ import os
 from .db import DB
 from .local_manager import LocalManager
 from .error_db import ErrorDB
+from .user_manager import UserManager
 from service.schema.user_db import User
 from typing import Optional
 
@@ -16,16 +17,19 @@ class Tracker:
         self.searchers = Searchers()
         self.db = DB()
         self.local_manager = LocalManager()
+        self.user_manager = UserManager()
         self.error_db = ErrorDB()
 
     async def start(self):
         print("Tracker started")
         await self.context.__aenter__()
-        os.makedirs(self.context.config.data_dir, exist_ok=True)
-        self.db.start()
-        Context.set_data("db", self.db)
-        await self.error_db.start()
-        await self.local_manager.start()
+        with Context.handle_error("tracker start failed", rethrow=True):
+            os.makedirs(self.context.config.data_dir, exist_ok=True)
+            self.db.start()
+            Context.set_data("db", self.db)
+            await self.error_db.start()
+            await self.local_manager.start()
+            await self.user_manager.start()
 
     async def stop(self):
         print("Tracker stopped")
@@ -36,20 +40,28 @@ class Tracker:
         await self.context.__aexit__(None, None, None)
 
     def need_system_setup(self):
-        return False
+        return not self.user_manager.has_user()
 
     def token_validate(self, token: str):
-        return token == "123456"
+        return self.get_user(token) is not None
 
     @get_user
     def get_user(self, token: str) -> Optional[User]:
-        if token == "123456":
-            return User(group=["user"])
-        return None
+        return self.user_manager.get_user(token)
 
     @login
     async def system_setup(self, request: SystemSetup.Request):
-        return SystemSetup.Response(token="123456")
+        if self.user_manager.has_user():
+            raise Exception("系统已设置")
+        return SystemSetup.Response(
+            token=self.user_manager.add_user(
+                request.username, request.password_md5, ["user", "admin"]
+            )
+        )
+
+    @api("user")
+    async def whoami(self, user: User, request: Whoami.Request):
+        return Whoami.Response(username=user.username, group=user.group)
 
     @api("user")
     async def echo(self, user: User, request: Echo.Request):

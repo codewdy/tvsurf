@@ -2,8 +2,11 @@ from .dtype import BaseModel
 
 
 class User(BaseModel):
+    username: str
+    password_md5: str
+    token: str
     group: list[str]
 
 
 class UserDB(BaseModel):
-    users: dict[str, User]
+    users: dict[str, User] = {}
