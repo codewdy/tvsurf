@@ -10,3 +10,4 @@ class User(BaseModel):
 
 class UserDB(BaseModel):
     users: dict[str, User] = {}
+    single_user_mode: bool = False

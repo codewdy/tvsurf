@@ -41,42 +41,49 @@ export default function SystemSetup() {
     return "/search";
   };
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent, singleUserMode: boolean = false) => {
     e.preventDefault();
     setError(null);
 
-    // 验证输入
-    if (!username.trim()) {
-      setError("请输入用户名");
-      return;
-    }
+    // 单用户模式不需要验证用户名和密码
+    if (!singleUserMode) {
+      // 验证输入
+      if (!username.trim()) {
+        setError("请输入用户名");
+        return;
+      }
 
-    if (!password) {
-      setError("请输入密码");
-      return;
-    }
+      if (!password) {
+        setError("请输入密码");
+        return;
+      }
 
-    if (password !== confirmPassword) {
-      setError("两次输入的密码不一致");
-      return;
+      if (password !== confirmPassword) {
+        setError("两次输入的密码不一致");
+        return;
+      }
     }
 
     setLoading(true);
 
     try {
-      // 计算密码的 MD5
-      const passwordMd5 = md5(password);
-
       // 调用 API
+      const requestBody: {
+        username: string;
+        password_md5: string;
+        single_user_mode: boolean;
+      } = {
+        username: singleUserMode ? "" : username.trim(),
+        password_md5: singleUserMode ? "" : md5(password),
+        single_user_mode: singleUserMode,
+      };
+
       const response = await fetch("/api/system_setup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          username: username.trim(),
-          password_md5: passwordMd5,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
@@ -93,6 +100,10 @@ export default function SystemSetup() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSingleUserMode = async (e: FormEvent) => {
+    await handleSubmit(e, true);
   };
 
   return (
@@ -166,7 +177,7 @@ export default function SystemSetup() {
             </div>
           </div>
 
-          <div>
+          <div className="space-y-3">
             <button
               type="submit"
               disabled={loading}
@@ -174,6 +185,25 @@ export default function SystemSetup() {
             >
               {loading ? "注册中..." : "完成注册"}
             </button>
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-gray-50 text-gray-500">或</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={handleSingleUserMode}
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? "初始化中..." : "使用单用户模式初始化"}
+            </button>
+            <p className="text-xs text-center text-gray-500">
+              单用户模式无需设置用户名和密码，适合个人使用
+            </p>
           </div>
         </form>
       </div>

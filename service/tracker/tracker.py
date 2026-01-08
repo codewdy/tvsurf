@@ -53,15 +53,21 @@ class Tracker:
     async def system_setup(self, request: SystemSetup.Request):
         if self.user_manager.has_user():
             raise Exception("系统已设置")
-        return SystemSetup.Response(
-            token=self.user_manager.add_user(
+        if request.single_user_mode:
+            token = self.user_manager.set_single_user_mode()
+        else:
+            token = self.user_manager.add_user(
                 request.username, request.password_md5, ["user", "admin"]
             )
-        )
+        return SystemSetup.Response(token=token)
 
     @api("user")
     async def whoami(self, user: User, request: Whoami.Request):
-        return Whoami.Response(username=user.username, group=user.group)
+        return Whoami.Response(
+            username=user.username,
+            group=user.group,
+            single_user_mode=self.user_manager.single_user_mode,
+        )
 
     @api("user")
     async def echo(self, user: User, request: Echo.Request):

@@ -68,6 +68,7 @@ class SystemSetup(BaseModel):
     class Request(BaseModel):
         username: str
         password_md5: str
+        single_user_mode: bool
 
     class Response(BaseModel):
         token: str
@@ -80,3 +81,4 @@ class Whoami(BaseModel):
     class Response(BaseModel):
         username: str
         group: list[str]
+        single_user_mode: bool

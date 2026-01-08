@@ -37,8 +37,6 @@ def _wrap_api(group, name, func, context):
         try:
             with Context.handle_error(f"API {name} 处理失败", rethrow=True):
                 token = request.cookies.get("token", None)
-                if token is None:
-                    return web.Response(text="Unauthorized: no token", status=401)
                 user = context.get_user(token)
                 if user is None:
                     return web.Response(

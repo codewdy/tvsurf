@@ -5,6 +5,7 @@ import type { Route } from "./+types/whoami";
 interface WhoamiResponse {
   username: string;
   group: string[];
+  single_user_mode: boolean;
 }
 
 export function meta({ }: Route.MetaArgs) {
@@ -113,8 +114,8 @@ export default function Whoami() {
                       <span
                         key={index}
                         className={`px-3 py-1 rounded-full text-sm font-medium ${group === "admin"
-                            ? "bg-purple-100 text-purple-800"
-                            : "bg-blue-100 text-blue-800"
+                          ? "bg-purple-100 text-purple-800"
+                          : "bg-blue-100 text-blue-800"
                           }`}
                       >
                         {group}
@@ -122,6 +123,34 @@ export default function Whoami() {
                     ))
                   ) : (
                     <span className="text-gray-500 text-sm">无</span>
+                  )}
+                </div>
+              </div>
+
+              {/* 单用户模式 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-2">
+                  运行模式
+                </label>
+                <div className="flex items-center gap-2">
+                  {userInfo.single_user_mode ? (
+                    <>
+                      <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                        单用户模式
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        系统运行在单用户模式下，无需密码即可访问
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">
+                        多用户模式
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        系统运行在多用户模式下，需要用户名和密码登录
+                      </span>
+                    </>
                   )}
                 </div>
               </div>
