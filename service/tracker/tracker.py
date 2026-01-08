@@ -27,6 +27,7 @@ class Tracker:
 
     async def stop(self):
         print("Tracker stopped")
+        self.db.save()
         await self.local_manager.stop()
         self.db.stop()
         print("Tracker stopped successfully")
