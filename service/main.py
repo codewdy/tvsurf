@@ -5,6 +5,7 @@ from service.server.api import create_routes
 from aiohttp.web_runner import _raise_graceful_exit
 from service.lib.path import web_path
 from service.server.web import web_routes
+import base64
 
 
 async def handle_main(_request):
@@ -32,10 +33,21 @@ def start():
 
     app = web.Application()
 
+    def redirect_func(token: str, path: str):
+        if path == "/favicon.ico" or path.startswith("/assets/"):
+            return None
+        if tracker.need_system_setup():
+            return "/system_setup?redirect=" + base64.b64encode(path.encode()).decode()
+        if not tracker.token_validate(token):
+            return "/system_setup?redirect=" + base64.b64encode(path.encode()).decode()
+        return None
+
     # 注册路由
     # app.router.add_get("/", handle_main)
     app.add_routes(create_routes(tracker))
-    app.add_routes(web_routes("/", web_path(), "index.html", ["system_setup"]))
+    app.add_routes(
+        web_routes("/", web_path(), "index.html", ["system_setup"], redirect_func)
+    )
 
     app.on_startup.append(lambda app: tracker.start())
     app.on_cleanup.append(lambda app: tracker.stop())

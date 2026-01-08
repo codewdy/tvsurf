@@ -65,7 +65,8 @@ export default function Search() {
       });
 
       if (!response.ok) {
-        throw new Error(`搜索失败: ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`搜索失败: ${response.statusText} - ${errorText}`);
       }
 
       const data: SearchTVResponse = await response.json();

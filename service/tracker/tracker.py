@@ -1,4 +1,4 @@
-from service.server.api import api, login
+from service.server.api import api, login, get_user
 from service.schema.api import *
 from service.lib.context import Context
 from service.searcher.searchers import Searchers
@@ -6,6 +6,8 @@ import os
 from .db import DB
 from .local_manager import LocalManager
 from .error_db import ErrorDB
+from service.schema.user_db import User
+from typing import Optional
 
 
 class Tracker:
@@ -33,38 +35,51 @@ class Tracker:
         print("Tracker stopped successfully")
         await self.context.__aexit__(None, None, None)
 
+    def need_system_setup(self):
+        return False
+
+    def token_validate(self, token: str):
+        return token == "123456"
+
+    @get_user
+    def get_user(self, token: str) -> Optional[User]:
+        if token == "123456":
+            return User(group=["user"])
+        return None
+
     @login
     async def system_setup(self, request: SystemSetup.Request):
-        print(request)
         return SystemSetup.Response(token="123456")
 
-    @api
-    async def echo(self, request: Echo.Request):
+    @api("user")
+    async def echo(self, user: User, request: Echo.Request):
         msg = request.message
         return Echo.Response(message=msg)
 
-    @api
-    async def search_tv(self, request: SearchTV.Request):
+    @api("user")
+    async def search_tv(self, user: User, request: SearchTV.Request):
         keyword = request.keyword
         return SearchTV.Response(source=await self.searchers.search(keyword))
 
-    @api
-    async def add_tv(self, request: AddTV.Request):
+    @api("user")
+    async def add_tv(self, user: User, request: AddTV.Request):
         name = request.name
         source = request.source
         return AddTV.Response(id=await self.local_manager.add_tv(name, source))
 
-    @api
-    async def get_download_progress(self, request: GetDownloadProgress.Request):
+    @api("user")
+    async def get_download_progress(
+        self, user: User, request: GetDownloadProgress.Request
+    ):
         return GetDownloadProgress.Response(
             progress=self.local_manager.get_download_progress()
         )
 
-    @api
-    async def get_errors(self, request: GetErrors.Request):
+    @api("user")
+    async def get_errors(self, user: User, request: GetErrors.Request):
         return GetErrors.Response(errors=self.error_db.get_errors())
 
-    @api
-    async def remove_errors(self, request: RemoveErrors.Request):
+    @api("admin")
+    async def remove_errors(self, user: User, request: RemoveErrors.Request):
         self.error_db.remove_errors(request.ids)
         return RemoveErrors.Response()
