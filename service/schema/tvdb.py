@@ -62,3 +62,4 @@ class TVDB(BaseModel):
     tvs: dict[int, TV] = {}
     new_album_id: int = 1
     new_tv_id: int = 1
+    last_update: datetime = datetime.min

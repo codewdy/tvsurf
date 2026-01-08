@@ -92,7 +92,7 @@ class Context(metaclass=ContextMeta):
         )
 
         # aiohttp
-        self.client = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))
+        self.client = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))  # type: ignore
         await self.client.__aenter__()
 
         return self

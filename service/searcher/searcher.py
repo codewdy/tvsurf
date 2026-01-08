@@ -4,6 +4,7 @@ from .resource import create_resource_searcher
 from service.schema.tvdb import Source, SourceUrl
 import asyncio
 from service.lib.context import Context
+from typing import Optional
 
 
 class Searcher:
@@ -48,6 +49,34 @@ class Searcher:
                         )
                     )
         return results
+
+    async def update_source(self, source: Source) -> Optional[Source]:
+        channels = await self.channel_searcher.search(source.source.url)
+        channel = next(
+            (c for c in channels if c.name == source.source.channel_name), None
+        )
+        if channel is None:
+            raise KeyError(f"channel {source.source.channel_name} not found")
+        if len(source.episodes) == len(channel.episodes):
+            return None
+        return Source(
+            source=source.source,
+            name=source.name,
+            cover_url=source.cover_url,
+            episodes=source.episodes
+            + [
+                Source.Episode(
+                    source=SourceUrl(
+                        source_key=self.key,
+                        source_name=self.name,
+                        channel_name=channel.name,
+                        url=e.url,
+                    ),
+                    name=e.name,
+                )
+                for e in channel.episodes[len(source.episodes) :]
+            ],
+        )
 
     async def get_resource(self, url: str) -> str:
         return await self.resource_searcher.search(url)

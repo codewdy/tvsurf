@@ -16,7 +16,14 @@ class DBConfig(BaseModel):
     save_interval: TimeDelta = "1m"  # type: ignore
 
 
+class TrackerConfig(BaseModel):
+    update_interval: TimeDelta = "1d"  # type: ignore
+    tracking_timeout: TimeDelta = "14d"  # type: ignore
+    update_parallel: int = 10
+
+
 class Config(BaseModel):
     data_dir: str = "data"
     db: DBConfig = DBConfig()
     download: DownloadConfig = DownloadConfig()
+    tracker: TrackerConfig = TrackerConfig()

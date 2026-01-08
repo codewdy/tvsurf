@@ -7,6 +7,7 @@ from pathlib import Path
 import json
 from service.schema.tvdb import Source
 from service.schema.tvdb import SourceUrl
+from typing import Optional
 
 
 @cache
@@ -28,6 +29,14 @@ class Searchers:
             *[searcher.search(keyword) for searcher in self.searchers]
         )
         return sum(results, [])
+
+    async def update_source(self, source: Source) -> Optional[Source]:
+        with Context.handle_error(
+            title=f"update_source {source.name} - {source.source.source_key}"
+        ):
+            return await self.searcher_dict[source.source.source_key].update_source(
+                source
+            )
 
     async def get_resource(self, source: SourceUrl) -> str:
         return await self.searcher_dict[source.source_key].get_resource(source.url)

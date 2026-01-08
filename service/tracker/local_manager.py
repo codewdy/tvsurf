@@ -6,6 +6,8 @@ from service.downloader.task import TaskDownloadManager
 from typing import Callable, Awaitable
 from .path import create_tv_path, remove_tv_path, get_tv_path, get_episode_path
 from service.searcher.searchers import Searchers
+from service.lib.parallel_holder import ParallelHolder
+import asyncio
 
 
 class TVDownloadManager:
@@ -58,35 +60,95 @@ class TVDownloadManager:
 
 
 class Updater:
-    def __init__(self, tvdb: TVDB, on_update: Callable[[int], Awaitable[None]]):
+    def __init__(
+        self,
+        tvdb: TVDB,
+        on_update: Callable[[int, Source], Awaitable[None]],
+        on_no_update: Callable[[int], Awaitable[None]],
+    ):
         self.tvdb = tvdb
         self.on_update = on_update
+        self.on_no_update = on_no_update
 
     async def start(self):
-        pass
+        self.searchers = Searchers()
+        self.update_task = asyncio.create_task(self.update_loop())
 
     async def stop(self):
-        pass
+        self.update_task.cancel()
+        await asyncio.gather(self.update_task, return_exceptions=True)
+
+    async def update_tv(self, tv_id: int):
+        tv = self.tvdb.tvs[tv_id]
+        new_source = await self.searchers.update_source(tv.source)
+        if new_source is not None:
+            await self.on_update(tv_id, new_source)
+        else:
+            await self.on_no_update(tv_id)
+
+    async def update_all(self):
+        with Context.handle_error(title="update_all", type="critical"):
+            async with ParallelHolder(Context.config.tracker.update_parallel) as holder:
+                for i, tv in self.tvdb.tvs.items():
+                    if tv.track.tracking:
+                        holder.schedule(lambda: self.update_tv(i))
+                    await holder.wait_all()
+        self.tvdb.last_update = datetime.now()
+        self.tvdb.commit()
+
+    def should_update(self):
+        return (
+            datetime.now() - self.tvdb.last_update
+            > Context.config.tracker.update_interval
+        )
+
+    async def update_loop(self):
+        with Context.handle_error(title="update_loop", type="critical"):
+            while True:
+                if self.should_update():
+                    await self.update_all()
+                await asyncio.sleep(
+                    max(
+                        (
+                            Context.config.tracker.update_interval
+                            - (datetime.now() - self.tvdb.last_update)
+                        ).total_seconds(),
+                        0,
+                    )
+                )
 
 
 class LocalManager:
     async def start(self):
         self.tvdb: TVDB = Context.data("db").manage("tvdb", TVDB)
         self.download_manager = TVDownloadManager(self.tvdb)
-        self.updater = Updater(self.tvdb, lambda id: self.on_update(id))
+        self.updater = Updater(self.tvdb, self.on_update, self.on_no_update)
         await self.download_manager.start()
         await self.resume_download_on_start()
         await self.updater.start()
 
     async def stop(self):
+        await self.updater.stop()
         await self.download_manager.stop()
 
     async def resume_download_on_start(self):
         for i, tv in self.tvdb.tvs.items():
             self.download_manager.submit_episodes(i, 0)
 
-    async def on_update(self, id: int):
-        pass
+    async def on_update(self, id: int, source: Source):
+        tv = self.tvdb.tvs[id]
+        tv.source = source
+        self.allocate_local(tv)
+        self.tvdb.commit()
+
+    async def on_no_update(self, id: int):
+        tv = self.tvdb.tvs[id]
+        if (
+            tv.track.latest_update
+            < datetime.now() - Context.config.tracker.tracking_timeout
+        ):
+            tv.track.tracking = False
+            self.tvdb.commit()
 
     async def add_tv(self, name: str, source: Source):
         for i in self.tvdb.tvs.values():
