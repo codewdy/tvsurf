@@ -1,4 +1,4 @@
-from service.server.api import api
+from service.server.api import api, login
 from service.schema.api import *
 from service.lib.context import Context
 from service.searcher.searchers import Searchers
@@ -32,6 +32,11 @@ class Tracker:
         self.db.stop()
         print("Tracker stopped successfully")
         await self.context.__aexit__(None, None, None)
+
+    @login
+    async def system_setup(self, request: SystemSetup.Request):
+        print(request)
+        return SystemSetup.Response(token="123456")
 
     @api
     async def echo(self, request: Echo.Request):

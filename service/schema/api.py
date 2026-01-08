@@ -10,6 +10,7 @@ __all__ = [
     "GetDownloadProgress",
     "GetErrors",
     "RemoveErrors",
+    "SystemSetup",
 ]
 
 
@@ -60,3 +61,12 @@ class RemoveErrors(BaseModel):
 
     class Response(BaseModel):
         pass
+
+
+class SystemSetup(BaseModel):
+    class Request(BaseModel):
+        username: str
+        password_md5: str
+
+    class Response(BaseModel):
+        token: str

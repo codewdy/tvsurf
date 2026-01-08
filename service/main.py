@@ -35,7 +35,7 @@ def start():
     # 注册路由
     # app.router.add_get("/", handle_main)
     app.add_routes(create_routes(tracker))
-    app.add_routes(web_routes("/", web_path(), "index.html"))
+    app.add_routes(web_routes("/", web_path(), "index.html", ["system_setup"]))
 
     app.on_startup.append(lambda app: tracker.start())
     app.on_cleanup.append(lambda app: tracker.stop())
