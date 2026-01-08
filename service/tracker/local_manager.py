@@ -22,6 +22,8 @@ class TVDownloadManager:
 
     def submit(self, tv_id: int, episode_id: int):
         tv = self.tvdb.tvs[tv_id]
+        if tv.storage.episodes[episode_id].status != DownloadStatus.RUNNING:
+            return
         episode = tv.source.episodes[episode_id]
         filename = get_episode_path(tv, episode_id)
         self.task_manager.add_task(
@@ -73,10 +75,15 @@ class LocalManager:
         self.download_manager = TVDownloadManager(self.tvdb)
         self.updater = Updater(self.tvdb, lambda id: self.on_update(id))
         await self.download_manager.start()
+        await self.resume_download_on_start()
         await self.updater.start()
 
     async def stop(self):
         await self.download_manager.stop()
+
+    async def resume_download_on_start(self):
+        for i, tv in self.tvdb.tvs.items():
+            self.download_manager.submit_episodes(i, 0)
 
     async def on_update(self, id: int):
         pass
@@ -88,6 +95,7 @@ class LocalManager:
         id = self.tvdb.new_tv_id
         self.tvdb.new_tv_id += 1
         tv = TV(
+            id=id,
             name=name,
             source=source,
             storage=Storage(directory=name, episodes=[], cover=""),
@@ -95,16 +103,16 @@ class LocalManager:
             albums=[],
         )
         self.tvdb.tvs[id] = tv
-        self.allocate_local(tv)
         await create_tv_path(tv)
-        self.download_manager.submit_episodes(id, 0)
+        self.allocate_local(tv)
         self.tvdb.commit()
         return id
 
     def allocate_local(self, tv: TV):
         ext = ".mp4"
+        start_index = len(tv.storage.episodes)
         filenames = set(ep.filename for ep in tv.storage.episodes)
-        for i in range(len(tv.storage.episodes), len(tv.source.episodes)):
+        for i in range(start_index, len(tv.source.episodes)):
             name = tv.source.episodes[i].name
             filename = f"{name}{ext}"
             idx = 0
@@ -117,6 +125,7 @@ class LocalManager:
                     name=name, filename=filename, status=DownloadStatus.RUNNING
                 )
             )
+        self.download_manager.submit_episodes(tv.id, start_index)
 
     def get_download_progress(self) -> list[DownloadProgressWithName]:
         return self.download_manager.get_download_progress()

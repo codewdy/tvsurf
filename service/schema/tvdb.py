@@ -44,6 +44,7 @@ class TrackStatus(BaseModel):
 
 
 class TV(BaseModel):
+    id: int
     name: str
     source: Source
     storage: Storage
