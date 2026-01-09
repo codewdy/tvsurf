@@ -9,6 +9,7 @@ from .error_db import ErrorDB
 from .user_manager import UserManager
 from service.schema.user_db import User
 from typing import Optional
+import threading
 
 
 class Tracker:
@@ -19,6 +20,7 @@ class Tracker:
         self.local_manager = LocalManager()
         self.user_manager = UserManager()
         self.error_db = ErrorDB()
+        self.start_event = threading.Event()
 
     async def start(self) -> None:
         print("Tracker started")
@@ -30,6 +32,7 @@ class Tracker:
             await self.error_db.start()
             await self.local_manager.start()
             await self.user_manager.start()
+            self.start_event.set()
 
     async def stop(self) -> None:
         print("Tracker stopped")
@@ -38,6 +41,9 @@ class Tracker:
         self.db.stop()
         print("Tracker stopped successfully")
         await self.context.__aexit__(None, None, None)
+
+    def wait_start(self) -> None:
+        self.start_event.wait()
 
     def need_system_setup(self) -> bool:
         return not self.user_manager.has_user()

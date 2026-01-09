@@ -1,0 +1,85 @@
+import asyncio
+from aiohttp import web
+from service.tracker.tracker import Tracker
+from service.server.api import create_routes
+from aiohttp.web_runner import _raise_graceful_exit
+from service.lib.path import web_path
+from service.server.web import web_routes
+import base64
+from typing import Optional
+import socket
+import threading
+import atexit
+
+
+class App:
+    def __init__(self):
+        self.tracker = Tracker()
+
+    def redirect_func(self, token: Optional[str], path: str) -> Optional[str]:
+        if path == "/favicon.ico" or path.startswith("/assets/"):
+            return None
+        if self.tracker.need_system_setup():
+            return "/system_setup?redirect=" + base64.b64encode(path.encode()).decode()
+        if not self.tracker.token_validate(token):
+            return "/login?redirect=" + base64.b64encode(path.encode()).decode()
+        return None
+
+    async def on_startup(self) -> None:
+        await self.tracker.start()
+
+    async def on_cleanup(self) -> None:
+        self.sock.close()
+        await self.tracker.stop()
+
+    def create_app(self):
+        self.app = web.Application()
+        self.app.add_routes(create_routes(self.tracker))
+        self.app.add_routes(
+            web_routes(
+                "/",
+                web_path(),
+                "index.html",
+                ["system_setup", "login"],
+                self.redirect_func,
+            )
+        )
+
+        self.app.on_startup.append(lambda app: self.on_startup())
+        self.app.on_cleanup.append(lambda app: self.on_cleanup())
+
+    def mk_socket(self, port):
+        self.sock = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.bind(("::", port))
+
+    def prepare(self):
+        self.loop = asyncio.new_event_loop()
+        self.create_app()
+        self.mk_socket(9399)
+
+    def port(self):
+        return 9399
+
+    def run(self):
+        web.run_app(self.app, sock=self.sock, loop=self.loop)
+
+    def serve(self):
+        self.prepare()
+        self.run()
+
+    def wait_start(self):
+        self.tracker.wait_start()
+
+    def thread_serve(self):
+        self.prepare()
+        self.thread = threading.Thread(target=self.run)
+        self.thread.start()
+        self.stoped = False
+
+    def stop_thread(self):
+        if self.stoped:
+            return
+        self.stoped = True
+        self.loop.call_soon_threadsafe(_raise_graceful_exit)
+        self.thread.join()
