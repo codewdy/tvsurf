@@ -7,12 +7,13 @@ a = Analysis(
     ['tray_app.py'],
     pathex=['..'],
     binaries=[
-        (config["ffmpeg"], 'ffmpeg'),
     ],
     datas=[
+        (config["ffmpeg"], 'ffmpeg'),
         (config["chrome-win64"], 'chrome-win64'),
         ("../test-web/build/client", "web"),
         ("../service/searcher.json", "searcher"),
+        ("icon.ico", "assets"),
         ],
     hiddenimports=[],
     hookspath=[],
@@ -28,6 +29,7 @@ exe = EXE(
     pyz,
     a.scripts,
     [],
+    icon="icon.ico",
     exclude_binaries=True,
     name='tvsurf',
     debug=False,

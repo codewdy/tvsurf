@@ -8,6 +8,7 @@ Windows系统托盘应用程序
 import os
 import webbrowser
 import pystray
+import sys
 from PIL import Image, ImageDraw
 from winapp.instance_check import check_single_instance, release_instance_check
 from winapp.service_manager import (
@@ -24,27 +25,12 @@ class TrayApp:
         self.running = True
         self.service_port = service_port
 
-    def create_icon_image(self):
-        """创建一个简单的图标图像（如果图标文件不存在时使用）"""
-        # 创建一个64x64的图像
-        image = Image.new("RGB", (64, 64), color="blue")
-        draw = ImageDraw.Draw(image)
-        # 绘制一个简单的圆形
-        draw.ellipse([10, 10, 54, 54], fill="white", outline="black", width=2)
-        return image
-
     def load_icon(self):
         """加载图标文件，如果不存在则使用默认图像"""
-        icon_path = os.path.join(os.path.dirname(__file__), "icon.ico")
-        if os.path.exists(icon_path):
-            try:
-                return Image.open(icon_path)
-            except Exception as e:
-                print(f"无法加载图标文件: {e}")
-                return self.create_icon_image()
+        if hasattr(sys, "_MEIPASS"):
+            return Image.open(os.path.join(sys._MEIPASS, "assets", "icon.ico"))  # type: ignore[attr-defined]
         else:
-            print(f"图标文件不存在: {icon_path}，使用默认图标")
-            return self.create_icon_image()
+            return Image.open(os.path.join(os.path.dirname(__file__), "icon.ico"))
 
     def open_service(self, icon=None, item=None):
         """打开服务页面"""
