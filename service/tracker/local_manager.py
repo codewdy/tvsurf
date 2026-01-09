@@ -91,8 +91,8 @@ class Updater:
             async with ParallelHolder(Context.config.tracker.update_parallel) as holder:
                 for i, tv in self.tvdb.tvs.items():
                     if tv.track.tracking:
-                        holder.schedule(lambda: self.update_tv(i))
-                    await holder.wait_all()
+                        holder.schedule(lambda tv_id=i: self.update_tv(tv_id))
+                await holder.wait_all()
         self.tvdb.last_update = datetime.now()
         self.tvdb.commit()
 
@@ -137,6 +137,7 @@ class LocalManager:
 
     async def on_update(self, id: int, source: Source) -> None:
         tv = self.tvdb.tvs[id]
+        tv.track.latest_update = datetime.now()
         tv.source = source
         self.allocate_local(tv)
         self.tvdb.commit()
