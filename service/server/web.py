@@ -2,6 +2,7 @@ import os
 from aiohttp import web
 from typing import Callable, Optional
 from aiohttp.web import RouteDef
+from .constant import TOKEN
 
 
 class WebHandler:
@@ -23,7 +24,7 @@ class WebHandler:
         )
         if path not in self.logins:
             redirect = self.redirect_func(
-                request.cookies.get("token", None), request.raw_path
+                request.cookies.get(TOKEN, None), request.raw_path
             )
             if redirect:
                 return web.Response(status=302, headers={"Location": redirect})

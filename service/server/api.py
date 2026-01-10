@@ -4,6 +4,7 @@ import json
 from dataclasses import dataclass
 from typing import Optional, Callable, Any, Type, Awaitable
 from service.schema.user_db import User
+from .constant import TOKEN
 
 
 @dataclass
@@ -39,7 +40,7 @@ def _wrap_api(
     async def wrapper(request: web.Request) -> web.Response:
         try:
             with Context.handle_error(f"API {name} 处理失败", rethrow=True):
-                token = request.cookies.get("token", None)
+                token = request.cookies.get(TOKEN, None)
                 user = context.get_user(token)
                 if user is None:
                     return web.Response(
@@ -75,7 +76,7 @@ def _wrap_login(
                 response_data = await func(request_obj)
                 response = web.json_response(text=response_data.model_dump_json())
                 response.set_cookie(
-                    "token", response_data.token, max_age=60 * 60 * 24 * 365  # 1 year
+                    TOKEN, response_data.token, max_age=60 * 60 * 24 * 365  # 1 year
                 )
                 return response
         except Exception as e:
