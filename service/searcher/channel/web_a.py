@@ -13,9 +13,7 @@ class WebAChannelSearcher(WebChannelSearcher):
         episode_links_from_list="",
         cover="",
         cover_attr="src",
-        **kwargs
     ):
-        super().__init__(**kwargs)
         self.channel_names = channel_names
         self.episode_lists = episode_lists
         self.episodes_from_list = episodes_from_list
@@ -35,8 +33,9 @@ class WebAChannelSearcher(WebChannelSearcher):
             episode_links = []
         result = []
         for i in range(len(episodes_tag)):
-            href = episode_links[i] if i < len(
-                episode_links) else episodes_tag[i]["href"]
+            href = (
+                episode_links[i] if i < len(episode_links) else episodes_tag[i]["href"]
+            )
             if href == "" or href.startswith("javascript:"):
                 continue
             result.append(
@@ -52,18 +51,15 @@ class WebAChannelSearcher(WebChannelSearcher):
 
     def parse(self, src, soup):
         if self.channel_names:
-            channel_names = [to_text(i)
-                             for i in soup.select(self.channel_names)]
+            channel_names = [to_text(i) for i in soup.select(self.channel_names)]
         else:
             channel_names = ["default"]
         if self.cover:
-            cover = urljoin(
-                src, soup.select_one(self.cover)[self.cover_attr])
+            cover = urljoin(src, soup.select_one(self.cover)[self.cover_attr])
         else:
             cover = ""
         episode_lists = [
-            self.parse_episode_list(src, i)
-            for i in soup.select(self.episode_lists)
+            self.parse_episode_list(src, i) for i in soup.select(self.episode_lists)
         ]
         return [
             Channel(name=name, episodes=l, cover_url=cover)

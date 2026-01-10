@@ -6,9 +6,6 @@ from service.schema.searcher import Channel
 
 
 class WebChannelSearcher(BaseChannelSearcher):
-    def __init__(self, **kwargs):
-        pass
-    
     @abstractmethod
     def parse(self, url: str, soup: BeautifulSoup) -> list[Channel]:
         pass

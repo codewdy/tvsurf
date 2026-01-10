@@ -8,5 +8,9 @@ types = {
 }
 
 
+def _create(type, **config) -> BaseResourceSearcher:
+    return types[type](**config)
+
+
 def create_resource_searcher(config: dict) -> BaseResourceSearcher:
-    return types[config["type"]](**config)
+    return _create(**config)

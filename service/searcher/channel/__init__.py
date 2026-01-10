@@ -6,5 +6,9 @@ types = {
 }
 
 
+def _create(type, **config) -> BaseChannelSearcher:
+    return types[type](**config)
+
+
 def create_channel_searcher(config: dict) -> BaseChannelSearcher:
-    return types[config["type"]](**config)
+    return _create(**config)

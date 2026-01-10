@@ -5,8 +5,9 @@ from abc import abstractmethod
 from bs4 import BeautifulSoup
 from .base import BaseSubjectSearcher
 
+
 class WebSubjectSearcher(BaseSubjectSearcher):
-    def __init__(self, search_url, **kwargs):
+    def __init__(self, search_url):
         self.search_url = search_url
 
     def request_url(self, query):

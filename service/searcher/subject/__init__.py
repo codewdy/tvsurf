@@ -5,5 +5,10 @@ types = {
     "web_a": WebASubjectSearcher,
 }
 
+
+def _create(type, **config) -> BaseSubjectSearcher:
+    return types[type](**config)
+
+
 def create_subject_searcher(config: dict) -> BaseSubjectSearcher:
-    return types[config["type"]](**config)
+    return _create(**config)

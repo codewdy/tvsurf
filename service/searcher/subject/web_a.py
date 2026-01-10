@@ -5,8 +5,8 @@ from urllib.parse import urljoin
 
 
 class WebASubjectSearcher(WebSubjectSearcher):
-    def __init__(self, token, a, cover, cover_attr, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, search_url, token, a, cover, cover_attr):
+        super().__init__(search_url)
         self.token = token
         self.a = a
         self.cover = cover
@@ -31,6 +31,7 @@ class WebASubjectSearcher(WebSubjectSearcher):
             Subject(
                 name=to_text(token),
                 url=urljoin(src, a["href"]),
-                cover_url=urljoin(src, cover[self.cover_attr]))
+                cover_url=urljoin(src, cover[self.cover_attr]),
+            )
             for token, a, cover in zip(tokens, a_s, covers)
         ]
