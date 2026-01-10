@@ -49,18 +49,18 @@ class TV(BaseModel):
     source: Source
     storage: Storage
     track: TrackStatus
-    albums: list[int]
+    series: list[int]
 
 
-class Album(BaseModel):
+class Series(BaseModel):
     id: int
     name: str
     tvs: list[int]
 
 
 class TVDB(BaseModel):
-    albums: dict[int, Album] = {}
+    series: dict[int, Series] = {}
     tvs: dict[int, TV] = {}
-    new_album_id: int = 1
+    new_series_id: int = 1
     new_tv_id: int = 1
     last_update: datetime = datetime.min

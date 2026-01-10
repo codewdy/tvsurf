@@ -163,7 +163,7 @@ class LocalManager:
             source=source,
             storage=Storage(directory=name, episodes=[], cover=""),
             track=TrackStatus(tracking=False, latest_update=datetime.now()),
-            albums=[],
+            series=[],
         )
         self.tvdb.tvs[id] = tv
         await create_tv_path(tv)

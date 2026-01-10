@@ -1,68 +1,68 @@
 import { useState, useEffect } from "react";
-import type { Route } from "./+types/albums";
+import type { Route } from "./+types/series";
 
 // 定义 API 响应类型
 interface TVInfo {
   id: number;
   name: string;
-  albums: number[];
+  series: number[];
 }
 
-interface Album {
+interface Series {
   id: number;
   name: string;
   tvs: number[];
 }
 
-interface GetAlbumsResponse {
-  albums: Album[];
+interface GetSeriesResponse {
+  series: Series[];
 }
 
 interface GetTVInfosResponse {
   tvs: TVInfo[];
 }
 
-interface AddAlbumRequest {
+interface AddSeriesRequest {
   name: string;
 }
 
-interface AddAlbumResponse {
+interface AddSeriesResponse {
   id: number;
 }
 
-interface RemoveAlbumRequest {
+interface RemoveSeriesRequest {
   id: number;
 }
 
-interface UpdateAlbumTVsRequest {
+interface UpdateSeriesTVsRequest {
   id: number;
   tvs: number[];
 }
 
 export function meta({ }: Route.MetaArgs) {
   return [
-    { title: "专辑管理" },
-    { name: "description", content: "管理电视剧专辑" },
+    { title: "系列管理" },
+    { name: "description", content: "管理电视剧系列" },
   ];
 }
 
-export default function Albums() {
-  const [albums, setAlbums] = useState<Album[]>([]);
+export default function Series() {
+  const [series, setSeries] = useState<Series[]>([]);
   const [tvs, setTvs] = useState<TVInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [editingAlbum, setEditingAlbum] = useState<number | null>(null);
+  const [editingSeries, setEditingSeries] = useState<number | null>(null);
   const [editingName, setEditingName] = useState("");
   const [editingTVs, setEditingTVs] = useState<number[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newAlbumName, setNewAlbumName] = useState("");
+  const [newSeriesName, setNewSeriesName] = useState("");
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [removing, setRemoving] = useState<number | null>(null);
 
-  const fetchAlbums = async () => {
+  const fetchSeries = async () => {
     try {
-      const response = await fetch("/api/get_albums", {
+      const response = await fetch("/api/get_series", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -71,15 +71,15 @@ export default function Albums() {
       });
 
       if (!response.ok) {
-        throw new Error(`获取专辑列表失败: ${response.statusText}`);
+        throw new Error(`获取系列列表失败: ${response.statusText}`);
       }
 
-      const data: GetAlbumsResponse = await response.json();
-      setAlbums(data.albums || []);
+      const data: GetSeriesResponse = await response.json();
+      setSeries(data.series || []);
       setError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "获取专辑列表时发生错误");
-      console.error("Fetch albums error:", err);
+      setError(err instanceof Error ? err.message : "获取系列列表时发生错误");
+      console.error("Fetch series error:", err);
     } finally {
       setLoading(false);
     }
@@ -107,24 +107,24 @@ export default function Albums() {
   };
 
   useEffect(() => {
-    fetchAlbums();
+    fetchSeries();
     fetchTVs();
   }, []);
 
-  const handleCreateAlbum = async () => {
-    if (!newAlbumName.trim()) {
-      setError("专辑名称不能为空");
+  const handleCreateSeries = async () => {
+    if (!newSeriesName.trim()) {
+      setError("系列名称不能为空");
       return;
     }
 
     setCreating(true);
     setError(null);
     try {
-      const request: AddAlbumRequest = {
-        name: newAlbumName.trim(),
+      const request: AddSeriesRequest = {
+        name: newSeriesName.trim(),
       };
 
-      const response = await fetch("/api/add_album", {
+      const response = await fetch("/api/add_series", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -133,45 +133,45 @@ export default function Albums() {
       });
 
       if (!response.ok) {
-        throw new Error(`创建专辑失败: ${response.statusText}`);
+        throw new Error(`创建系列失败: ${response.statusText}`);
       }
 
-      setNewAlbumName("");
+      setNewSeriesName("");
       setShowCreateModal(false);
-      await fetchAlbums();
+      await fetchSeries();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "创建专辑时发生错误");
-      console.error("Create album error:", err);
+      setError(err instanceof Error ? err.message : "创建系列时发生错误");
+      console.error("Create series error:", err);
     } finally {
       setCreating(false);
     }
   };
 
-  const handleStartEdit = (album: Album) => {
-    setEditingAlbum(album.id);
-    setEditingName(album.name);
-    setEditingTVs([...album.tvs]);
+  const handleStartEdit = (seriesItem: Series) => {
+    setEditingSeries(seriesItem.id);
+    setEditingName(seriesItem.name);
+    setEditingTVs([...seriesItem.tvs]);
   };
 
   const handleCancelEdit = () => {
-    setEditingAlbum(null);
+    setEditingSeries(null);
     setEditingName("");
     setEditingTVs([]);
   };
 
   const handleSaveEdit = async () => {
-    if (editingAlbum === null) return;
+    if (editingSeries === null) return;
 
     setSaving(true);
     setError(null);
     try {
       // 更新 TV 列表
-      const updateRequest: UpdateAlbumTVsRequest = {
-        id: editingAlbum,
+      const updateRequest: UpdateSeriesTVsRequest = {
+        id: editingSeries,
         tvs: editingTVs,
       };
 
-      const updateResponse = await fetch("/api/update_album_tvs", {
+      const updateResponse = await fetch("/api/update_series_tvs", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -180,31 +180,31 @@ export default function Albums() {
       });
 
       if (!updateResponse.ok) {
-        throw new Error(`更新专辑失败: ${updateResponse.statusText}`);
+        throw new Error(`更新系列失败: ${updateResponse.statusText}`);
       }
 
       // 刷新列表
-      await fetchAlbums();
+      await fetchSeries();
       handleCancelEdit();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "保存专辑时发生错误");
-      console.error("Save album error:", err);
+      setError(err instanceof Error ? err.message : "保存系列时发生错误");
+      console.error("Save series error:", err);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleRemoveAlbum = async (id: number) => {
-    if (!confirm("确定要删除这个专辑吗？")) {
+  const handleRemoveSeries = async (id: number) => {
+    if (!confirm("确定要删除这个系列吗？")) {
       return;
     }
 
     setRemoving(id);
     setError(null);
     try {
-      const request: RemoveAlbumRequest = { id };
+      const request: RemoveSeriesRequest = { id };
 
-      const response = await fetch("/api/remove_album", {
+      const response = await fetch("/api/remove_series", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -213,13 +213,13 @@ export default function Albums() {
       });
 
       if (!response.ok) {
-        throw new Error(`删除专辑失败: ${response.statusText}`);
+        throw new Error(`删除系列失败: ${response.statusText}`);
       }
 
-      await fetchAlbums();
+      await fetchSeries();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "删除专辑时发生错误");
-      console.error("Remove album error:", err);
+      setError(err instanceof Error ? err.message : "删除系列时发生错误");
+      console.error("Remove series error:", err);
     } finally {
       setRemoving(null);
     }
@@ -244,7 +244,7 @@ export default function Albums() {
       <div className="container mx-auto px-4 max-w-6xl">
         <div className="flex justify-between items-center mb-8">
           <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold text-gray-900">专辑管理</h1>
+            <h1 className="text-3xl font-bold text-gray-900">系列管理</h1>
             <a
               href="/search"
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
@@ -262,7 +262,7 @@ export default function Albums() {
             onClick={() => setShowCreateModal(true)}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors"
           >
-            创建专辑
+            创建系列
           </button>
         </div>
 
@@ -273,27 +273,27 @@ export default function Albums() {
           </div>
         )}
 
-        {/* 创建专辑模态框 */}
+        {/* 创建系列模态框 */}
         {showCreateModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">创建新专辑</h2>
+              <h2 className="text-xl font-bold text-gray-900 mb-4">创建新系列</h2>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  专辑名称
+                  系列名称
                 </label>
                 <input
                   type="text"
-                  value={newAlbumName}
-                  onChange={(e) => setNewAlbumName(e.target.value)}
-                  placeholder="输入专辑名称..."
+                  value={newSeriesName}
+                  onChange={(e) => setNewSeriesName(e.target.value)}
+                  placeholder="输入系列名称..."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
-                      handleCreateAlbum();
+                      handleCreateSeries();
                     } else if (e.key === "Escape") {
                       setShowCreateModal(false);
-                      setNewAlbumName("");
+                      setNewSeriesName("");
                     }
                   }}
                   autoFocus
@@ -303,7 +303,7 @@ export default function Albums() {
                 <button
                   onClick={() => {
                     setShowCreateModal(false);
-                    setNewAlbumName("");
+                    setNewSeriesName("");
                   }}
                   disabled={creating}
                   className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
@@ -311,8 +311,8 @@ export default function Albums() {
                   取消
                 </button>
                 <button
-                  onClick={handleCreateAlbum}
-                  disabled={creating || !newAlbumName.trim()}
+                  onClick={handleCreateSeries}
+                  disabled={creating || !newSeriesName.trim()}
                   className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {creating ? "创建中..." : "创建"}
@@ -322,27 +322,27 @@ export default function Albums() {
           </div>
         )}
 
-        {/* 专辑列表 */}
-        {albums.length === 0 && !loading ? (
+        {/* 系列列表 */}
+        {series.length === 0 && !loading ? (
           <div className="text-center py-12 text-gray-500">
-            <p>当前没有专辑，点击"创建专辑"按钮开始创建</p>
+            <p>当前没有系列，点击"创建系列"按钮开始创建</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {albums.map((album) => {
-              const isEditing = editingAlbum === album.id;
-              const isRemoving = removing === album.id;
+            {series.map((seriesItem) => {
+              const isEditing = editingSeries === seriesItem.id;
+              const isRemoving = removing === seriesItem.id;
 
               return (
                 <div
-                  key={album.id}
+                  key={seriesItem.id}
                   className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
                 >
                   {isEditing ? (
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          专辑名称
+                          系列名称
                         </label>
                         <input
                           type="text"
@@ -351,7 +351,7 @@ export default function Albums() {
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed"
                         />
                         <p className="mt-1 text-xs text-gray-500">
-                          注意：专辑名称暂时无法修改
+                          注意：系列名称暂时无法修改
                         </p>
                       </div>
                       <div>
@@ -379,7 +379,7 @@ export default function Albums() {
                                     <div className="flex-1">
                                       <p className="text-sm font-medium text-gray-900">{tv.name}</p>
                                       <p className="text-xs text-gray-500">
-                                        包含在 {tv.albums.length} 个专辑中
+                                        包含在 {tv.series.length} 个系列中
                                       </p>
                                     </div>
                                   </label>
@@ -411,21 +411,21 @@ export default function Albums() {
                       <div className="flex justify-between items-start mb-4">
                         <div className="flex-1">
                           <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            {album.name}
+                            {seriesItem.name}
                           </h3>
                           <p className="text-sm text-gray-600">
-                            包含 {album.tvs.length} 部电视剧
+                            包含 {seriesItem.tvs.length} 部电视剧
                           </p>
                         </div>
                         <div className="flex gap-2">
                           <button
-                            onClick={() => handleStartEdit(album)}
+                            onClick={() => handleStartEdit(seriesItem)}
                             className="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors text-sm"
                           >
                             编辑
                           </button>
                           <button
-                            onClick={() => handleRemoveAlbum(album.id)}
+                            onClick={() => handleRemoveSeries(seriesItem.id)}
                             disabled={isRemoving}
                             className="px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
                           >
@@ -433,11 +433,11 @@ export default function Albums() {
                           </button>
                         </div>
                       </div>
-                      {album.tvs.length > 0 && (
+                      {seriesItem.tvs.length > 0 && (
                         <div className="mt-4">
                           <h4 className="text-sm font-medium text-gray-700 mb-2">电视剧列表</h4>
                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                            {album.tvs.map((tvId) => {
+                            {seriesItem.tvs.map((tvId) => {
                               const tv = getTVById(tvId);
                               if (!tv) {
                                 return (
@@ -473,7 +473,7 @@ export default function Albums() {
         )}
 
         {/* 加载状态 */}
-        {loading && albums.length === 0 && (
+        {loading && series.length === 0 && (
           <div className="text-center py-12 text-gray-500">
             <p>加载中...</p>
           </div>

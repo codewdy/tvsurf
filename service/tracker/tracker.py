@@ -11,7 +11,7 @@ from service.schema.user_db import User
 from typing import Optional
 import threading
 from service.schema.config import Config
-from .album_manager import AlbumManager
+from .series_manager import SeriesManager
 from service.schema.tvdb import TV
 
 
@@ -25,7 +25,7 @@ class Tracker:
         self.user_manager = UserManager()
         self.error_db = ErrorDB()
         self.start_event = threading.Event()
-        self.album_manager = AlbumManager()
+        self.series_manager = SeriesManager()
 
     async def start(self) -> None:
         print("Tracker started")
@@ -35,7 +35,7 @@ class Tracker:
             Context.set_data("db", self.db)
             await self.error_db.start()
             await self.local_manager.start()
-            await self.album_manager.start()
+            await self.series_manager.start()
             await self.user_manager.start()
             self.start_event.set()
 
@@ -115,7 +115,7 @@ class Tracker:
             return TVInfo(
                 id=tv.id,
                 name=tv.name,
-                albums=tv.albums,
+                series=tv.series,
             )
 
         if request.ids is not None:
@@ -149,32 +149,32 @@ class Tracker:
         return RemoveErrors.Response()
 
     @api("user")
-    async def add_album(
-        self, user: User, request: AddAlbum.Request
-    ) -> AddAlbum.Response:
-        return AddAlbum.Response(id=self.album_manager.add_album(request.name))
+    async def add_series(
+        self, user: User, request: AddSeries.Request
+    ) -> AddSeries.Response:
+        return AddSeries.Response(id=self.series_manager.add_series(request.name))
 
     @api("user")
-    async def remove_album(
-        self, user: User, request: RemoveAlbum.Request
-    ) -> RemoveAlbum.Response:
-        self.album_manager.remove_album(request.id)
-        return RemoveAlbum.Response()
+    async def remove_series(
+        self, user: User, request: RemoveSeries.Request
+    ) -> RemoveSeries.Response:
+        self.series_manager.remove_series(request.id)
+        return RemoveSeries.Response()
 
     @api("user")
-    async def update_album_tvs(
-        self, user: User, request: UpdateAlbumTVs.Request
-    ) -> UpdateAlbumTVs.Response:
-        self.album_manager.update_album_tvs(request.id, request.tvs)
-        return UpdateAlbumTVs.Response()
+    async def update_series_tvs(
+        self, user: User, request: UpdateSeriesTVs.Request
+    ) -> UpdateSeriesTVs.Response:
+        self.series_manager.update_series_tvs(request.id, request.tvs)
+        return UpdateSeriesTVs.Response()
 
     @api("user")
-    async def get_albums(
-        self, user: User, request: GetAlbums.Request
-    ) -> GetAlbums.Response:
+    async def get_series(
+        self, user: User, request: GetSeries.Request
+    ) -> GetSeries.Response:
         if request.ids is not None:
-            return GetAlbums.Response(
-                albums=[self.album_manager.get_album(id) for id in request.ids]
+            return GetSeries.Response(
+                series=[self.series_manager.get_series_by_id(id) for id in request.ids]
             )
         else:
-            return GetAlbums.Response(albums=self.album_manager.get_albums())
+            return GetSeries.Response(series=self.series_manager.get_series())
