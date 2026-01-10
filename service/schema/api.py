@@ -4,6 +4,8 @@ from .downloader import DownloadProgressWithName
 from .error import Error
 from .searcher import SearchError
 from typing import Optional
+from .user_data import UserTVData, Tag
+from datetime import datetime
 
 __all__ = [
     "TVInfo",
@@ -21,6 +23,8 @@ __all__ = [
     "RemoveSeries",
     "UpdateSeriesTVs",
     "GetSeries",
+    "SetWatchProgress",
+    "SetTVTag",
 ]
 
 
@@ -28,6 +32,8 @@ class TVInfo(BaseModel):
     id: int
     name: str
     series: list[int]
+    last_update: datetime
+    user_data: UserTVData
 
 
 class Echo:
@@ -150,3 +156,22 @@ class GetSeries(BaseModel):
 
     class Response(BaseModel):
         series: list[Series]
+
+
+class SetWatchProgress(BaseModel):
+    class Request(BaseModel):
+        tv_id: int
+        episode_id: int
+        time: float
+
+    class Response(BaseModel):
+        pass
+
+
+class SetTVTag(BaseModel):
+    class Request(BaseModel):
+        tv_id: int
+        tag: Tag
+
+    class Response(BaseModel):
+        pass

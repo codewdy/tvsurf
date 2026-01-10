@@ -13,6 +13,7 @@ import threading
 from service.schema.config import Config
 from .series_manager import SeriesManager
 from service.schema.tvdb import TV
+from .user_data_manager import UserDataManager
 
 
 class Tracker:
@@ -26,6 +27,7 @@ class Tracker:
         self.error_db = ErrorDB()
         self.start_event = threading.Event()
         self.series_manager = SeriesManager()
+        self.user_data_manager = UserDataManager()
 
     async def start(self) -> None:
         print("Tracker started")
@@ -113,11 +115,15 @@ class Tracker:
     async def get_tv_infos(
         self, user: User, request: GetTVInfos.Request
     ) -> GetTVInfos.Response:
+        user_data = self.user_data_manager.get_user_data(user.username)
+
         def build_tv_info(tv: TV) -> TVInfo:
             return TVInfo(
                 id=tv.id,
                 name=tv.name,
                 series=tv.series,
+                user_data=self.user_data_manager.get_user_tv_data(user_data, tv.id),
+                last_update=tv.track.latest_update,
             )
 
         if request.ids is not None:
@@ -180,3 +186,19 @@ class Tracker:
             )
         else:
             return GetSeries.Response(series=self.series_manager.get_series())
+
+    @api("user")
+    async def set_watch_progress(
+        self, user: User, request: SetWatchProgress.Request
+    ) -> SetWatchProgress.Response:
+        self.user_data_manager.set_watch_progress(
+            user.username, request.tv_id, request.episode_id, request.time
+        )
+        return SetWatchProgress.Response()
+
+    @api("user")
+    async def set_tv_tag(
+        self, user: User, request: SetTVTag.Request
+    ) -> SetTVTag.Response:
+        self.user_data_manager.set_tv_tag(user.username, request.tv_id, request.tag)
+        return SetTVTag.Response()
