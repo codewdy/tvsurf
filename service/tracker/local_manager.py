@@ -151,7 +151,7 @@ class LocalManager:
             tv.track.tracking = False
             self.tvdb.commit()
 
-    async def add_tv(self, name: str, source: Source) -> int:
+    async def add_tv(self, name: str, source: Source, tracking: bool) -> int:
         for i in self.tvdb.tvs.values():
             if i.name == name:
                 raise KeyError(f"TV {name} 已存在")
@@ -162,7 +162,7 @@ class LocalManager:
             name=name,
             source=source,
             storage=Storage(directory=name, episodes=[], cover=""),
-            track=TrackStatus(tracking=False, latest_update=datetime.now()),
+            track=TrackStatus(tracking=tracking, latest_update=datetime.now()),
             series=[],
         )
         self.tvdb.tvs[id] = tv
