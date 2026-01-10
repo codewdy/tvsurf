@@ -51,6 +51,7 @@ class AddTV(BaseModel):
     class Request(BaseModel):
         name: str
         source: Source
+        series: list[int]
 
     class Response(BaseModel):
         id: int

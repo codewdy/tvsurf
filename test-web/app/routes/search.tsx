@@ -106,6 +106,7 @@ export default function Search() {
         body: JSON.stringify({
           name: source.name,
           source: source,
+          series: [],
         }),
       });
 

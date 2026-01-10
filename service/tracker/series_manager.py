@@ -34,3 +34,9 @@ class SeriesManager:
 
     def get_series_by_id(self, id: int) -> Series:
         return self.tvdb.series[id]
+
+    def add_tv_to_series(self, tv_id: int, series_id: list[int]) -> None:
+        for sid in series_id:
+            self.tvdb.series[sid].tvs.append(tv_id)
+        self.tvdb.tvs[tv_id].series.extend(series_id)
+        self.tvdb.commit()

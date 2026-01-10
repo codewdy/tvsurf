@@ -105,7 +105,9 @@ class Tracker:
     async def add_tv(self, user: User, request: AddTV.Request) -> AddTV.Response:
         name = request.name
         source = request.source
-        return AddTV.Response(id=await self.local_manager.add_tv(name, source))
+        tv_id = await self.local_manager.add_tv(name, source)
+        self.series_manager.add_tv_to_series(tv_id, request.series)
+        return AddTV.Response(id=tv_id)
 
     @api("user")
     async def get_tv_infos(
