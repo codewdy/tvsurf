@@ -2,6 +2,7 @@ from .dtype import BaseModel
 from .tvdb import Source
 from .downloader import DownloadProgressWithName
 from .error import Error
+from .searcher import SearchError
 
 __all__ = [
     "Echo",
@@ -30,6 +31,7 @@ class SearchTV(BaseModel):
 
     class Response(BaseModel):
         source: list[Source]
+        search_error: list[SearchError]
 
 
 class AddTV(BaseModel):

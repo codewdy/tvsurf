@@ -21,8 +21,15 @@ interface Source {
   episodes: Episode[];
 }
 
+interface SearchError {
+  source_name: string;
+  source_key: string;
+  error: string;
+}
+
 interface SearchTVResponse {
   source: Source[];
+  search_error: SearchError[];
 }
 
 interface AddTVResponse {
@@ -41,6 +48,7 @@ export default function Search() {
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<Source[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [searchErrors, setSearchErrors] = useState<SearchError[]>([]);
   const [addingIds, setAddingIds] = useState<Set<number>>(new Set());
   const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
   const [addError, setAddError] = useState<Map<number, string>>(new Map());
@@ -54,6 +62,7 @@ export default function Search() {
     setLoading(true);
     setError(null);
     setResults([]);
+    setSearchErrors([]);
 
     try {
       const response = await fetch("/api/search_tv", {
@@ -71,6 +80,7 @@ export default function Search() {
 
       const data: SearchTVResponse = await response.json();
       setResults(data.source || []);
+      setSearchErrors(data.search_error || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "搜索时发生错误");
       console.error("Search error:", err);
@@ -159,6 +169,35 @@ export default function Search() {
         {error && (
           <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
             {error}
+          </div>
+        )}
+
+        {/* 搜索错误信息 */}
+        {searchErrors.length > 0 && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <h3 className="text-lg font-semibold text-yellow-800 mb-3">
+              搜索过程中部分来源出现错误 ({searchErrors.length})
+            </h3>
+            <div className="space-y-2">
+              {searchErrors.map((searchError, index) => (
+                <div
+                  key={index}
+                  className="p-3 bg-yellow-100 border border-yellow-300 rounded text-sm"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="font-medium text-yellow-900">
+                        {searchError.source_name}
+                      </p>
+                      <p className="text-yellow-700 mt-1">{searchError.error}</p>
+                    </div>
+                    <span className="ml-2 text-xs text-yellow-600 bg-yellow-200 px-2 py-1 rounded">
+                      {searchError.source_key}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

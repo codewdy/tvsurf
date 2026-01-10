@@ -5,6 +5,7 @@ from service.schema.tvdb import Source, SourceUrl
 import asyncio
 from service.lib.context import Context
 from typing import Optional
+from service.schema.searcher import SearchError
 
 
 class Searcher:
@@ -15,40 +16,45 @@ class Searcher:
         self.channel_searcher = create_channel_searcher(config["channel_searcher"])
         self.resource_searcher = create_resource_searcher(config["resource_searcher"])
 
-    async def search(self, keyword: str) -> list[Source]:
-        results = []
-        with Context.handle_error(f"search {self.name} {keyword}"):
-            subjects = await self.subject_searcher.search(keyword)
-            all_channels = await asyncio.gather(
-                *[self.channel_searcher.search(subject.url) for subject in subjects]
-            )
-            for subject, channels in zip(subjects, all_channels):
-                for channel in channels:
-                    results.append(
-                        Source(
-                            source=SourceUrl(
-                                source_key=self.key,
-                                source_name=self.name,
-                                channel_name=channel.name,
-                                url=subject.url,
-                            ),
-                            name=subject.name,
-                            cover_url=subject.cover_url or channel.cover_url,
-                            episodes=[
-                                Source.Episode(
-                                    source=SourceUrl(
-                                        source_key=self.key,
-                                        source_name=self.name,
-                                        channel_name=channel.name,
-                                        url=e.url,
-                                    ),
-                                    name=e.name,
-                                )
-                                for e in channel.episodes
-                            ],
+    async def search(self, keyword: str) -> tuple[list[Source], list[SearchError]]:
+        try:
+            with Context.handle_error(f"search {self.name} {keyword}", rethrow=True):
+                results: list[Source] = []
+                subjects = await self.subject_searcher.search(keyword)
+                all_channels = await asyncio.gather(
+                    *[self.channel_searcher.search(subject.url) for subject in subjects]
+                )
+                for subject, channels in zip(subjects, all_channels):
+                    for channel in channels:
+                        results.append(
+                            Source(
+                                source=SourceUrl(
+                                    source_key=self.key,
+                                    source_name=self.name,
+                                    channel_name=channel.name,
+                                    url=subject.url,
+                                ),
+                                name=subject.name,
+                                cover_url=subject.cover_url or channel.cover_url,
+                                episodes=[
+                                    Source.Episode(
+                                        source=SourceUrl(
+                                            source_key=self.key,
+                                            source_name=self.name,
+                                            channel_name=channel.name,
+                                            url=e.url,
+                                        ),
+                                        name=e.name,
+                                    )
+                                    for e in channel.episodes
+                                ],
+                            )
                         )
-                    )
-        return results
+                return results, []
+        except Exception as e:
+            return [], [
+                SearchError(source_key=self.key, source_name=self.name, error=str(e))
+            ]
 
     async def update_source(self, source: Source) -> Optional[Source]:
         channels = await self.channel_searcher.search(source.source.url)
@@ -103,7 +109,10 @@ if __name__ == "__main__":
             with open("result.json", "w") as f:
                 f.write(
                     json.dumps(
-                        [i.model_dump(mode="json") for i in rst],
+                        [
+                            [x.model_dump(mode="json"), y.model_dump(mode="json")]
+                            for x, y in rst
+                        ],
                         ensure_ascii=False,
                         indent=2,
                     )

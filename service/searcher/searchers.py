@@ -8,6 +8,7 @@ import json
 from service.schema.tvdb import Source
 from service.schema.tvdb import SourceUrl
 from typing import Optional
+from service.schema.searcher import SearchError
 
 
 @cache
@@ -26,11 +27,11 @@ class Searchers:
             searcher.key: searcher for searcher in self.searchers
         }
 
-    async def search(self, keyword: str) -> list[Source]:
-        results = await asyncio.gather(
+    async def search(self, keyword: str) -> tuple[list[Source], list[SearchError]]:
+        results: list[tuple[list[Source], list[SearchError]]] = await asyncio.gather(
             *[searcher.search(keyword) for searcher in self.searchers]
         )
-        return sum(results, [])
+        return sum([r[0] for r in results], []), sum([r[1] for r in results], [])
 
     async def update_source(self, source: Source) -> Optional[Source]:
         with Context.handle_error(
@@ -61,7 +62,10 @@ if __name__ == "__main__":
             with open("result.json", "w") as f:
                 f.write(
                     json.dumps(
-                        [i.model_dump(mode="json") for i in rst],
+                        [
+                            [x.model_dump(mode="json"), y.model_dump(mode="json")]
+                            for x, y in rst
+                        ],
                         ensure_ascii=False,
                         indent=2,
                     )

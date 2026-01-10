@@ -94,7 +94,8 @@ class Tracker:
         self, user: User, request: SearchTV.Request
     ) -> SearchTV.Response:
         keyword = request.keyword
-        return SearchTV.Response(source=await self.searchers.search(keyword))
+        source, search_error = await self.searchers.search(keyword)
+        return SearchTV.Response(source=source, search_error=search_error)
 
     @api("user")
     async def add_tv(self, user: User, request: AddTV.Request) -> AddTV.Response:
