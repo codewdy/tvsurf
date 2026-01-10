@@ -8,6 +8,8 @@ from .path import create_tv_path, remove_tv_path, get_tv_path, get_episode_path
 from service.searcher.searchers import Searchers
 from service.lib.parallel_holder import ParallelHolder
 import asyncio
+import os
+import aiofiles
 
 
 class TVDownloadManager:
@@ -151,6 +153,15 @@ class LocalManager:
             tv.track.tracking = False
             self.tvdb.commit()
 
+    async def download_cover(self, tv: TV) -> None:
+        async with Context.client.get(tv.source.cover_url) as resp:
+            resp.raise_for_status()
+            cover = await resp.read()
+            filename = f"cover{os.path.splitext(tv.source.cover_url)[1]}"
+            async with aiofiles.open(f"{get_tv_path(tv)}/{filename}", mode="wb") as f:
+                await f.write(cover)
+            tv.storage.cover = filename
+
     async def add_tv(self, name: str, source: Source, tracking: bool) -> int:
         for i in self.tvdb.tvs.values():
             if i.name == name:
@@ -165,8 +176,9 @@ class LocalManager:
             track=TrackStatus(tracking=tracking, latest_update=datetime.now()),
             series=[],
         )
-        self.tvdb.tvs[id] = tv
         await create_tv_path(tv)
+        await self.download_cover(tv)
+        self.tvdb.tvs[id] = tv
         self.allocate_local(tv)
         self.tvdb.commit()
         return id
