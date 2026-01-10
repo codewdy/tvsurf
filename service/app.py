@@ -5,6 +5,7 @@ from service.server.api import create_routes
 from aiohttp.web_runner import _raise_graceful_exit
 from service.lib.path import web_path
 from service.server.web import web_routes
+from service.server.resource import resource_routes
 import base64
 from typing import Optional
 import socket
@@ -45,7 +46,13 @@ class App:
                 self.redirect_func,
             )
         )
-        self.app.add_routes([web.static("/resource", self.config.data_dir + "/tv")])
+        self.app.add_routes(
+            resource_routes(
+                "/resource",
+                self.config.data_dir + "/tv",
+                self.tracker.token_validate,
+            )
+        )
 
         self.app.on_startup.append(lambda app: self.on_startup())
         self.app.on_cleanup.append(lambda app: self.on_cleanup())
