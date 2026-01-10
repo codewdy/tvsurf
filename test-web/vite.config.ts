@@ -11,6 +11,10 @@ export default defineConfig({
         target: "http://localhost:9399",
         changeOrigin: true,
       },
+      "/resource": {
+        target: "http://localhost:9399",
+        changeOrigin: true,
+      },
     },
   },
 });

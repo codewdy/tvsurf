@@ -45,6 +45,7 @@ class App:
                 self.redirect_func,
             )
         )
+        self.app.add_routes([web.static("/resource", self.config.data_dir + "/tv")])
 
         self.app.on_startup.append(lambda app: self.on_startup())
         self.app.on_cleanup.append(lambda app: self.on_cleanup())

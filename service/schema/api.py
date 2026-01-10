@@ -13,6 +13,7 @@ __all__ = [
     "SearchTV",
     "AddTV",
     "GetTVInfos",
+    "GetTVDetails",
     "GetDownloadProgress",
     "GetErrors",
     "RemoveErrors",
@@ -31,6 +32,7 @@ __all__ = [
 class TVInfo(BaseModel):
     id: int
     name: str
+    cover_url: str
     series: list[int]
     last_update: datetime
     user_data: UserTVData
@@ -70,6 +72,16 @@ class GetTVInfos(BaseModel):
 
     class Response(BaseModel):
         tvs: list[TVInfo]
+
+
+class GetTVDetails(BaseModel):
+    class Request(BaseModel):
+        id: int
+
+    class Response(BaseModel):
+        tv: TV
+        info: TVInfo
+        episodes: list[Optional[str]]
 
 
 class GetDownloadProgress(BaseModel):

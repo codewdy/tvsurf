@@ -13,7 +13,9 @@ import threading
 from service.schema.config import Config
 from .series_manager import SeriesManager
 from service.schema.tvdb import TV
+from service.schema.user_data import UserData
 from .user_data_manager import UserDataManager
+from service.schema.tvdb import DownloadStatus
 
 
 class Tracker:
@@ -57,6 +59,19 @@ class Tracker:
 
     def token_validate(self, token: Optional[str]) -> bool:
         return self.get_user(token) is not None
+
+    def resource_url(self, tv: TV, filename: str) -> str:
+        return f"/resource/{tv.name}/{filename}"
+
+    def build_tv_info(self, user_data: UserData, tv: TV) -> TVInfo:
+        return TVInfo(
+            id=tv.id,
+            name=tv.name,
+            cover_url=self.resource_url(tv, tv.storage.cover),
+            series=tv.series,
+            last_update=tv.track.latest_update,
+            user_data=self.user_data_manager.get_user_tv_data(user_data, tv.id),
+        )
 
     @get_user
     def get_user(self, token: Optional[str]) -> Optional[User]:
@@ -117,23 +132,39 @@ class Tracker:
     ) -> GetTVInfos.Response:
         user_data = self.user_data_manager.get_user_data(user.username)
 
-        def build_tv_info(tv: TV) -> TVInfo:
-            return TVInfo(
-                id=tv.id,
-                name=tv.name,
-                series=tv.series,
-                user_data=self.user_data_manager.get_user_tv_data(user_data, tv.id),
-                last_update=tv.track.latest_update,
-            )
-
         if request.ids is not None:
             return GetTVInfos.Response(
-                tvs=[build_tv_info(self.local_manager.get_tv(id)) for id in request.ids]
+                tvs=[
+                    self.build_tv_info(user_data, self.local_manager.get_tv(id))
+                    for id in request.ids
+                ]
             )
         else:
             return GetTVInfos.Response(
-                tvs=[build_tv_info(tv) for tv in self.local_manager.get_tvs()]
+                tvs=[
+                    self.build_tv_info(user_data, tv)
+                    for tv in self.local_manager.get_tvs()
+                ]
             )
+
+    @api("user")
+    async def get_tv_details(
+        self, user: User, request: GetTVDetails.Request
+    ) -> GetTVDetails.Response:
+        user_data = self.user_data_manager.get_user_data(user.username)
+        tv = self.local_manager.get_tv(request.id)
+        return GetTVDetails.Response(
+            tv=tv,
+            info=self.build_tv_info(user_data, tv),
+            episodes=[
+                (
+                    self.resource_url(tv, episode.filename)
+                    if episode.status == DownloadStatus.SUCCESS
+                    else None
+                )
+                for episode in tv.storage.episodes
+            ],
+        )
 
     @api("user")
     async def get_download_progress(

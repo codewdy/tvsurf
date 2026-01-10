@@ -251,9 +251,12 @@ export default function TVList() {
                             className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow bg-white"
                           >
                             <div className="flex justify-between items-start mb-3">
-                              <h3 className="text-lg font-semibold text-gray-900 flex-1">
+                              <a
+                                href={`/tv-details/${tv.id}`}
+                                className="text-lg font-semibold text-gray-900 flex-1 hover:text-blue-600 transition-colors"
+                              >
                                 {tv.name}
-                              </h3>
+                              </a>
                               <select
                                 value={tv.user_data.tag}
                                 onChange={(e) =>
