@@ -1,20 +1,33 @@
 from .dtype import BaseModel
-from .tvdb import Source
+from .tvdb import Source, Album, TV
 from .downloader import DownloadProgressWithName
 from .error import Error
 from .searcher import SearchError
+from typing import Optional
 
 __all__ = [
+    "TVInfo",
     "Echo",
     "SearchTV",
     "AddTV",
+    "GetTVInfos",
     "GetDownloadProgress",
     "GetErrors",
     "RemoveErrors",
     "SystemSetup",
     "Login",
     "Whoami",
+    "AddAlbum",
+    "RemoveAlbum",
+    "UpdateAlbumTVs",
+    "GetAlbums",
 ]
+
+
+class TVInfo(BaseModel):
+    id: int
+    name: str
+    albums: list[int]
 
 
 class Echo:
@@ -41,6 +54,14 @@ class AddTV(BaseModel):
 
     class Response(BaseModel):
         id: int
+
+
+class GetTVInfos(BaseModel):
+    class Request(BaseModel):
+        ids: Optional[list[int]] = None
+
+    class Response(BaseModel):
+        tvs: list[TVInfo]
 
 
 class GetDownloadProgress(BaseModel):
@@ -94,3 +115,36 @@ class Whoami(BaseModel):
         username: str
         group: list[str]
         single_user_mode: bool
+
+
+class AddAlbum(BaseModel):
+    class Request(BaseModel):
+        name: str
+
+    class Response(BaseModel):
+        id: int
+
+
+class RemoveAlbum(BaseModel):
+    class Request(BaseModel):
+        id: int
+
+    class Response(BaseModel):
+        pass
+
+
+class UpdateAlbumTVs(BaseModel):
+    class Request(BaseModel):
+        id: int
+        tvs: list[int]
+
+    class Response(BaseModel):
+        pass
+
+
+class GetAlbums(BaseModel):
+    class Request(BaseModel):
+        ids: Optional[list[int]] = None
+
+    class Response(BaseModel):
+        albums: list[Album]

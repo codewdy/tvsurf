@@ -53,6 +53,7 @@ class TV(BaseModel):
 
 
 class Album(BaseModel):
+    id: int
     name: str
     tvs: list[int]
 

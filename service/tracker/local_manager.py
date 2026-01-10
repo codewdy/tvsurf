@@ -171,6 +171,12 @@ class LocalManager:
         self.tvdb.commit()
         return id
 
+    def get_tv(self, id: int) -> TV:
+        return self.tvdb.tvs[id]
+
+    def get_tvs(self) -> list[TV]:
+        return list(self.tvdb.tvs.values())
+
     def allocate_local(self, tv: TV) -> None:
         ext = ".mp4"
         start_index = len(tv.storage.episodes)

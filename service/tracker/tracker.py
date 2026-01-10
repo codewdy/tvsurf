@@ -11,6 +11,8 @@ from service.schema.user_db import User
 from typing import Optional
 import threading
 from service.schema.config import Config
+from .album_manager import AlbumManager
+from service.schema.tvdb import TV
 
 
 class Tracker:
@@ -23,6 +25,7 @@ class Tracker:
         self.user_manager = UserManager()
         self.error_db = ErrorDB()
         self.start_event = threading.Event()
+        self.album_manager = AlbumManager()
 
     async def start(self) -> None:
         print("Tracker started")
@@ -32,6 +35,7 @@ class Tracker:
             Context.set_data("db", self.db)
             await self.error_db.start()
             await self.local_manager.start()
+            await self.album_manager.start()
             await self.user_manager.start()
             self.start_event.set()
 
@@ -104,6 +108,26 @@ class Tracker:
         return AddTV.Response(id=await self.local_manager.add_tv(name, source))
 
     @api("user")
+    async def get_tv_infos(
+        self, user: User, request: GetTVInfos.Request
+    ) -> GetTVInfos.Response:
+        def build_tv_info(tv: TV) -> TVInfo:
+            return TVInfo(
+                id=tv.id,
+                name=tv.name,
+                albums=tv.albums,
+            )
+
+        if request.ids is not None:
+            return GetTVInfos.Response(
+                tvs=[build_tv_info(self.local_manager.get_tv(id)) for id in request.ids]
+            )
+        else:
+            return GetTVInfos.Response(
+                tvs=[build_tv_info(tv) for tv in self.local_manager.get_tvs()]
+            )
+
+    @api("user")
     async def get_download_progress(
         self, user: User, request: GetDownloadProgress.Request
     ) -> GetDownloadProgress.Response:
@@ -117,9 +141,40 @@ class Tracker:
     ) -> GetErrors.Response:
         return GetErrors.Response(errors=self.error_db.get_errors())
 
-    @api("admin")
+    @api("user")
     async def remove_errors(
         self, user: User, request: RemoveErrors.Request
     ) -> RemoveErrors.Response:
         self.error_db.remove_errors(request.ids)
         return RemoveErrors.Response()
+
+    @api("user")
+    async def add_album(
+        self, user: User, request: AddAlbum.Request
+    ) -> AddAlbum.Response:
+        return AddAlbum.Response(id=self.album_manager.add_album(request.name))
+
+    @api("user")
+    async def remove_album(
+        self, user: User, request: RemoveAlbum.Request
+    ) -> RemoveAlbum.Response:
+        self.album_manager.remove_album(request.id)
+        return RemoveAlbum.Response()
+
+    @api("user")
+    async def update_album_tvs(
+        self, user: User, request: UpdateAlbumTVs.Request
+    ) -> UpdateAlbumTVs.Response:
+        self.album_manager.update_album_tvs(request.id, request.tvs)
+        return UpdateAlbumTVs.Response()
+
+    @api("user")
+    async def get_albums(
+        self, user: User, request: GetAlbums.Request
+    ) -> GetAlbums.Response:
+        if request.ids is not None:
+            return GetAlbums.Response(
+                albums=[self.album_manager.get_album(id) for id in request.ids]
+            )
+        else:
+            return GetAlbums.Response(albums=self.album_manager.get_albums())
