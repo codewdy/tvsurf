@@ -9,12 +9,13 @@ import base64
 from typing import Optional
 import socket
 import threading
-import atexit
+from service.lib.config_loader import load_config
 
 
 class App:
-    def __init__(self):
-        self.tracker = Tracker()
+    def __init__(self, config_path: str):
+        self.config = load_config(config_path)
+        self.tracker = Tracker(self.config)
 
     def redirect_func(self, token: Optional[str], path: str) -> Optional[str]:
         if path == "/favicon.ico" or path.startswith("/assets/"):

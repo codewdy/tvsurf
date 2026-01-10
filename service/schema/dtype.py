@@ -16,6 +16,28 @@ TimeDelta = Annotated[
 ]
 
 
+def parse_bytesize(x: str) -> int:
+    x = x.strip().upper()
+    if x.endswith("Byte"):
+        return int(x[:-4])
+    if x.endswith("KB"):
+        return int(x[:-2]) * 1024
+    if x.endswith("MB"):
+        return int(x[:-2]) * 1024 * 1024
+    if x.endswith("GB"):
+        return int(x[:-2]) * 1024 * 1024 * 1024
+    if x.endswith("TB"):
+        return int(x[:-2]) * 1024 * 1024 * 1024 * 1024
+    if x.endswith("PB"):
+        return int(x[:-2]) * 1024 * 1024 * 1024 * 1024 * 1024
+    if x.endswith("EB"):
+        return int(x[:-2]) * 1024 * 1024 * 1024 * 1024 * 1024 * 1024
+    return int(x)
+
+
+ByteSize = Annotated[int, BeforeValidator(parse_bytesize)]
+
+
 class BaseModel(pydantic.BaseModel):
     model_config = pydantic.ConfigDict(validate_default=True)
 

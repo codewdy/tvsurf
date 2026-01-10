@@ -1,10 +1,10 @@
-from .dtype import BaseModel, TimeDelta
-from datetime import timedelta
+from .dtype import BaseModel, TimeDelta, ByteSize
+from enum import Enum
 
 
 class DownloadConfig(BaseModel):
     connect_timeout: TimeDelta = "1m"  # type: ignore
-    chunk_size: int = 1024 * 1024
+    chunk_size: ByteSize = "1MB"  # type: ignore
     max_concurrent_fragments: int = 5
     max_concurrent_downloads: int = 3
     max_retries: int = 3
@@ -16,14 +16,21 @@ class DBConfig(BaseModel):
     save_interval: TimeDelta = "1m"  # type: ignore
 
 
-class TrackerConfig(BaseModel):
+class UpdaterConfig(BaseModel):
     update_interval: TimeDelta = "1d"  # type: ignore
     tracking_timeout: TimeDelta = "14d"  # type: ignore
     update_parallel: int = 10
 
 
+class ServerType(str, Enum):
+    LOCAL = "local"
+    ONLINE = "online"
+
+
 class Config(BaseModel):
     data_dir: str = "data"
-    db: DBConfig = DBConfig()
+    port: int = 9399
+    server_type: ServerType = ServerType.LOCAL
+    updater: UpdaterConfig = UpdaterConfig()
     download: DownloadConfig = DownloadConfig()
-    tracker: TrackerConfig = TrackerConfig()
+    db: DBConfig = DBConfig()

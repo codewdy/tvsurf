@@ -14,3 +14,4 @@ lxml==6.0.2
 aiofiles==25.1.0
 pandas==2.3.3
 av==16.0.1
+pyyaml==6.0.3

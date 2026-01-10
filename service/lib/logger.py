@@ -4,7 +4,7 @@ from typing import Optional
 
 
 def get_logger(
-    level: int, filename: Optional[str] = None, rotate_day: int = 7
+    level: str, filename: Optional[str] = None, rotate_day: int = 7
 ) -> logging.Logger:
     logger = logging.getLogger("tv-track")
     logger.setLevel(level)

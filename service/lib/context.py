@@ -5,8 +5,8 @@ import aiohttp
 from .path import chromium_path
 from .error_handler import ErrorHandler
 from .logger import get_logger
-import logging
 from service.schema.config import Config
+import os
 
 
 class ContextMeta(type):
@@ -69,10 +69,15 @@ class Context(metaclass=ContextMeta):
     def __init__(
         self,
         config: Config | None = None,
-        logger: logging.Logger | None = None,
     ):
         self.config = config or Config()
-        self.logger = logger or get_logger(logging.INFO)
+        os.makedirs(self.config.data_dir, exist_ok=True)
+        os.makedirs(os.path.join(self.config.data_dir, "log"), exist_ok=True)
+        self.logger = get_logger(
+            "INFO",
+            os.path.join(self.config.data_dir, "log/log.txt"),
+            7,
+        )
         self.error_handler = ErrorHandler()
         self.error_handler.add_handler(
             "error", lambda title, error: self.logger.error(f"{title}: {error}")

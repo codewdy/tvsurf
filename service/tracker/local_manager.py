@@ -88,7 +88,7 @@ class Updater:
 
     async def update_all(self) -> None:
         with Context.handle_error(title="update_all", type="critical"):
-            async with ParallelHolder(Context.config.tracker.update_parallel) as holder:
+            async with ParallelHolder(Context.config.updater.update_parallel) as holder:
                 for i, tv in self.tvdb.tvs.items():
                     if tv.track.tracking:
                         holder.schedule(lambda tv_id=i: self.update_tv(tv_id))
@@ -99,7 +99,7 @@ class Updater:
     def should_update(self) -> bool:
         return (
             datetime.now() - self.tvdb.last_update
-            > Context.config.tracker.update_interval
+            > Context.config.updater.update_interval
         )
 
     async def update_loop(self) -> None:
@@ -110,7 +110,7 @@ class Updater:
                 await asyncio.sleep(
                     max(
                         (
-                            Context.config.tracker.update_interval
+                            Context.config.updater.update_interval
                             - (datetime.now() - self.tvdb.last_update)
                         ).total_seconds(),
                         0,
@@ -146,7 +146,7 @@ class LocalManager:
         tv = self.tvdb.tvs[id]
         if (
             tv.track.latest_update
-            < datetime.now() - Context.config.tracker.tracking_timeout
+            < datetime.now() - Context.config.updater.tracking_timeout
         ):
             tv.track.tracking = False
             self.tvdb.commit()

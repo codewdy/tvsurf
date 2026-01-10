@@ -4,7 +4,7 @@ import json
 config = json.load(open("build.json"))
 
 a = Analysis(
-    ['tray_app.py'],
+    ['main.py'],
     pathex=['..'],
     binaries=[
     ],

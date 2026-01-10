@@ -10,11 +10,13 @@ from .user_manager import UserManager
 from service.schema.user_db import User
 from typing import Optional
 import threading
+from service.schema.config import Config
 
 
 class Tracker:
-    def __init__(self):
-        self.context: Context = Context()
+    def __init__(self, config: Config):
+        self.config = config
+        self.context: Context = Context(config)
         self.searchers = Searchers()
         self.db = DB()
         self.local_manager = LocalManager()
@@ -26,7 +28,6 @@ class Tracker:
         print("Tracker started")
         await self.context.__aenter__()
         with Context.handle_error("tracker start failed", rethrow=True):
-            os.makedirs(self.context.config.data_dir, exist_ok=True)
             self.db.start()
             Context.set_data("db", self.db)
             await self.error_db.start()
