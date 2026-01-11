@@ -33,7 +33,7 @@ class WebSubjectSearcher(BaseSubjectSearcher):
         pass
 
     def get_other_pages(self, request_url: str, soup: BeautifulSoup) -> list[str]:
-        if self.other_page is None:
+        if self.other_page == "":
             return []
         other_page = soup.select(self.other_page)
         if self.other_page_filter is not None:
@@ -42,7 +42,6 @@ class WebSubjectSearcher(BaseSubjectSearcher):
                 for page in other_page
                 if not self.other_page_filter.search(to_text(page))
             ]
-        print([to_text(page) for page in other_page])
         result = [
             urljoin(request_url, page["href"])  # type: ignore
             for page in other_page
