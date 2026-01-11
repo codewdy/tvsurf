@@ -1,30 +1,9 @@
 import { useState, useEffect } from "react";
 import type { Route } from "./+types/tv-list";
+import TVCard, { type TVInfo } from "../components/TVCard";
 
 // 定义类型
 type Tag = "watching" | "wanted" | "watched" | "on_hold" | "not_tagged";
-
-interface WatchProgress {
-  episode_id: number;
-  time: number;
-}
-
-interface UserTVData {
-  tv_id: number;
-  tag: Tag;
-  watch_progress: WatchProgress;
-  last_update: string; // ISO datetime string
-}
-
-interface TVInfo {
-  id: number;
-  name: string;
-  cover_url: string;
-  series: number[];
-  last_update: string; // ISO datetime string
-  total_episodes: number;
-  user_data: UserTVData;
-}
 
 interface GetTVInfosResponse {
   tvs: TVInfo[];
@@ -189,49 +168,9 @@ export default function TVList() {
             </button>
             {isExpanded && (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-                {tagTVs.map((tv) => {
-                  const unwatchedEpisodes =
-                    tv.total_episodes - tv.user_data.watch_progress.episode_id;
-                  const showBadge = tag === "watching" && unwatchedEpisodes > 0;
-
-                  return (
-                    <a
-                      key={tv.id}
-                      href={`/tv-details/${tv.id}`}
-                      className="block bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative"
-                    >
-                      <div className="aspect-[2/3] bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
-                        {tv.cover_url ? (
-                          <img
-                            src={tv.cover_url}
-                            alt={tv.name}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            无封面
-                          </div>
-                        )}
-                      </div>
-                      {showBadge && (
-                        <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg z-10">
-                          {unwatchedEpisodes}
-                        </div>
-                      )}
-                      <div className="p-3">
-                        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">
-                          {tv.name}
-                        </h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {tv.user_data.watch_progress.episode_id > 0
-                            ? `第 ${tv.user_data.watch_progress.episode_id} 集 / 共 ${tv.total_episodes} 集`
-                            : `未观看 / 共 ${tv.total_episodes} 集`}
-                        </p>
-                      </div>
-                    </a>
-                  );
-                })}
+                {tagTVs.map((tv) => (
+                  <TVCard key={tv.id} tv={tv} showBadge={tag === "watching"} />
+                ))}
               </div>
             )}
           </div>
