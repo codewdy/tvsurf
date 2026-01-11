@@ -36,6 +36,20 @@ interface AddTVResponse {
   id: number;
 }
 
+interface Series {
+  id: number;
+  name: string;
+  tvs: number[];
+}
+
+interface GetSeriesResponse {
+  series: Series[];
+}
+
+interface AddSeriesResponse {
+  id: number;
+}
+
 export function meta({ }: Route.MetaArgs) {
   return [
     { title: "添加TV" },
@@ -53,6 +67,19 @@ export default function AddTV() {
   const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
   const [addError, setAddError] = useState<Map<number, string>>(new Map());
   const [hasSearched, setHasSearched] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmSource, setConfirmSource] = useState<Source | null>(null);
+  const [confirmIndex, setConfirmIndex] = useState<number>(-1);
+  const [confirmName, setConfirmName] = useState("");
+  const [confirmTracking, setConfirmTracking] = useState(false);
+  const [confirmSeries, setConfirmSeries] = useState<number[]>([]);
+  const [seriesList, setSeriesList] = useState<Series[]>([]);
+  const [loadingSeries, setLoadingSeries] = useState(false);
+  const [seriesSearchKeyword, setSeriesSearchKeyword] = useState("");
+  const [creatingSeries, setCreatingSeries] = useState(false);
+  // 保存对话框设置（除了名称）
+  const [savedTracking, setSavedTracking] = useState(false);
+  const [savedSeries, setSavedSeries] = useState<number[]>([]);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,11 +118,88 @@ export default function AddTV() {
     }
   };
 
-  const handleAddTV = async (source: Source, index: number) => {
-    setAddingIds((prev) => new Set(prev).add(index));
+  const fetchSeries = async () => {
+    try {
+      setLoadingSeries(true);
+      const response = await fetch("/api/get_series", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ ids: null }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`获取系列列表失败: ${response.statusText}`);
+      }
+
+      const data: GetSeriesResponse = await response.json();
+      setSeriesList(data.series || []);
+    } catch (err) {
+      console.error("Fetch series error:", err);
+    } finally {
+      setLoadingSeries(false);
+    }
+  };
+
+  const handleCreateSeries = async () => {
+    if (!seriesSearchKeyword.trim()) {
+      return;
+    }
+
+    try {
+      setCreatingSeries(true);
+      const response = await fetch("/api/add_series", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name: seriesSearchKeyword.trim() }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`创建系列失败: ${response.statusText} - ${errorText}`);
+      }
+
+      const data: AddSeriesResponse = await response.json();
+
+      // 刷新系列列表
+      await fetchSeries();
+
+      // 将新系列添加到已选列表
+      setConfirmSeries((prev) => [...prev, data.id]);
+
+      // 清空输入
+      setSeriesSearchKeyword("");
+    } catch (err) {
+      console.error("Create series error:", err);
+      alert(err instanceof Error ? err.message : "创建系列时发生错误");
+    } finally {
+      setCreatingSeries(false);
+    }
+  };
+
+  const handleAddTV = (source: Source, index: number) => {
+    setConfirmSource(source);
+    setConfirmIndex(index);
+    setConfirmName(source.name); // 名称每次都重置为 source.name
+    setConfirmTracking(savedTracking); // 使用保存的追更状态
+    setConfirmSeries(savedSeries); // 使用保存的系列选择
+    setShowConfirmDialog(true);
+    fetchSeries();
+  };
+
+  const handleConfirmAdd = async () => {
+    if (!confirmSource || confirmIndex === -1) {
+      return;
+    }
+
+    setShowConfirmDialog(false);
+    setAddingIds((prev) => new Set(prev).add(confirmIndex));
     setAddError((prev) => {
       const newMap = new Map(prev);
-      newMap.delete(index);
+      newMap.delete(confirmIndex);
       return newMap;
     });
 
@@ -106,10 +210,10 @@ export default function AddTV() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          name: source.name,
-          source: source,
-          tracking: false,
-          series: [],
+          name: confirmName.trim(),
+          source: confirmSource,
+          tracking: confirmTracking,
+          series: confirmSeries,
         }),
       });
 
@@ -119,20 +223,79 @@ export default function AddTV() {
       }
 
       const data: AddTVResponse = await response.json();
-      setAddedIds((prev) => new Set(prev).add(index));
+      setAddedIds((prev) => new Set(prev).add(confirmIndex));
+
+      // 保存当前设置（除了名称）
+      setSavedTracking(confirmTracking);
+      setSavedSeries(confirmSeries);
+
       console.log(`TV 添加成功，ID: ${data.id}`);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "添加时发生错误";
-      setAddError((prev) => new Map(prev).set(index, errorMessage));
+      setAddError((prev) => new Map(prev).set(confirmIndex, errorMessage));
       console.error("Add TV error:", err);
     } finally {
       setAddingIds((prev) => {
         const newSet = new Set(prev);
-        newSet.delete(index);
+        newSet.delete(confirmIndex);
         return newSet;
       });
+      setConfirmSource(null);
+      setConfirmIndex(-1);
     }
+  };
+
+  const handleCancelAdd = () => {
+    // 保存当前设置（除了名称）
+    setSavedTracking(confirmTracking);
+    setSavedSeries(confirmSeries);
+
+    setShowConfirmDialog(false);
+    setConfirmSource(null);
+    setConfirmIndex(-1);
+    setConfirmName("");
+    setSeriesSearchKeyword("");
+  };
+
+  const toggleSeries = (seriesId: number) => {
+    setConfirmSeries((prev) => {
+      if (prev.includes(seriesId)) {
+        return prev.filter((id) => id !== seriesId);
+      } else {
+        return [...prev, seriesId];
+      }
+    });
+  };
+
+  const moveToSelected = (seriesId: number) => {
+    if (!confirmSeries.includes(seriesId)) {
+      setConfirmSeries((prev) => [...prev, seriesId]);
+    }
+  };
+
+  const moveToAvailable = (seriesId: number) => {
+    setConfirmSeries((prev) => prev.filter((id) => id !== seriesId));
+  };
+
+  const moveAllToSelected = () => {
+    const filtered = seriesList.filter(
+      (series) =>
+        !confirmSeries.includes(series.id) &&
+        series.name
+          .toLowerCase()
+          .includes(seriesSearchKeyword.toLowerCase())
+    );
+    const allIds = filtered.map((s) => s.id);
+    setConfirmSeries((prev) => {
+      const combined = [...new Set([...prev, ...allIds])];
+      return combined;
+    });
+  };
+
+  const moveAllToAvailable = () => {
+    // 移除所有已选系列（不受搜索影响）
+    setConfirmSeries([]);
   };
 
   return (
@@ -312,6 +475,177 @@ export default function AddTV() {
       {!loading && !hasSearched && !error && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           <p>请输入关键词开始搜索</p>
+        </div>
+      )}
+
+      {/* 确认对话框 */}
+      {showConfirmDialog && confirmSource && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
+                确认添加TV
+              </h2>
+
+              {/* 名称编辑 */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  名称
+                </label>
+                <input
+                  type="text"
+                  value={confirmName}
+                  onChange={(e) => setConfirmName(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  placeholder="输入TV名称"
+                />
+              </div>
+
+              {/* 追更选项 */}
+              <div className="mb-4">
+                <label className="flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={confirmTracking}
+                    onChange={(e) => setConfirmTracking(e.target.checked)}
+                    className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                  />
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                    追更
+                  </span>
+                </label>
+              </div>
+
+              {/* 系列选择 - 穿梭框 */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  选择系列
+                </label>
+                {loadingSeries ? (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    加载中...
+                  </div>
+                ) : seriesList.length === 0 ? (
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    暂无系列
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {/* 搜索框和新建按钮 */}
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={seriesSearchKeyword}
+                        onChange={(e) => setSeriesSearchKeyword(e.target.value)}
+                        placeholder="搜索系列或输入新系列名称..."
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleCreateSeries}
+                        disabled={!seriesSearchKeyword.trim() || creatingSeries}
+                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors dark:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
+                      >
+                        {creatingSeries ? "创建中..." : "新建"}
+                      </button>
+                    </div>
+                    {/* 穿梭框 */}
+                    <div className="flex gap-4">
+                      {/* 可用系列 */}
+                      <div className="flex-1">
+                        <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          可用系列
+                        </div>
+                        <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                          <div className="max-h-64 overflow-y-auto">
+                            {seriesList
+                              .filter(
+                                (series) =>
+                                  !confirmSeries.includes(series.id) &&
+                                  series.name
+                                    .toLowerCase()
+                                    .includes(
+                                      seriesSearchKeyword.toLowerCase()
+                                    )
+                              )
+                              .map((series) => (
+                                <div
+                                  key={series.id}
+                                  onClick={() => moveToSelected(series.id)}
+                                  className="px-3 py-2 hover:bg-blue-50 dark:hover:bg-blue-900/20 cursor-pointer border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                                >
+                                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                                    {series.name}
+                                  </span>
+                                </div>
+                              ))}
+                            {seriesList.filter(
+                              (series) =>
+                                !confirmSeries.includes(series.id) &&
+                                series.name
+                                  .toLowerCase()
+                                  .includes(seriesSearchKeyword.toLowerCase())
+                            ).length === 0 && (
+                                <div className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">
+                                  无可用系列
+                                </div>
+                              )}
+                          </div>
+                        </div>
+                      </div>
+
+
+                      {/* 已选系列 */}
+                      <div className="flex-1">
+                        <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          已选系列 ({confirmSeries.length})
+                        </div>
+                        <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+                          <div className="max-h-64 overflow-y-auto">
+                            {seriesList
+                              .filter((series) => confirmSeries.includes(series.id))
+                              .map((series) => (
+                                <div
+                                  key={series.id}
+                                  onClick={() => moveToAvailable(series.id)}
+                                  className="px-3 py-2 hover:bg-red-50 dark:hover:bg-red-900/20 cursor-pointer border-b border-gray-200 dark:border-gray-700 last:border-b-0"
+                                >
+                                  <span className="text-sm text-gray-700 dark:text-gray-300">
+                                    {series.name}
+                                  </span>
+                                </div>
+                              ))}
+                            {confirmSeries.length === 0 && (
+                              <div className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">
+                                未选择系列
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 按钮 */}
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={handleCancelAdd}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={handleConfirmAdd}
+                  disabled={!confirmName.trim()}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-green-700 dark:hover:bg-green-600"
+                >
+                  确认添加
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
