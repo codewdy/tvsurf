@@ -204,7 +204,7 @@ export default function AddTV() {
             {results.map((source, index) => (
               <div
                 key={index}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative"
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative flex flex-col"
               >
                 <div className="aspect-[2/3] bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
                   {source.cover_url ? (
@@ -223,7 +223,7 @@ export default function AddTV() {
                     </div>
                   )}
                 </div>
-                <div className="p-3">
+                <div className="p-3 flex flex-col flex-1">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 flex-1">
                       {source.name}
@@ -238,38 +238,40 @@ export default function AddTV() {
                       前往
                     </a>
                   </div>
-                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    <p>
-                      <span className="font-medium">来源:</span> {source.source.source_name}
-                    </p>
-                    <p>
-                      <span className="font-medium">频道:</span> {source.source.channel_name}
-                    </p>
-                  </div>
-                  {source.episodes && source.episodes.length > 0 && (
-                    <details className="mb-2">
-                      <summary className="cursor-pointer text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
-                        {source.episodes?.length || 0} 集
-                      </summary>
-                      <ul className="mt-1 space-y-1 max-h-32 overflow-y-auto">
-                        {source.episodes.map((episode, epIndex) => (
-                          <li
-                            key={epIndex}
-                            className="text-xs text-gray-600 dark:text-gray-400 py-0.5 px-1.5 bg-gray-50 dark:bg-gray-700 rounded"
-                          >
-                            <a
-                              href={episode.source.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
+                  <div className="flex-1">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      <p>
+                        <span className="font-medium">来源:</span> {source.source.source_name}
+                      </p>
+                      <p>
+                        <span className="font-medium">频道:</span> {source.source.channel_name}
+                      </p>
+                    </div>
+                    {source.episodes && source.episodes.length > 0 && (
+                      <details className="mb-2">
+                        <summary className="cursor-pointer text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
+                          {source.episodes?.length || 0} 集
+                        </summary>
+                        <ul className="mt-1 space-y-1 max-h-32 overflow-y-auto">
+                          {source.episodes.map((episode, epIndex) => (
+                            <li
+                              key={epIndex}
+                              className="text-xs text-gray-600 dark:text-gray-400 py-0.5 px-1.5 bg-gray-50 dark:bg-gray-700 rounded"
                             >
-                              {episode.name}
-                            </a>
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
+                              <a
+                                href={episode.source.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
+                              >
+                                {episode.name}
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </details>
+                    )}
+                  </div>
                   <div className="mt-2">
                     {addedIds.has(index) ? (
                       <div className="px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-green-700 dark:text-green-400 text-sm text-center">
