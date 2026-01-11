@@ -313,14 +313,8 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
-            <a
-              href="/series-list"
-              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-            >
-              ← 返回系列列表
-            </a>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              {series.name}
+              系列：{series.name}
             </h1>
           </div>
           {!isEditing ? (
@@ -382,7 +376,7 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
                     onDragLeave={handleDragLeave}
                     onDrop={(e) => handleDrop(e, tv.id)}
                     onDragEnd={handleDragEnd}
-                    className={`relative cursor-move ${isDragging ? "opacity-50" : ""} ${isDragTarget ? "ring-2 ring-red-500" : ""}`}
+                    className={`relative cursor-move ${isDragging ? "opacity-50" : ""} ${isDragTarget ? "ring-2 ring-blue-500" : ""}`}
                   >
                     <div className="relative [&_a]:pointer-events-none">
                       {/* 删除角标 */}
