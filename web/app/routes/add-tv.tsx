@@ -369,7 +369,16 @@ export default function AddTV() {
             {results.map((source, index) => (
               <div
                 key={index}
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative flex flex-col"
+                onClick={() => {
+                  if (!addedIds.has(index) && !addingIds.has(index)) {
+                    handleAddTV(source, index);
+                  }
+                }}
+                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative flex flex-col ${
+                  addedIds.has(index) || addingIds.has(index)
+                    ? ""
+                    : "cursor-pointer"
+                }`}
               >
                 <div className="aspect-[2/3] bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
                   {source.cover_url ? (
@@ -397,6 +406,7 @@ export default function AddTV() {
                       href={source.source.url}
                       target="_blank"
                       rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
                       className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors dark:bg-blue-700 dark:hover:bg-blue-600 flex-shrink-0"
                       title="前往源地址"
                     >
@@ -413,7 +423,7 @@ export default function AddTV() {
                       </p>
                     </div>
                     {source.episodes && source.episodes.length > 0 && (
-                      <details className="mb-2">
+                      <details className="mb-2" onClick={(e) => e.stopPropagation()}>
                         <summary className="cursor-pointer text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
                           {source.episodes?.length || 0} 集
                         </summary>
@@ -427,6 +437,7 @@ export default function AddTV() {
                                 href={episode.source.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
+                                onClick={(e) => e.stopPropagation()}
                                 className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
                               >
                                 {episode.name}
@@ -442,15 +453,11 @@ export default function AddTV() {
                       <div className="px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-green-700 dark:text-green-400 text-sm text-center">
                         ✓ 已添加
                       </div>
-                    ) : (
-                      <button
-                        onClick={() => handleAddTV(source, index)}
-                        disabled={addingIds.has(index)}
-                        className="w-full px-3 py-2 bg-green-600 text-white rounded text-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-green-700 dark:hover:bg-green-600"
-                      >
-                        {addingIds.has(index) ? "添加中..." : "添加"}
-                      </button>
-                    )}
+                    ) : addingIds.has(index) ? (
+                      <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded text-gray-700 dark:text-gray-400 text-sm text-center">
+                        添加中...
+                      </div>
+                    ) : null}
                     {addError.has(index) && (
                       <div className="mt-1 px-2 py-1 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-xs">
                         {addError.get(index)}
