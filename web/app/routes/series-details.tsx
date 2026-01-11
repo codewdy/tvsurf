@@ -38,6 +38,7 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
   const [selectedTVs, setSelectedTVs] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [showAddTVModal, setShowAddTVModal] = useState(false);
 
   // 获取系列和 TV 信息
   const fetchSeriesDetails = async () => {
@@ -135,6 +136,7 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
       setSelectedTVs(series.tvs);
       setIsEditing(false);
       setSearchKeyword("");
+      setShowAddTVModal(false);
     }
   };
 
@@ -166,6 +168,7 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
       await fetchSeriesDetails();
       setIsEditing(false);
       setSearchKeyword("");
+      setShowAddTVModal(false);
     } catch (err) {
       console.error("Update series TVs error:", err);
       setError(err instanceof Error ? err.message : "更新系列失败");
@@ -174,15 +177,16 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
     }
   };
 
-  // 切换 TV 选择
-  const toggleTV = (tvId: number) => {
-    setSelectedTVs((prev) => {
-      if (prev.includes(tvId)) {
-        return prev.filter((id) => id !== tvId);
-      } else {
-        return [...prev, tvId];
-      }
-    });
+  // 删除 TV
+  const removeTV = (tvId: number) => {
+    setSelectedTVs((prev) => prev.filter((id) => id !== tvId));
+  };
+
+  // 添加 TV
+  const addTV = (tvId: number) => {
+    if (!selectedTVs.includes(tvId)) {
+      setSelectedTVs((prev) => [...prev, tvId]);
+    }
   };
 
   // 移动 TV 位置
@@ -324,156 +328,170 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
       {/* 编辑模式 */}
       {isEditing ? (
         <div className="space-y-6">
-          {/* 搜索框 */}
+          {/* 已选 TV 列表 */}
           <div>
-            <input
-              type="text"
-              value={searchKeyword}
-              onChange={(e) => setSearchKeyword(e.target.value)}
-              placeholder="搜索 TV..."
-              className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            />
-          </div>
-
-          {/* 穿梭框布局 */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 可用 TV */}
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  可用 TV
-                </h2>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {availableTVInfos.length} 个
-                </span>
-              </div>
-              <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50 max-h-[600px] overflow-y-auto">
-                {availableTVInfos.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 gap-3">
-                    {availableTVInfos.map((tv) => (
-                      <div
-                        key={tv.id}
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                已选 TV
+              </h2>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
+                {selectedTVInfos.length} 个
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+              {selectedTVInfos.map((tv, index) => {
+                const isFirst = index === 0;
+                const isLast = index === selectedTVInfos.length - 1;
+                return (
+                  <div key={tv.id} className="relative group">
+                    <div className="relative [&_a]:pointer-events-none">
+                      {/* 删除角标 */}
+                      <button
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          toggleTV(tv.id);
+                          removeTV(tv.id);
                         }}
-                        className="cursor-pointer [&_a]:pointer-events-none"
-                        style={{ pointerEvents: "auto" }}
+                        className="absolute -top-2 -right-2 z-20 bg-red-500 hover:bg-red-600 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shadow-lg transition-colors"
+                        title="删除"
                       >
-                        <TVCard tv={tv} />
-                      </div>
-                    ))}
+                        ×
+                      </button>
+                      <TVCard tv={tv} />
+                    </div>
+                    {/* 左侧控制按钮 */}
+                    <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          moveTVForward(tv.id);
+                        }}
+                        disabled={isFirst}
+                        className="px-3 py-2 bg-blue-600 text-white text-xl font-bold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
+                        title="向前移动一格"
+                      >
+                        ←
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          moveTVToFirst(tv.id);
+                        }}
+                        disabled={isFirst}
+                        className="px-3 py-2 bg-blue-600 text-white text-xl font-bold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
+                        title="放到最前"
+                      >
+                        ⇐
+                      </button>
+                    </div>
+                    {/* 右侧控制按钮 */}
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          moveTVBackward(tv.id);
+                        }}
+                        disabled={isLast}
+                        className="px-3 py-2 bg-blue-600 text-white text-xl font-bold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
+                        title="向后移动一格"
+                      >
+                        →
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          moveTVToLast(tv.id);
+                        }}
+                        disabled={isLast}
+                        className="px-3 py-2 bg-blue-600 text-white text-xl font-bold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
+                        title="放到最后"
+                      >
+                        ⇒
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                    无可用 TV
+                );
+              })}
+              {/* 虚拟的新 card */}
+              <div
+                onClick={() => setShowAddTVModal(true)}
+                className="block bg-gray-100 dark:bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer border-2 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400"
+              >
+                <div className="aspect-[2/3] flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-4xl text-gray-400 dark:text-gray-500 mb-2">
+                      +
+                    </div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      添加 TV
+                    </div>
                   </div>
-                )}
-              </div>
-            </div>
-
-            {/* 已选 TV */}
-            <div>
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  已选 TV
-                </h2>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {selectedTVInfos.length} 个
-                </span>
-              </div>
-              <div className="border border-gray-300 dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-800/50 max-h-[600px] overflow-y-auto">
-                {selectedTVInfos.length > 0 ? (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 gap-3">
-                    {selectedTVInfos.map((tv, index) => {
-                      const isFirst = index === 0;
-                      const isLast = index === selectedTVInfos.length - 1;
-                      return (
-                        <div
-                          key={tv.id}
-                          className="relative group"
-                        >
-                          <div
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              toggleTV(tv.id);
-                            }}
-                            className="cursor-pointer relative [&_a]:pointer-events-none"
-                            style={{ pointerEvents: "auto" }}
-                          >
-                            <div className="absolute top-2 right-2 z-10 bg-green-500 text-white text-xs font-bold px-2 py-1 rounded-full">
-                              ✓
-                            </div>
-                            <TVCard tv={tv} />
-                          </div>
-                          {/* 左侧控制按钮 */}
-                          <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                moveTVForward(tv.id);
-                              }}
-                              disabled={isFirst}
-                              className="px-3 py-2 bg-blue-600 text-white text-xl font-bold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
-                              title="向前移动一格"
-                            >
-                              ←
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                moveTVToFirst(tv.id);
-                              }}
-                              disabled={isFirst}
-                              className="px-3 py-2 bg-blue-600 text-white text-xl font-bold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
-                              title="放到最前"
-                            >
-                              ⇐
-                            </button>
-                          </div>
-                          {/* 右侧控制按钮 */}
-                          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                moveTVBackward(tv.id);
-                              }}
-                              disabled={isLast}
-                              className="px-3 py-2 bg-blue-600 text-white text-xl font-bold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
-                              title="向后移动一格"
-                            >
-                              →
-                            </button>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                moveTVToLast(tv.id);
-                              }}
-                              disabled={isLast}
-                              className="px-3 py-2 bg-blue-600 text-white text-xl font-bold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
-                              title="放到最后"
-                            >
-                              ⇒
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center text-gray-500 dark:text-gray-400 py-8">
-                    未选择 TV
-                  </div>
-                )}
+                </div>
               </div>
             </div>
           </div>
+
+          {/* 添加 TV 模态框 */}
+          {showAddTVModal && (
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+              onClick={() => setShowAddTVModal(false)}
+            >
+              <div
+                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] flex flex-col"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* 模态框头部 */}
+                <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+                  <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    添加 TV
+                  </h3>
+                  <button
+                    onClick={() => setShowAddTVModal(false)}
+                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl font-bold"
+                  >
+                    ×
+                  </button>
+                </div>
+
+                {/* 搜索框 */}
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700">
+                  <input
+                    type="text"
+                    value={searchKeyword}
+                    onChange={(e) => setSearchKeyword(e.target.value)}
+                    placeholder="搜索 TV..."
+                    className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  />
+                </div>
+
+                {/* 可用 TV 列表 */}
+                <div className="flex-1 overflow-y-auto p-4">
+                  {availableTVInfos.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+                      {availableTVInfos.map((tv) => (
+                        <div
+                          key={tv.id}
+                          onClick={() => addTV(tv.id)}
+                          className="cursor-pointer [&_a]:pointer-events-none"
+                        >
+                          <TVCard tv={tv} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 dark:text-gray-400 py-8">
+                      {searchKeyword ? "未找到匹配的 TV" : "无可用 TV"}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         /* 查看模式 */
