@@ -411,11 +411,10 @@ export default function AddTV() {
                     handleAddTV(source, index);
                   }
                 }}
-                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative flex flex-col ${
-                  addedIds.has(index) || addingIds.has(index)
+                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative flex flex-col ${addedIds.has(index) || addingIds.has(index)
                     ? ""
                     : "cursor-pointer"
-                }`}
+                  }`}
               >
                 <div className="aspect-[2/3] bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
                   {source.cover_url ? (
@@ -619,7 +618,7 @@ export default function AddTV() {
                           可用系列
                         </div>
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                          <div className="max-h-64 overflow-y-auto">
+                          <div className="h-32 overflow-y-auto">
                             {seriesList
                               .filter(
                                 (series) =>
@@ -663,7 +662,7 @@ export default function AddTV() {
                           已选系列 ({confirmSeries.length})
                         </div>
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                          <div className="max-h-64 overflow-y-auto">
+                          <div className="h-32 overflow-y-auto">
                             {seriesList
                               .filter((series) => confirmSeries.includes(series.id))
                               .map((series) => (
