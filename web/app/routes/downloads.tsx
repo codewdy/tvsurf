@@ -1,23 +1,11 @@
 import { useState, useEffect } from "react";
 import type { Route } from "./+types/downloads";
-
-// 定义 API 响应类型
-interface DownloadProgress {
-  status: string;
-  downloading: boolean;
-  total_size: number;
-  downloaded_size: number;
-  speed: number;
-}
-
-interface DownloadProgressWithName {
-  name: string;
-  progress: DownloadProgress;
-}
-
-interface GetDownloadProgressResponse {
-  progress: DownloadProgressWithName[];
-}
+import { getDownloadProgress } from "../api/client";
+import type {
+  DownloadProgress,
+  DownloadProgressWithName,
+  GetDownloadProgressResponse,
+} from "../api/types";
 
 // 格式化字节数
 function formatBytes(bytes: number): string {
@@ -81,19 +69,7 @@ export default function Downloads() {
 
   const fetchProgress = async () => {
     try {
-      const response = await fetch("/api/get_download_progress", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      });
-
-      if (!response.ok) {
-        throw new Error(`获取进度失败: ${response.statusText}`);
-      }
-
-      const data: GetDownloadProgressResponse = await response.json();
+      const data = await getDownloadProgress({});
       setProgressList(data.progress || []);
       setError(null);
     } catch (err) {

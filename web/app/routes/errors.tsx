@@ -1,24 +1,11 @@
 import { useState, useEffect } from "react";
 import type { Route } from "./+types/errors";
-
-// 定义错误类型
-type ErrorType = "error" | "critical";
-
-interface Error {
-  id: number;
-  timestamp: string; // ISO datetime string
-  title: string;
-  description: string;
-  type: ErrorType;
-}
-
-interface GetErrorsResponse {
-  errors: Error[];
-}
-
-interface RemoveErrorsRequest {
-  ids: number[];
-}
+import { getErrors, removeErrors } from "../api/client";
+import type {
+  Error,
+  GetErrorsResponse,
+  RemoveErrorsRequest,
+} from "../api/types";
 
 // 格式化时间
 function formatDateTime(dateString: string): string {
@@ -67,19 +54,7 @@ export default function Errors() {
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/get_errors", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data: GetErrorsResponse = await response.json();
+      const data = await getErrors({});
       // 按时间倒序排序，最新的在前
       const sortedErrors = [...(data.errors || [])].sort((a, b) => {
         return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
@@ -93,19 +68,9 @@ export default function Errors() {
     }
   };
 
-  const removeErrors = async (ids: number[]) => {
+  const handleRemoveErrors = async (ids: number[]) => {
     try {
-      const response = await fetch("/api/remove_errors", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ids } as RemoveErrorsRequest),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      await removeErrors({ ids });
 
       // 重新获取错误列表
       await fetchErrors();
@@ -141,14 +106,14 @@ export default function Errors() {
   const handleRemoveSelected = () => {
     if (selectedIds.size === 0) return;
     if (confirm(`确定要删除选中的 ${selectedIds.size} 个错误吗？`)) {
-      removeErrors(Array.from(selectedIds));
+      handleRemoveErrors(Array.from(selectedIds));
     }
   };
 
   const handleRemoveAll = () => {
     if (errors.length === 0) return;
     if (confirm(`确定要删除全部 ${errors.length} 个错误吗？`)) {
-      removeErrors(errors.map((e) => e.id));
+      handleRemoveErrors(errors.map((e) => e.id));
     }
   };
 

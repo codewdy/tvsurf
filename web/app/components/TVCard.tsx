@@ -1,27 +1,6 @@
-// 定义类型
-type Tag = "watching" | "wanted" | "watched" | "on_hold" | "not_tagged";
+import type { TVInfo } from "../api/types";
 
-interface WatchProgress {
-  episode_id: number;
-  time: number;
-}
-
-interface UserTVData {
-  tv_id: number;
-  tag: Tag;
-  watch_progress: WatchProgress;
-  last_update: string; // ISO datetime string
-}
-
-export interface TVInfo {
-  id: number;
-  name: string;
-  cover_url: string;
-  series: number[];
-  last_update: string; // ISO datetime string
-  total_episodes: number;
-  user_data: UserTVData;
-}
+export type { TVInfo };
 
 interface TVCardProps {
   tv: TVInfo;

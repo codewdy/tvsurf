@@ -1,106 +1,18 @@
 import { useState, useEffect, useRef } from "react";
 import type { Route } from "./+types/tv-details";
-
-// 定义 API 响应类型
-interface WatchProgress {
-  episode_id: number;
-  time: number;
-}
-
-type Tag = "watching" | "wanted" | "watched" | "on_hold" | "not_tagged";
-
-interface UserTVData {
-  tv_id: number;
-  tag: Tag;
-  watch_progress: WatchProgress;
-  last_update: string;
-}
-
-interface SourceUrl {
-  source_key: string;
-  source_name: string;
-  channel_name: string;
-  url: string;
-}
-
-interface Episode {
-  source: SourceUrl;
-  name: string;
-}
-
-interface Source {
-  source: SourceUrl;
-  name: string;
-  cover_url: string;
-  episodes: Episode[];
-}
-
-type DownloadStatus = "running" | "success" | "failed";
-
-interface StorageEpisode {
-  name: string;
-  filename: string;
-  status: DownloadStatus;
-}
-
-interface Storage {
-  directory: string;
-  episodes: StorageEpisode[];
-  cover: string;
-}
-
-interface TrackStatus {
-  tracking: boolean;
-  latest_update: string;
-}
-
-interface TV {
-  id: number;
-  name: string;
-  source: Source;
-  storage: Storage;
-  track: TrackStatus;
-  series: number[];
-}
-
-interface TVInfo {
-  id: number;
-  name: string;
-  cover_url: string;
-  series: number[];
-  last_update: string;
-  user_data: UserTVData;
-}
-
-interface GetTVDetailsResponse {
-  tv: TV;
-  info: TVInfo;
-  episodes: (string | null)[];
-}
-
-interface SetTVTagRequest {
-  tv_id: number;
-  tag: Tag;
-}
-
-interface Series {
-  id: number;
-  name: string;
-  tvs: number[];
-  last_update: string;
-}
-
-interface GetSeriesResponse {
-  series: Series[];
-}
-
-const TAG_NAMES: Record<Tag, string> = {
-  watching: "观看中",
-  wanted: "想看",
-  watched: "已看完",
-  on_hold: "暂停",
-  not_tagged: "未标记",
-};
+import {
+  getTVDetails,
+  setTVTag,
+  setWatchProgress,
+  getSeries,
+} from "../api/client";
+import type {
+  Tag,
+  GetTVDetailsResponse,
+  Series,
+  GetSeriesResponse,
+} from "../api/types";
+import { TAG_NAMES } from "../api/types";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -148,19 +60,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/get_tv_details", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ id: tvId }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`获取电视剧详情失败: ${response.statusText}`);
-      }
-
-      const data: GetTVDetailsResponse = await response.json();
+      const data = await getTVDetails({ id: tvId });
       setDetails(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "获取电视剧详情时发生错误");
@@ -174,20 +74,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     if (seriesIds.length === 0) return;
 
     try {
-      const response = await fetch("/api/get_series", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ids: seriesIds }),
-      });
-
-      if (!response.ok) {
-        console.error("获取系列信息失败");
-        return;
-      }
-
-      const data: GetSeriesResponse = await response.json();
+      const data = await getSeries({ ids: seriesIds });
       setSeriesList(data.series);
     } catch (err) {
       console.error("Fetch series error:", err);
@@ -200,22 +87,10 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     setUpdatingTag(true);
     setError(null);
     try {
-      const request: SetTVTagRequest = {
+      await setTVTag({
         tv_id: details.tv.id,
         tag: newTag,
-      };
-
-      const response = await fetch("/api/set_tv_tag", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(request),
       });
-
-      if (!response.ok) {
-        throw new Error(`更新标签失败: ${response.statusText}`);
-      }
 
       // 更新本地状态
       setDetails({
@@ -237,21 +112,11 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     if (!details) return;
 
     try {
-      const response = await fetch("/api/set_watch_progress", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tv_id: details.tv.id,
-          episode_id: episodeId,
-          time: time,
-        }),
+      await setWatchProgress({
+        tv_id: details.tv.id,
+        episode_id: episodeId,
+        time: time,
       });
-
-      if (!response.ok) {
-        console.error("更新播放进度失败:", response.statusText);
-      }
     } catch (err) {
       console.error("Update watch progress error:", err);
     }

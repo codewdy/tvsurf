@@ -1,64 +1,23 @@
 import { useState, useEffect } from "react";
 import type { Route } from "./+types/add-tv";
-
-// 定义 API 响应类型
-interface SourceUrl {
-  source_key: string;
-  source_name: string;
-  channel_name: string;
-  url: string;
-}
-
-interface Episode {
-  source: SourceUrl;
-  name: string;
-}
-
-interface Source {
-  source: SourceUrl;
-  name: string;
-  cover_url: string;
-  episodes: Episode[];
-}
-
-interface SearchError {
-  source_name: string;
-  source_key: string;
-  error: string;
-}
-
-interface SearchTVResponse {
-  source: Source[];
-  search_error: SearchError[];
-}
-
-interface AddTVResponse {
-  id: number;
-}
-
-interface Series {
-  id: number;
-  name: string;
-  tvs: number[];
-}
-
-interface GetSeriesResponse {
-  series: Series[];
-}
-
-type Tag = "watching" | "wanted" | "watched" | "on_hold" | "not_tagged";
-
-const TAG_NAMES: Record<Tag, string> = {
-  watching: "观看中",
-  wanted: "想看",
-  watched: "已看",
-  on_hold: "暂停",
-  not_tagged: "未标记",
-};
-
-interface AddSeriesResponse {
-  id: number;
-}
+import {
+  searchTV,
+  addTV,
+  getSeries,
+  addSeries,
+  setTVTag,
+} from "../api/client";
+import type {
+  Tag,
+  Source,
+  SearchTVResponse,
+  AddTVResponse,
+  Series,
+  GetSeriesResponse,
+  AddSeriesResponse,
+  SearchError,
+} from "../api/types";
+import { TAG_NAMES } from "../api/types";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -106,20 +65,7 @@ export default function AddTV() {
     setHasSearched(true);
 
     try {
-      const response = await fetch("/api/search_tv", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ keyword: keyword.trim() }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`搜索失败: ${response.statusText} - ${errorText}`);
-      }
-
-      const data: SearchTVResponse = await response.json();
+      const data = await searchTV({ keyword: keyword.trim() });
       setResults(data.source || []);
       setSearchErrors(data.search_error || []);
     } catch (err) {
@@ -133,19 +79,7 @@ export default function AddTV() {
   const fetchSeries = async () => {
     try {
       setLoadingSeries(true);
-      const response = await fetch("/api/get_series", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ids: null }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`获取系列列表失败: ${response.statusText}`);
-      }
-
-      const data: GetSeriesResponse = await response.json();
+      const data = await getSeries({ ids: null });
       setSeriesList(data.series || []);
     } catch (err) {
       console.error("Fetch series error:", err);
@@ -161,20 +95,7 @@ export default function AddTV() {
 
     try {
       setCreatingSeries(true);
-      const response = await fetch("/api/add_series", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ name: seriesSearchKeyword.trim() }),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`创建系列失败: ${response.statusText} - ${errorText}`);
-      }
-
-      const data: AddSeriesResponse = await response.json();
+      const data = await addSeries({ name: seriesSearchKeyword.trim() });
 
       // 刷新系列列表
       await fetchSeries();
@@ -217,25 +138,12 @@ export default function AddTV() {
     });
 
     try {
-      const response = await fetch("/api/add_tv", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: confirmName.trim(),
-          source: confirmSource,
-          tracking: confirmTracking,
-          series: confirmSeries,
-        }),
+      const data = await addTV({
+        name: confirmName.trim(),
+        source: confirmSource,
+        tracking: confirmTracking,
+        series: confirmSeries,
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`添加失败: ${response.statusText} - ${errorText}`);
-      }
-
-      const data: AddTVResponse = await response.json();
       setAddedIds((prev) => new Set(prev).add(confirmIndex));
 
       // 保存当前设置（除了名称）
@@ -246,20 +154,10 @@ export default function AddTV() {
       // 设置tag
       if (confirmTag !== "not_tagged") {
         try {
-          const tagResponse = await fetch("/api/set_tv_tag", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              tv_id: data.id,
-              tag: confirmTag,
-            }),
+          await setTVTag({
+            tv_id: data.id,
+            tag: confirmTag,
           });
-
-          if (!tagResponse.ok) {
-            console.error("设置tag失败:", tagResponse.statusText);
-          }
         } catch (err) {
           console.error("Set TV tag error:", err);
         }

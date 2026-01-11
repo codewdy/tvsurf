@@ -1,24 +1,12 @@
 import { useState, useEffect } from "react";
 import type { Route } from "./+types/series-details";
 import TVCard, { type TVInfo } from "../components/TVCard";
-
-// 定义类型
-type Tag = "watching" | "wanted" | "watched" | "on_hold" | "not_tagged";
-
-interface Series {
-  id: number;
-  name: string;
-  tvs: number[];
-  last_update: string; // ISO datetime string
-}
-
-interface GetSeriesResponse {
-  series: Series[];
-}
-
-interface GetTVInfosResponse {
-  tvs: TVInfo[];
-}
+import { getSeries, getTVInfos, updateSeriesTVs } from "../api/client";
+import type {
+  Series,
+  GetSeriesResponse,
+  GetTVInfosResponse,
+} from "../api/types";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -56,19 +44,7 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
       }
 
       // 获取系列信息
-      const seriesResponse = await fetch("/api/get_series", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ids: [seriesId] }),
-      });
-
-      if (!seriesResponse.ok) {
-        throw new Error(`HTTP error! status: ${seriesResponse.status}`);
-      }
-
-      const seriesData: GetSeriesResponse = await seriesResponse.json();
+      const seriesData = await getSeries({ ids: [seriesId] });
       if (seriesData.series.length === 0) {
         throw new Error("系列不存在");
       }
@@ -79,38 +55,14 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
 
       // 获取该系列的 TV 信息
       if (seriesInfo.tvs.length > 0) {
-        const tvResponse = await fetch("/api/get_tv_infos", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ ids: seriesInfo.tvs }),
-        });
-
-        if (!tvResponse.ok) {
-          throw new Error(`HTTP error! status: ${tvResponse.status}`);
-        }
-
-        const tvData: GetTVInfosResponse = await tvResponse.json();
+        const tvData = await getTVInfos({ ids: seriesInfo.tvs });
         setTVInfos(tvData.tvs);
       } else {
         setTVInfos([]);
       }
 
       // 获取所有 TV 信息（用于编辑）
-      const allTVResponse = await fetch("/api/get_tv_infos", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ids: null }),
-      });
-
-      if (!allTVResponse.ok) {
-        throw new Error(`HTTP error! status: ${allTVResponse.status}`);
-      }
-
-      const allTVData: GetTVInfosResponse = await allTVResponse.json();
+      const allTVData = await getTVInfos({ ids: null });
       setAllTVInfos(allTVData.tvs);
     } catch (err) {
       console.error("Fetch series details error:", err);
@@ -166,21 +118,10 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
       setSaving(true);
       setError(null);
 
-      const response = await fetch("/api/update_series_tvs", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: series.id,
-          tvs: selectedTVs,
-        }),
+      await updateSeriesTVs({
+        id: series.id,
+        tvs: selectedTVs,
       });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`更新失败: ${response.statusText} - ${errorText}`);
-      }
 
       // 刷新数据
       await fetchSeriesDetails();

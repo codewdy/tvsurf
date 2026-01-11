@@ -1,22 +1,9 @@
 import { useState, useEffect } from "react";
 import type { Route } from "./+types/tv-list";
 import TVCard, { type TVInfo } from "../components/TVCard";
-
-// 定义类型
-type Tag = "watching" | "wanted" | "watched" | "on_hold" | "not_tagged";
-
-interface GetTVInfosResponse {
-  tvs: TVInfo[];
-}
-
-// Tag 显示名称映射
-const TAG_NAMES: Record<Tag, string> = {
-  watching: "观看中",
-  wanted: "想看",
-  watched: "已看",
-  on_hold: "暂停",
-  not_tagged: "未标记",
-};
+import { getTVInfos } from "../api/client";
+import type { Tag } from "../api/types";
+import { TAG_NAMES } from "../api/types";
 
 // Tag 顺序
 const TAG_ORDER: Tag[] = ["watching", "wanted", "on_hold", "watched", "not_tagged"];
@@ -46,19 +33,7 @@ export default function TVList() {
     try {
       setLoading(true);
       setError(null);
-      const response = await fetch("/api/get_tv_infos", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ids: null }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data: GetTVInfosResponse = await response.json();
+      const data = await getTVInfos({ ids: null });
       setTVs(data.tvs);
     } catch (err) {
       console.error("Fetch TVs error:", err);

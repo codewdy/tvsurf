@@ -1,45 +1,12 @@
 import { useState, useEffect } from "react";
 import type { Route } from "./+types/series-list";
-
-// 定义类型
-type Tag = "watching" | "wanted" | "watched" | "on_hold" | "not_tagged";
-
-interface WatchProgress {
-  episode_id: number;
-  time: number;
-}
-
-interface UserTVData {
-  tv_id: number;
-  tag: Tag;
-  watch_progress: WatchProgress;
-  last_update: string; // ISO datetime string
-}
-
-interface TVInfo {
-  id: number;
-  name: string;
-  cover_url: string;
-  series: number[];
-  last_update: string; // ISO datetime string
-  total_episodes: number;
-  user_data: UserTVData;
-}
-
-interface Series {
-  id: number;
-  name: string;
-  tvs: number[];
-  last_update: string; // ISO datetime string
-}
-
-interface GetSeriesResponse {
-  series: Series[];
-}
-
-interface GetTVInfosResponse {
-  tvs: TVInfo[];
-}
+import { getSeries, getTVInfos } from "../api/client";
+import type {
+  Series,
+  GetSeriesResponse,
+  TVInfo,
+  GetTVInfosResponse,
+} from "../api/types";
 
 interface SeriesWithTVs extends Series {
   tvInfos: TVInfo[];
@@ -64,19 +31,7 @@ export default function SeriesList() {
       setError(null);
 
       // 获取系列列表
-      const seriesResponse = await fetch("/api/get_series", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ids: null }),
-      });
-
-      if (!seriesResponse.ok) {
-        throw new Error(`HTTP error! status: ${seriesResponse.status}`);
-      }
-
-      const seriesData: GetSeriesResponse = await seriesResponse.json();
+      const seriesData = await getSeries({ ids: null });
 
       // 收集所有 TV ID
       const allTVIds = new Set<number>();
@@ -85,19 +40,7 @@ export default function SeriesList() {
       });
 
       // 获取所有 TV 信息
-      const tvResponse = await fetch("/api/get_tv_infos", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ ids: Array.from(allTVIds) }),
-      });
-
-      if (!tvResponse.ok) {
-        throw new Error(`HTTP error! status: ${tvResponse.status}`);
-      }
-
-      const tvData: GetTVInfosResponse = await tvResponse.json();
+      const tvData = await getTVInfos({ ids: Array.from(allTVIds) });
 
       // 创建 TV ID 到 TVInfo 的映射
       const tvMap = new Map<number, TVInfo>();
