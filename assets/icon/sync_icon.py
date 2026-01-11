@@ -14,6 +14,12 @@ def icon_1024_png():
     return os.path.join(os.path.dirname(__file__), "icon_1024.png")
 
 
+def web_icon():
+    return os.path.join(
+        os.path.dirname(__file__), "..", "..", "web", "public", "favicon.ico"
+    )
+
+
 def test_web_icon():
     return os.path.join(
         os.path.dirname(__file__), "..", "..", "test-web", "public", "favicon.ico"
@@ -25,5 +31,6 @@ def winapp_icon():
 
 
 if __name__ == "__main__":
+    copy_file(icon_48_ico(), web_icon())
     copy_file(icon_48_ico(), test_web_icon())
     copy_file(icon_48_ico(), winapp_icon())
