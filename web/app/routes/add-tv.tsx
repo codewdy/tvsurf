@@ -52,6 +52,7 @@ export default function AddTV() {
   const [addingIds, setAddingIds] = useState<Set<number>>(new Set());
   const [addedIds, setAddedIds] = useState<Set<number>>(new Set());
   const [addError, setAddError] = useState<Map<number, string>>(new Map());
+  const [hasSearched, setHasSearched] = useState(false);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +64,7 @@ export default function AddTV() {
     setError(null);
     setResults([]);
     setSearchErrors([]);
+    setHasSearched(true);
 
     try {
       const response = await fetch("/api/search_tv", {
@@ -300,14 +302,14 @@ export default function AddTV() {
       )}
 
       {/* 无结果提示 */}
-      {!loading && results.length === 0 && keyword && !error && (
+      {!loading && results.length === 0 && !error && hasSearched && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           <p>未找到相关结果，请尝试其他关键词</p>
         </div>
       )}
 
       {/* 初始状态提示 */}
-      {!loading && results.length === 0 && !keyword && !error && (
+      {!loading && !hasSearched && !error && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">
           <p>请输入关键词开始搜索</p>
         </div>
