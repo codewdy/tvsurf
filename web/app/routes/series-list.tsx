@@ -210,8 +210,9 @@ export default function SeriesList() {
             const coverUrl = firstTV?.cover_url || null;
 
             return (
-              <div
+              <a
                 key={series.id}
+                href={`/series/${series.id}`}
                 className="block bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative"
               >
                 <div className="aspect-[2/3] bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
@@ -236,7 +237,7 @@ export default function SeriesList() {
                     包含 {series.tvInfos.length} 个 TV
                   </p>
                 </div>
-              </div>
+              </a>
             );
           })}
         </div>
