@@ -5,6 +5,7 @@ export default [
   route("add-tv", "routes/add-tv.tsx"),
   route("series-list", "routes/series-list.tsx"),
   route("series/:id", "routes/series-details.tsx"),
+  route("tv/:id", "routes/tv-details.tsx"),
   route("downloads", "routes/downloads.tsx"),
   route("errors", "routes/errors.tsx"),
   route("system-setup", "routes/system-setup.tsx"),

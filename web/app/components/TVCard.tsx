@@ -34,7 +34,7 @@ export default function TVCard({ tv, showBadge = false }: TVCardProps) {
 
   return (
     <a
-      href={`/tv-details/${tv.id}`}
+      href={`/tv/${tv.id}`}
       className="block bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative"
     >
       <div className="aspect-[2/3] bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
