@@ -2,12 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import type { Route } from "./+types/login";
 import { useNavigate, useSearchParams } from "react-router";
-import CryptoJS from "crypto-js";
-
-// 计算字符串的 MD5 哈希值
-function md5(text: string): string {
-  return CryptoJS.MD5(text).toString();
-}
+import { hashPassword } from "../utils/password";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -58,8 +53,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      // 计算密码的 MD5
-      const passwordMd5 = md5(password);
+      // 在前端使用 bcrypt 加密密码（salt 中包含 username）
+      const passwordHash = await hashPassword(password, username.trim());
 
       // 调用 API
       const response = await fetch("/api/login", {
@@ -70,7 +65,7 @@ export default function Login() {
         credentials: "include", // 包含 cookie
         body: JSON.stringify({
           username: username.trim(),
-          password_md5: passwordMd5,
+          password_hash: passwordHash,
         }),
       });
 

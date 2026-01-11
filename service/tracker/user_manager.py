@@ -21,21 +21,21 @@ class UserManager:
         self.db.single_user_mode = True
         self.db.users[_SINGLE_USER_NAME] = User(
             username=_SINGLE_USER_NAME,
-            password_md5="",
+            password_hash="",
             token=token,
             group=["user", "admin"],
         )
         self.db.commit()
         return token
 
-    def add_user(self, username: str, password_md5: str, group: list[str]) -> str:
+    def add_user(self, username: str, password_hash: str, group: list[str]) -> str:
         if self.db.single_user_mode:
             raise Exception("单用户模式下无法添加用户")
         if username in self.db.users:
             raise KeyError(f"用户 {username} 已存在")
         token = str(uuid4())
         self.db.users[username] = User(
-            username=username, password_md5=password_md5, token=token, group=group
+            username=username, password_hash=password_hash, token=token, group=group
         )
         self.db.commit()
         return token
@@ -47,14 +47,14 @@ class UserManager:
             (user for user in self.db.users.values() if user.token == token), None
         )
 
-    def get_user_token(self, username: str, password_md5: str) -> str:
+    def get_user_token(self, username: str, password_hash: str) -> str:
         if self.db.single_user_mode:
             return self.db.users[_SINGLE_USER_NAME].token
         user = next(
             (
                 user
                 for user in self.db.users.values()
-                if user.username == username and user.password_md5 == password_md5
+                if user.username == username and user.password_hash == password_hash
             ),
             None,
         )

@@ -3,7 +3,7 @@ from .dtype import BaseModel
 
 class User(BaseModel):
     username: str
-    password_md5: str
+    password_hash: str
     token: str
     group: list[str]
 

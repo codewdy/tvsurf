@@ -86,7 +86,7 @@ class Tracker:
             token = self.user_manager.set_single_user_mode()
         else:
             token = self.user_manager.add_user(
-                request.username, request.password_md5, ["user", "admin"]
+                request.username, request.password_hash, ["user", "admin"]
             )
         return SystemSetup.Response(token=token)
 
@@ -94,7 +94,7 @@ class Tracker:
     async def login(self, request: Login.Request) -> Login.Response:
         return Login.Response(
             token=self.user_manager.get_user_token(
-                request.username, request.password_md5
+                request.username, request.password_hash
             )
         )
 

@@ -2,12 +2,7 @@ import { useState, useEffect } from "react";
 import type { FormEvent } from "react";
 import type { Route } from "./+types/system_setup";
 import { useNavigate, useSearchParams } from "react-router";
-import CryptoJS from "crypto-js";
-
-// 计算字符串的 MD5 哈希值
-function md5(text: string): string {
-  return CryptoJS.MD5(text).toString();
-}
+import { hashPassword } from "../utils/password";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -67,14 +62,20 @@ export default function SystemSetup() {
     setLoading(true);
 
     try {
+      // 在前端使用 bcrypt 加密密码（如果不是单用户模式，salt 中包含 username）
+      let passwordHash = "";
+      if (!singleUserMode) {
+        passwordHash = await hashPassword(password, username.trim());
+      }
+
       // 调用 API
       const requestBody: {
         username: string;
-        password_md5: string;
+        password_hash: string;
         single_user_mode: boolean;
       } = {
         username: singleUserMode ? "" : username.trim(),
-        password_md5: singleUserMode ? "" : md5(password),
+        password_hash: passwordHash,
         single_user_mode: singleUserMode,
       };
 

@@ -113,7 +113,7 @@ class RemoveErrors(BaseModel):
 class SystemSetup(BaseModel):
     class Request(BaseModel):
         username: str
-        password_md5: str
+        password_hash: str
         single_user_mode: bool
 
     class Response(BaseModel):
@@ -123,7 +123,7 @@ class SystemSetup(BaseModel):
 class Login(BaseModel):
     class Request(BaseModel):
         username: str
-        password_md5: str
+        password_hash: str
 
     class Response(BaseModel):
         token: str
