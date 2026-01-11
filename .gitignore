@@ -6,3 +6,4 @@ dist
 /result.json
 /ffmpeg.exe
 /data
+.cursorignore

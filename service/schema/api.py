@@ -35,6 +35,7 @@ class TVInfo(BaseModel):
     cover_url: str
     series: list[int]
     last_update: datetime
+    total_episodes: int
     user_data: UserTVData
 
 
