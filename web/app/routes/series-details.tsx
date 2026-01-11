@@ -39,6 +39,8 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
   const [saving, setSaving] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [showAddTVModal, setShowAddTVModal] = useState(false);
+  const [draggedTVId, setDraggedTVId] = useState<number | null>(null);
+  const [dragTargetTVId, setDragTargetTVId] = useState<number | null>(null);
 
   // 获取系列和 TV 信息
   const fetchSeriesDetails = async () => {
@@ -122,6 +124,22 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
     fetchSeriesDetails();
   }, [id]);
 
+  // 监听 ESC 键关闭添加 TV 模态框
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showAddTVModal) {
+        setShowAddTVModal(false);
+      }
+    };
+
+    if (showAddTVModal) {
+      window.addEventListener("keydown", handleEscape);
+      return () => {
+        window.removeEventListener("keydown", handleEscape);
+      };
+    }
+  }, [showAddTVModal]);
+
   // 切换编辑模式
   const handleEdit = () => {
     if (series) {
@@ -189,47 +207,62 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
     }
   };
 
-  // 移动 TV 位置
-  const moveTVForward = (tvId: number) => {
-    setSelectedTVs((prev) => {
-      const index = prev.indexOf(tvId);
-      if (index === -1 || index === 0) return prev;
-      const newTVs = [...prev];
-      [newTVs[index - 1], newTVs[index]] = [newTVs[index], newTVs[index - 1]];
-      return newTVs;
-    });
+  // 拖拽处理函数
+  const handleDragStart = (e: React.DragEvent, tvId: number) => {
+    setDraggedTVId(tvId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/html", tvId.toString());
   };
 
-  const moveTVBackward = (tvId: number) => {
-    setSelectedTVs((prev) => {
-      const index = prev.indexOf(tvId);
-      if (index === -1 || index === prev.length - 1) return prev;
-      const newTVs = [...prev];
-      [newTVs[index], newTVs[index + 1]] = [newTVs[index + 1], newTVs[index]];
-      return newTVs;
-    });
+  const handleDragOver = (e: React.DragEvent, targetTVId: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    if (draggedTVId !== null && draggedTVId !== targetTVId) {
+      setDragTargetTVId(targetTVId);
+    }
   };
 
-  const moveTVToFirst = (tvId: number) => {
-    setSelectedTVs((prev) => {
-      const index = prev.indexOf(tvId);
-      if (index === -1 || index === 0) return prev;
-      const newTVs = [...prev];
-      newTVs.splice(index, 1);
-      newTVs.unshift(tvId);
-      return newTVs;
-    });
+  const createDragOverHandler = (targetTVId: number) => {
+    return (e: React.DragEvent) => {
+      handleDragOver(e, targetTVId);
+    };
   };
 
-  const moveTVToLast = (tvId: number) => {
+  const handleDrop = (e: React.DragEvent, targetTVId: number) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (draggedTVId === null || draggedTVId === targetTVId) {
+      setDraggedTVId(null);
+      setDragTargetTVId(null);
+      return;
+    }
+
     setSelectedTVs((prev) => {
-      const index = prev.indexOf(tvId);
-      if (index === -1 || index === prev.length - 1) return prev;
+      const draggedIndex = prev.indexOf(draggedTVId);
+      const targetIndex = prev.indexOf(targetTVId);
+
+      if (draggedIndex === -1 || targetIndex === -1) {
+        return prev;
+      }
+
       const newTVs = [...prev];
-      newTVs.splice(index, 1);
-      newTVs.push(tvId);
+      newTVs.splice(draggedIndex, 1);
+      newTVs.splice(targetIndex, 0, draggedTVId);
       return newTVs;
     });
+
+    setDraggedTVId(null);
+    setDragTargetTVId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedTVId(null);
+    setDragTargetTVId(null);
+  };
+
+  const handleDragLeave = () => {
+    setDragTargetTVId(null);
   };
 
   // 过滤 TV 列表
@@ -330,20 +363,27 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
         <div className="space-y-6">
           {/* 已选 TV 列表 */}
           <div>
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                已选 TV
-              </h2>
-              <span className="text-sm text-gray-500 dark:text-gray-400">
-                {selectedTVInfos.length} 个
-              </span>
+            <div className="mb-4">
+              <p className="text-gray-600 dark:text-gray-400">
+                包含 {selectedTVInfos.length} 个 TV
+                <span className="text-gray-500 dark:text-gray-500">（拖拽卡片以排序）</span>
+              </p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-              {selectedTVInfos.map((tv, index) => {
-                const isFirst = index === 0;
-                const isLast = index === selectedTVInfos.length - 1;
+              {selectedTVInfos.map((tv) => {
+                const isDragging = draggedTVId === tv.id;
+                const isDragTarget = dragTargetTVId === tv.id && !isDragging;
                 return (
-                  <div key={tv.id} className="relative group">
+                  <div
+                    key={tv.id}
+                    draggable="true"
+                    onDragStart={(e) => handleDragStart(e, tv.id)}
+                    onDragOver={createDragOverHandler(tv.id)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, tv.id)}
+                    onDragEnd={handleDragEnd}
+                    className={`relative cursor-move ${isDragging ? "opacity-50" : ""} ${isDragTarget ? "ring-2 ring-red-500" : ""}`}
+                  >
                     <div className="relative [&_a]:pointer-events-none">
                       {/* 删除角标 */}
                       <button
@@ -358,60 +398,6 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
                         ×
                       </button>
                       <TVCard tv={tv} />
-                    </div>
-                    {/* 左侧控制按钮 */}
-                    <div className="absolute left-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          moveTVForward(tv.id);
-                        }}
-                        disabled={isFirst}
-                        className="px-3 py-2 bg-blue-600 text-white text-xl font-bold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
-                        title="向前移动一格"
-                      >
-                        ←
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          moveTVToFirst(tv.id);
-                        }}
-                        disabled={isFirst}
-                        className="px-3 py-2 bg-blue-600 text-white text-xl font-bold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
-                        title="放到最前"
-                      >
-                        ⇐
-                      </button>
-                    </div>
-                    {/* 右侧控制按钮 */}
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          moveTVBackward(tv.id);
-                        }}
-                        disabled={isLast}
-                        className="px-3 py-2 bg-blue-600 text-white text-xl font-bold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
-                        title="向后移动一格"
-                      >
-                        →
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          moveTVToLast(tv.id);
-                        }}
-                        disabled={isLast}
-                        className="px-3 py-2 bg-blue-600 text-white text-xl font-bold rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-lg"
-                        title="放到最后"
-                      >
-                        ⇒
-                      </button>
                     </div>
                   </div>
                 );
