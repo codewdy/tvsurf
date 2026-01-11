@@ -60,6 +60,9 @@ class TVDownloadManager:
         tv.storage.episodes[episode_id].status = DownloadStatus.FAILED
         self.tvdb.commit()
 
+    def get_download_count(self) -> int:
+        return self.task_manager.get_download_count()
+
 
 class Updater:
     def __init__(
@@ -210,3 +213,6 @@ class LocalManager:
 
     def get_download_progress(self) -> list[DownloadProgressWithName]:
         return self.download_manager.get_download_progress()
+
+    def get_download_count(self) -> int:
+        return self.download_manager.get_download_count()

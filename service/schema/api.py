@@ -26,6 +26,7 @@ __all__ = [
     "GetSeries",
     "SetWatchProgress",
     "SetTVTag",
+    "GetMonitor",
 ]
 
 
@@ -188,3 +189,12 @@ class SetTVTag(BaseModel):
 
     class Response(BaseModel):
         pass
+
+
+class GetMonitor(BaseModel):
+    class Request(BaseModel):
+        pass
+
+    class Response(BaseModel):
+        download_count: int
+        error_count: int

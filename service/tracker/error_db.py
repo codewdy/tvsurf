@@ -44,3 +44,6 @@ class ErrorDB:
             error for error in self.error_db.errors if error.id not in ids
         ]
         self.error_db.commit()
+
+    def get_error_count(self) -> int:
+        return len(self.error_db.errors)

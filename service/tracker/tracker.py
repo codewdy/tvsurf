@@ -234,3 +234,12 @@ class Tracker:
     ) -> SetTVTag.Response:
         self.user_data_manager.set_tv_tag(user.username, request.tv_id, request.tag)
         return SetTVTag.Response()
+
+    @api("user")
+    async def get_monitor(
+        self, user: User, request: GetMonitor.Request
+    ) -> GetMonitor.Response:
+        return GetMonitor.Response(
+            download_count=self.local_manager.get_download_count(),
+            error_count=self.error_db.get_error_count(),
+        )

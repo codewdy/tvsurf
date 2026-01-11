@@ -125,3 +125,6 @@ class TaskDownloadManager:
             )
             for task in self.tasks
         ]
+
+    def get_download_count(self) -> int:
+        return len(self.tasks)
