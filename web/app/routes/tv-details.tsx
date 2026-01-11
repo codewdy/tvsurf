@@ -257,7 +257,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     }
   };
 
-  const handleEpisodeSelect = (episodeIndex: number) => {
+  const handleEpisodeSelect = (episodeIndex: number, autoPlay: boolean = false) => {
     // 换集前，先更新上一集的进度
     if (videoRef.current && details) {
       updateWatchProgress(episodeIndex, 0);
@@ -271,6 +271,13 @@ export default function TVDetails({ params }: Route.ComponentProps) {
         videoRef.current.load();
         setVideoTime(0);
         setLastProgressUpdate(Date.now()); // 重置更新时间
+        if (autoPlay) {
+          videoRef.current.addEventListener('loadeddata', () => {
+            videoRef.current?.play().catch(err => {
+              console.error('自动播放失败:', err);
+            });
+          }, { once: true });
+        }
       }
     }
   };
@@ -520,7 +527,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                         setLastProgressUpdate(Date.now());
 
                         // 如果不是最后一集，自动切换到下一集
-                        handleEpisodeSelect(nextEpisode);
+                        handleEpisodeSelect(nextEpisode, true);
                       }}
                     >
                       您的浏览器不支持视频播放
@@ -583,7 +590,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                   return (
                     <button
                       key={index}
-                      onClick={() => handleEpisodeSelect(index)}
+                      onClick={() => handleEpisodeSelect(index, true)}
                       disabled={!hasDownloaded && !isDownloading}
                       className={`p-3 rounded-lg border-2 transition-all text-left ${isSelected
                         ? "border-blue-500 dark:border-blue-400 bg-blue-50 dark:bg-blue-900/20"
