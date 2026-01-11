@@ -412,8 +412,8 @@ export default function AddTV() {
                   }
                 }}
                 className={`bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative flex flex-col ${addedIds.has(index) || addingIds.has(index)
-                    ? ""
-                    : "cursor-pointer"
+                  ? ""
+                  : "cursor-pointer"
                   }`}
               >
                 <div className="aspect-[2/3] bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
@@ -526,10 +526,6 @@ export default function AddTV() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="p-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-                确认添加TV
-              </h2>
-
               {/* 名称编辑 */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -618,7 +614,7 @@ export default function AddTV() {
                           可用系列
                         </div>
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                          <div className="h-32 overflow-y-auto">
+                          <div className="h-48 overflow-y-auto">
                             {seriesList
                               .filter(
                                 (series) =>
@@ -662,7 +658,7 @@ export default function AddTV() {
                           已选系列 ({confirmSeries.length})
                         </div>
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
-                          <div className="h-32 overflow-y-auto">
+                          <div className="h-48 overflow-y-auto">
                             {seriesList
                               .filter((series) => confirmSeries.includes(series.id))
                               .map((series) => (
