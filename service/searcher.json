@@ -10,7 +10,9 @@
                 "token": ".detail-info h3",
                 "a": ".detail-info > a:first-child",
                 "cover": ".detail-pic img",
-                "cover_attr": "data-src"
+                "cover_attr": "data-src",
+                "other_page": "a.page-link.box",
+                "other_page_filter": "首页|上一页|下一页|尾页"
             },
             "channel_searcher": {
                 "type": "web_a",
@@ -35,7 +37,9 @@
                 "token": "th > a.group div.font-medium div.overflow-hidden:first-child",
                 "a": "th > a.group",
                 "cover": "th > a.group img",
-                "cover_attr": "src"
+                "cover_attr": "src",
+                "other_page": "a.leading-tight",
+                "other_page_filter": "首页|上一页|下一页|尾页"
             },
             "channel_searcher": {
                 "type": "web_a",
@@ -84,7 +88,7 @@
                 "a": ".video-info > .video-info-header > h3 a",
                 "cover": ".module-item-cover img",
                 "cover_attr": "data-src",
-                "next_page": "a.page-number.page-next"
+                "other_page": "a.page-number.display"
             },
             "channel_searcher": {
                 "type": "web_a",

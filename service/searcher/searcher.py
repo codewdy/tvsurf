@@ -6,6 +6,7 @@ import asyncio
 from service.lib.context import Context
 from typing import Optional
 from service.schema.searcher import SearchError
+from service.schema.searcher import Channel
 
 
 class Searcher:
@@ -15,6 +16,11 @@ class Searcher:
         self.subject_searcher = create_subject_searcher(config["subject_searcher"])
         self.channel_searcher = create_channel_searcher(config["channel_searcher"])
         self.resource_searcher = create_resource_searcher(config["resource_searcher"])
+        self.semaphore = asyncio.Semaphore(config.get("max_concurrent_requests", 3))
+
+    async def search_channels(self, url: str) -> list[Channel]:
+        async with self.semaphore:
+            return await self.channel_searcher.search(url)
 
     async def search(self, keyword: str) -> tuple[list[Source], list[SearchError]]:
         try:
@@ -22,7 +28,7 @@ class Searcher:
                 results: list[Source] = []
                 subjects = await self.subject_searcher.search(keyword)
                 all_channels = await asyncio.gather(
-                    *[self.channel_searcher.search(subject.url) for subject in subjects]
+                    *[self.search_channels(subject.url) for subject in subjects]
                 )
                 for subject, channels in zip(subjects, all_channels):
                     for channel in channels:
