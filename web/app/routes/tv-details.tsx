@@ -119,6 +119,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [updatingTag, setUpdatingTag] = useState(false);
   const [seriesList, setSeriesList] = useState<Series[]>([]);
+  const [lastProgressUpdate, setLastProgressUpdate] = useState<number>(0);
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -232,7 +233,36 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     }
   };
 
+  const updateWatchProgress = async (episodeId: number, time: number) => {
+    if (!details) return;
+
+    try {
+      const response = await fetch("/api/set_watch_progress", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tv_id: details.tv.id,
+          episode_id: episodeId,
+          time: time,
+        }),
+      });
+
+      if (!response.ok) {
+        console.error("更新播放进度失败:", response.statusText);
+      }
+    } catch (err) {
+      console.error("Update watch progress error:", err);
+    }
+  };
+
   const handleEpisodeSelect = (episodeIndex: number) => {
+    // 换集前，先更新上一集的进度
+    if (videoRef.current && details) {
+      updateWatchProgress(episodeIndex, 0);
+    }
+
     setSelectedEpisode(episodeIndex);
     if (videoRef.current) {
       const newVideoUrl = details?.episodes[episodeIndex] || null;
@@ -240,6 +270,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
         videoRef.current.src = newVideoUrl;
         videoRef.current.load();
         setVideoTime(0);
+        setLastProgressUpdate(Date.now()); // 重置更新时间
       }
     }
   };
@@ -250,11 +281,24 @@ export default function TVDetails({ params }: Route.ComponentProps) {
 
   const handleVideoPause = () => {
     setIsPlaying(false);
+    // 暂停时更新播放进度
+    if (videoRef.current) {
+      updateWatchProgress(selectedEpisode, videoRef.current.currentTime);
+      setLastProgressUpdate(Date.now());
+    }
   };
 
   const handleVideoTimeUpdate = () => {
     if (videoRef.current) {
-      setVideoTime(videoRef.current.currentTime);
+      const currentTime = videoRef.current.currentTime;
+      setVideoTime(currentTime);
+
+      // 每5秒更新一次播放进度
+      const now = Date.now();
+      if (now - lastProgressUpdate >= 5000) {
+        updateWatchProgress(selectedEpisode, currentTime);
+        setLastProgressUpdate(now);
+      }
     }
   };
 
@@ -437,7 +481,21 @@ export default function TVDetails({ params }: Route.ComponentProps) {
             {/* 视频播放器 */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">播放</h2>
-              {hasVideo ? (
+              {selectedEpisode >= details.tv.source.episodes.length ? (
+                <div className="space-y-4">
+                  <div className="relative bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center" style={{ aspectRatio: "16/9" }}>
+                    <div className="text-center">
+                      <p className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">播放完成</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        您已观看完所有剧集
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                    <span>播放完成</span>
+                  </div>
+                </div>
+              ) : hasVideo ? (
                 <div className="space-y-4">
                   <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: "16/9" }}>
                     <video
@@ -448,14 +506,21 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                       onPlay={handleVideoPlay}
                       onPause={handleVideoPause}
                       onTimeUpdate={handleVideoTimeUpdate}
-                      onEnded={() => {
-                        // 播放结束后，自动切换到下一集
-                        if (selectedEpisode < details.tv.source.episodes.length - 1) {
-                          const nextEpisode = selectedEpisode + 1;
-                          if (details.episodes[nextEpisode]) {
-                            handleEpisodeSelect(nextEpisode);
-                          }
+                      onSeeked={() => {
+                        // Seek 完成后更新播放进度
+                        if (videoRef.current) {
+                          updateWatchProgress(selectedEpisode, videoRef.current.currentTime);
+                          setLastProgressUpdate(Date.now());
                         }
+                      }}
+                      onEnded={() => {
+                        // 播放完成后，更新为下一集的第0秒
+                        const nextEpisode = selectedEpisode + 1;
+                        updateWatchProgress(nextEpisode, 0);
+                        setLastProgressUpdate(Date.now());
+
+                        // 如果不是最后一集，自动切换到下一集
+                        handleEpisodeSelect(nextEpisode);
                       }}
                     >
                       您的浏览器不支持视频播放
@@ -463,7 +528,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                   </div>
                   <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
                     <span>
-                      正在播放: {details.tv.source.episodes[selectedEpisode]?.name || `第 ${selectedEpisode + 1} 集`}
+                      正在播放: {details.tv.source.episodes[selectedEpisode]?.name || "全部集数已播放完成"}
                     </span>
                     {videoRef.current && (
                       <span>
