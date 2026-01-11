@@ -40,6 +40,7 @@ export function Banner() {
   const navItems = [
     { path: "/", label: "主页" },
     { path: "/add-tv", label: "添加TV" },
+    { path: "/series-list", label: "系列" },
     { path: "/downloads", label: "下载" },
   ];
 

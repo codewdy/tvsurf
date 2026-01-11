@@ -69,7 +69,7 @@ class Tracker:
             name=tv.name,
             cover_url=self.resource_url(tv, tv.storage.cover),
             series=tv.series,
-            last_update=tv.track.latest_update,
+            last_update=tv.track.last_update,
             total_episodes=len(tv.storage.episodes),
             user_data=self.user_data_manager.get_user_tv_data(user_data, tv.id),
         )

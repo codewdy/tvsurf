@@ -1,5 +1,6 @@
 from service.lib.context import Context
 from service.schema.tvdb import Series, TVDB
+from datetime import datetime
 
 
 class SeriesManager:
@@ -15,12 +16,15 @@ class SeriesManager:
             if tv_id not in original_tvs:
                 self.tvdb.tvs[tv_id].series.append(id)
         self.tvdb.series[id].tvs = tvs
+        self.tvdb.series[id].last_update = datetime.now()
         self.tvdb.commit()
 
     def add_series(self, name: str) -> int:
         id = self.tvdb.new_series_id
         self.tvdb.new_series_id += 1
-        self.tvdb.series[id] = Series(id=id, name=name, tvs=[])
+        self.tvdb.series[id] = Series(
+            id=id, name=name, tvs=[], last_update=datetime.now()
+        )
         self.tvdb.commit()
         return id
 
@@ -38,5 +42,6 @@ class SeriesManager:
     def add_tv_to_series(self, tv_id: int, series_id: list[int]) -> None:
         for sid in series_id:
             self.tvdb.series[sid].tvs.append(tv_id)
+            self.tvdb.series[sid].last_update = datetime.now()
         self.tvdb.tvs[tv_id].series.extend(series_id)
         self.tvdb.commit()

@@ -40,7 +40,7 @@ class Storage(BaseModel):
 
 class TrackStatus(BaseModel):
     tracking: bool
-    latest_update: datetime
+    last_update: datetime
 
 
 class TV(BaseModel):
@@ -56,6 +56,7 @@ class Series(BaseModel):
     id: int
     name: str
     tvs: list[int]
+    last_update: datetime
 
 
 class TVDB(BaseModel):

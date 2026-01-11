@@ -139,7 +139,7 @@ class LocalManager:
 
     async def on_update(self, id: int, source: Source) -> None:
         tv = self.tvdb.tvs[id]
-        tv.track.latest_update = datetime.now()
+        tv.track.last_update = datetime.now()
         tv.source = source
         self.allocate_local(tv)
         self.tvdb.commit()
@@ -147,7 +147,7 @@ class LocalManager:
     async def on_no_update(self, id: int) -> None:
         tv = self.tvdb.tvs[id]
         if (
-            tv.track.latest_update
+            tv.track.last_update
             < datetime.now() - Context.config.updater.tracking_timeout
         ):
             tv.track.tracking = False
@@ -173,7 +173,7 @@ class LocalManager:
             name=name,
             source=source,
             storage=Storage(directory=name, episodes=[], cover=""),
-            track=TrackStatus(tracking=tracking, latest_update=datetime.now()),
+            track=TrackStatus(tracking=tracking, last_update=datetime.now()),
             series=[],
         )
         await create_tv_path(tv)
