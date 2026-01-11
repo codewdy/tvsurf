@@ -532,6 +532,11 @@ export default function AddTV() {
         </div>
       )}
 
+      {loading && (
+        <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+          <p>搜索中，可能需要最多1分钟时间</p>
+        </div>
+      )}
       {/* 无结果提示 */}
       {!loading && results.length === 0 && !error && hasSearched && (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">

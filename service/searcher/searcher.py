@@ -22,40 +22,44 @@ class Searcher:
         async with self.semaphore:
             return await self.channel_searcher.search(url)
 
-    async def search(self, keyword: str) -> tuple[list[Source], list[SearchError]]:
-        try:
-            with Context.handle_error(f"search {self.name} {keyword}", rethrow=True):
-                results: list[Source] = []
-                subjects = await self.subject_searcher.search(keyword)
-                all_channels = await asyncio.gather(
-                    *[self.search_channels(subject.url) for subject in subjects]
-                )
-                for subject, channels in zip(subjects, all_channels):
-                    for channel in channels:
-                        results.append(
-                            Source(
+    async def search_impl(self, keyword: str) -> list[Source]:
+        results: list[Source] = []
+        subjects = await self.subject_searcher.search(keyword)
+        all_channels = await asyncio.gather(
+            *[self.search_channels(subject.url) for subject in subjects]
+        )
+        for subject, channels in zip(subjects, all_channels):
+            for channel in channels:
+                results.append(
+                    Source(
+                        source=SourceUrl(
+                            source_key=self.key,
+                            source_name=self.name,
+                            channel_name=channel.name,
+                            url=subject.url,
+                        ),
+                        name=subject.name,
+                        cover_url=subject.cover_url or channel.cover_url,
+                        episodes=[
+                            Source.Episode(
                                 source=SourceUrl(
                                     source_key=self.key,
                                     source_name=self.name,
                                     channel_name=channel.name,
-                                    url=subject.url,
+                                    url=e.url,
                                 ),
-                                name=subject.name,
-                                cover_url=subject.cover_url or channel.cover_url,
-                                episodes=[
-                                    Source.Episode(
-                                        source=SourceUrl(
-                                            source_key=self.key,
-                                            source_name=self.name,
-                                            channel_name=channel.name,
-                                            url=e.url,
-                                        ),
-                                        name=e.name,
-                                    )
-                                    for e in channel.episodes
-                                ],
+                                name=e.name,
                             )
-                        )
+                            for e in channel.episodes
+                        ],
+                    )
+                )
+        return results
+
+    async def search(self, keyword: str) -> tuple[list[Source], list[SearchError]]:
+        try:
+            with Context.handle_error(f"search {self.name} {keyword}", rethrow=True):
+                results = await asyncio.wait_for(self.search_impl(keyword), timeout=60)
                 return results, []
         except Exception as e:
             return [], [
