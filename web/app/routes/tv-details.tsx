@@ -278,6 +278,13 @@ export default function TVDetails({ params }: Route.ComponentProps) {
             });
           }, { once: true });
         }
+      } else {
+        // 如果下一集没有视频（下载中、下载失败或未下载），停止并清空播放器
+        videoRef.current.pause();
+        videoRef.current.src = '';
+        videoRef.current.load();
+        setVideoTime(0);
+        setIsPlaying(false);
       }
     }
   };
@@ -545,29 +552,38 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                   </div>
                 </div>
               ) : (
-                <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-12 text-center text-gray-500 dark:text-gray-400">
-                  {details.tv.storage.episodes[selectedEpisode]?.status === "running" ? (
-                    <div>
-                      <p className="mb-2">该集正在下载中...</p>
-                      <p className="text-sm text-gray-400 dark:text-gray-500">
-                        {details.tv.storage.episodes[selectedEpisode].name}
-                      </p>
+                <div className="space-y-4">
+                  <div className="relative bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center" style={{ aspectRatio: "16/9" }}>
+                    <div className="text-center text-gray-500 dark:text-gray-400">
+                      {details.tv.storage.episodes[selectedEpisode]?.status === "running" ? (
+                        <div>
+                          <p className="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-300">该集正在下载中...</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {details.tv.storage.episodes[selectedEpisode].name}
+                          </p>
+                        </div>
+                      ) : details.tv.storage.episodes[selectedEpisode]?.status === "failed" ? (
+                        <div>
+                          <p className="mb-2 text-lg font-semibold text-red-600 dark:text-red-400">该集下载失败</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {details.tv.storage.episodes[selectedEpisode].name}
+                          </p>
+                        </div>
+                      ) : (
+                        <div>
+                          <p className="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-300">该集尚未下载</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">
+                            {details.tv.source.episodes[selectedEpisode]?.name || `第 ${selectedEpisode + 1} 集`}
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  ) : details.tv.storage.episodes[selectedEpisode]?.status === "failed" ? (
-                    <div>
-                      <p className="mb-2 text-red-600 dark:text-red-400">该集下载失败</p>
-                      <p className="text-sm text-gray-400 dark:text-gray-500">
-                        {details.tv.storage.episodes[selectedEpisode].name}
-                      </p>
-                    </div>
-                  ) : (
-                    <div>
-                      <p className="mb-2">该集尚未下载</p>
-                      <p className="text-sm text-gray-400 dark:text-gray-500">
-                        {details.tv.source.episodes[selectedEpisode]?.name || `第 ${selectedEpisode + 1} 集`}
-                      </p>
-                    </div>
-                  )}
+                  </div>
+                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                    <span>
+                      {details.tv.source.episodes[selectedEpisode]?.name || `第 ${selectedEpisode + 1} 集`}
+                    </span>
+                  </div>
                 </div>
               )}
             </div>
