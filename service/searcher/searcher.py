@@ -63,7 +63,7 @@ class Searcher:
                 return results, []
         except Exception as e:
             return [], [
-                SearchError(source_key=self.key, source_name=self.name, error=str(e))
+                SearchError(source_key=self.key, source_name=self.name, error=repr(e))
             ]
 
     async def update_source(self, source: Source) -> Optional[Source]:
