@@ -26,6 +26,4 @@ def ffmpeg_path():
 def web_path():
     if hasattr(sys, "_MEIPASS"):
         return os.path.join(sys._MEIPASS, "web")  # type: ignore[attr-defined]
-    return os.path.join(
-        os.path.dirname(__file__), "..", "..", "test-web", "build", "client"
-    )
+    return os.path.join(os.path.dirname(__file__), "..", "..", "web", "build", "client")

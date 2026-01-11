@@ -22,7 +22,7 @@ class App:
         if path == "/favicon.ico" or path.startswith("/assets/"):
             return None
         if self.tracker.need_system_setup():
-            return "/system_setup?redirect=" + base64.b64encode(path.encode()).decode()
+            return "/system-setup?redirect=" + base64.b64encode(path.encode()).decode()
         if not self.tracker.token_validate(token):
             return "/login?redirect=" + base64.b64encode(path.encode()).decode()
         return None
@@ -42,7 +42,7 @@ class App:
                 "/",
                 web_path(),
                 "index.html",
-                ["system_setup", "login"],
+                ["system-setup", "login"],
                 self.redirect_func,
             )
         )

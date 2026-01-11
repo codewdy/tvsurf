@@ -5,6 +5,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  useLocation,
 } from "react-router";
 
 import type { Route } from "./+types/root";
@@ -43,9 +44,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const location = useLocation();
+  const hideBanner = location.pathname === "/system-setup" || location.pathname === "/login";
+
   return (
     <>
-      <Banner />
+      {!hideBanner && <Banner />}
       <Outlet />
     </>
   );
