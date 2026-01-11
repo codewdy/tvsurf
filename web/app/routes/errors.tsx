@@ -145,6 +145,13 @@ export default function Errors() {
     }
   };
 
+  const handleRemoveAll = () => {
+    if (errors.length === 0) return;
+    if (confirm(`确定要删除全部 ${errors.length} 个错误吗？`)) {
+      removeErrors(errors.map((e) => e.id));
+    }
+  };
+
   const toggleExpand = (id: number) => {
     const newExpanded = new Set(expandedIds);
     if (newExpanded.has(id)) {
@@ -178,12 +185,14 @@ export default function Errors() {
               删除选中 ({selectedIds.size})
             </button>
           )}
-          <button
-            onClick={fetchErrors}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-          >
-            刷新
-          </button>
+          {errors.length > 0 && (
+            <button
+              onClick={handleRemoveAll}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+            >
+              删除全部
+            </button>
+          )}
         </div>
       </div>
 
@@ -220,8 +229,8 @@ export default function Errors() {
               <div
                 key={error.id}
                 className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow border-l-4 ${error.type === "critical"
-                    ? "border-red-500"
-                    : "border-orange-500"
+                  ? "border-red-500"
+                  : "border-orange-500"
                   }`}
               >
                 <div className="flex items-start gap-4">
@@ -234,13 +243,16 @@ export default function Errors() {
                   <div className="flex-1">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2 flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                        <h3
+                          onClick={() => toggleExpand(error.id)}
+                          className="text-lg font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        >
                           {error.title}
                         </h3>
                         <span
                           className={`px-2 py-1 text-xs font-medium rounded ${error.type === "critical"
-                              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                              : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+                            ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                            : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
                             }`}
                         >
                           {error.type === "critical" ? "严重" : "错误"}
@@ -250,12 +262,6 @@ export default function Errors() {
                         <span className="text-sm text-gray-500 dark:text-gray-400">
                           {formatDateTime(error.timestamp)}
                         </span>
-                        <button
-                          onClick={() => toggleExpand(error.id)}
-                          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors"
-                        >
-                          {isExpanded ? "收起" : "展开"}
-                        </button>
                       </div>
                     </div>
                     {isExpanded && (
