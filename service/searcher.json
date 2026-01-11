@@ -83,7 +83,8 @@
                 "token": ".video-info > .video-info-header > h3 a",
                 "a": ".video-info > .video-info-header > h3 a",
                 "cover": ".module-item-cover img",
-                "cover_attr": "data-src"
+                "cover_attr": "data-src",
+                "next_page": "a.page-number.page-next"
             },
             "channel_searcher": {
                 "type": "web_a",
