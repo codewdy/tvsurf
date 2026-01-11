@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { Route } from "./+types/add-tv";
 
 // 定义 API 响应类型
@@ -295,6 +295,31 @@ export default function AddTV() {
     setSeriesSearchKeyword("");
   };
 
+  // 监听ESC键
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && showConfirmDialog) {
+        // 保存当前设置（除了名称）
+        setSavedTracking(confirmTracking);
+        setSavedSeries(confirmSeries);
+        setSavedTag(confirmTag);
+
+        setShowConfirmDialog(false);
+        setConfirmSource(null);
+        setConfirmIndex(-1);
+        setConfirmName("");
+        setSeriesSearchKeyword("");
+      }
+    };
+
+    if (showConfirmDialog) {
+      document.addEventListener("keydown", handleEscape);
+      return () => {
+        document.removeEventListener("keydown", handleEscape);
+      };
+    }
+  }, [showConfirmDialog, confirmTracking, confirmSeries, confirmTag]);
+
   const toggleSeries = (seriesId: number) => {
     setConfirmSeries((prev) => {
       if (prev.includes(seriesId)) {
@@ -523,8 +548,14 @@ export default function AddTV() {
 
       {/* 确认对话框 */}
       {showConfirmDialog && confirmSource && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={handleCancelAdd}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="p-6">
               {/* 名称编辑 */}
               <div className="mb-4">
