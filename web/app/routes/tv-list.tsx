@@ -220,7 +220,7 @@ export default function TVList() {
                         </div>
                       )}
                       <div className="p-3">
-                        <h3 className="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2 mb-1">
+                        <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">
                           {tv.name}
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
