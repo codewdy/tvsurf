@@ -238,6 +238,14 @@ export default function AddTV() {
                       前往
                     </a>
                   </div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                    <p>
+                      <span className="font-medium">来源:</span> {source.source.source_name}
+                    </p>
+                    <p>
+                      <span className="font-medium">频道:</span> {source.source.channel_name}
+                    </p>
+                  </div>
                   {source.episodes && source.episodes.length > 0 && (
                     <details className="mb-2">
                       <summary className="cursor-pointer text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
