@@ -42,6 +42,7 @@ export function Banner() {
     { path: "/add-tv", label: "添加TV" },
     { path: "/series-list", label: "系列" },
     { path: "/downloads", label: "下载" },
+    { path: "/errors", label: "错误日志" },
   ];
 
   return (
