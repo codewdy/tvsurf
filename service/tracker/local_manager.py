@@ -18,6 +18,7 @@ from service.lib.parallel_holder import ParallelHolder
 import asyncio
 import os
 import aiofiles
+import shutil
 
 
 class TVDownloadManager:
@@ -201,6 +202,13 @@ class LocalManager:
         self.allocate_local(tv)
         self.tvdb.commit()
         return id
+
+    async def remove_tv(self, id: int) -> None:
+        await self.download_manager.cancel_tv(id)
+        tv = self.tvdb.tvs[id]
+        shutil.rmtree(get_tv_path(tv))
+        del self.tvdb.tvs[id]
+        self.tvdb.commit()
 
     def get_tv(self, id: int) -> TV:
         return self.tvdb.tvs[id]

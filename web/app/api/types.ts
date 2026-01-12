@@ -278,3 +278,13 @@ export interface UpdateEpisodeSourceRequest {
 export interface UpdateEpisodeSourceResponse {
   // 空响应
 }
+
+// 删除 TV 请求
+export interface RemoveTVRequest {
+  id: number;
+}
+
+// 删除 TV 响应
+export interface RemoveTVResponse {
+  // 空响应
+}

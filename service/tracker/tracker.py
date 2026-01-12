@@ -128,6 +128,14 @@ class Tracker:
         return AddTV.Response(id=tv_id)
 
     @api("user")
+    async def remove_tv(
+        self, user: User, request: RemoveTV.Request
+    ) -> RemoveTV.Response:
+        self.series_manager.remove_tv_from_series(request.id)
+        await self.local_manager.remove_tv(request.id)
+        return RemoveTV.Response()
+
+    @api("user")
     async def update_tv_source(
         self, user: User, request: UpdateTVSource.Request
     ) -> UpdateTVSource.Response:

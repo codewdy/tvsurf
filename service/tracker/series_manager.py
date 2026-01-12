@@ -49,3 +49,10 @@ class SeriesManager:
             self.tvdb.series[sid].last_update = datetime.now()
         self.tvdb.tvs[tv_id].series.extend(series_id)
         self.tvdb.commit()
+
+    def remove_tv_from_series(self, tv_id: int) -> None:
+        for sid in self.tvdb.tvs[tv_id].series:
+            self.tvdb.series[sid].tvs.remove(tv_id)
+            self.tvdb.series[sid].last_update = datetime.now()
+        self.tvdb.tvs[tv_id].series = []
+        self.tvdb.commit()

@@ -26,6 +26,8 @@ import type {
   UpdateTVSourceResponse,
   UpdateEpisodeSourceRequest,
   UpdateEpisodeSourceResponse,
+  RemoveTVRequest,
+  RemoveTVResponse,
 } from "./types";
 
 // 基础 API 调用函数
@@ -186,4 +188,11 @@ export async function updateEpisodeSource(
     "/api/update_episode_series",
     request
   );
+}
+
+// 删除 TV
+export async function removeTV(
+  request: RemoveTVRequest
+): Promise<RemoveTVResponse> {
+  return apiCall<RemoveTVRequest, RemoveTVResponse>("/api/remove_tv", request);
 }

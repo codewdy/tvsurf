@@ -8,6 +8,7 @@ import {
   searchTV,
   updateTVSource,
   updateEpisodeSource,
+  removeTV,
 } from "../api/client";
 import type {
   Tag,
@@ -42,7 +43,10 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   // 编辑模态框相关状态
   const [showEditModal, setShowEditModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<"source" | "other">("source");
+  const [activeTab, setActiveTab] = useState<"source" | "delete">("source");
+  // 删除相关状态
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
+  const [deleting, setDeleting] = useState(false);
   // 换源相关状态
   const [sourceSearchKeyword, setSourceSearchKeyword] = useState("");
   const [sourceSearchLoading, setSourceSearchLoading] = useState(false);
@@ -555,6 +559,8 @@ export default function TVDetails({ params }: Route.ComponentProps) {
             setSourceType("tv");
             setSelectedEpisodeForSource(0);
             setPendingSourceChange(null);
+            setDeleteConfirmName("");
+            setActiveTab("source");
           }}
         >
           <div
@@ -577,6 +583,8 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                     setSourceType("tv");
                     setSelectedEpisodeForSource(0);
                     setPendingSourceChange(null);
+                    setDeleteConfirmName("");
+                    setActiveTab("source");
                   }}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
@@ -599,13 +607,16 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                     换源
                   </button>
                   <button
-                    onClick={() => setActiveTab("other")}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "other"
-                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                    onClick={() => {
+                      setActiveTab("delete");
+                      setDeleteConfirmName("");
+                    }}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "delete"
+                      ? "border-red-500 text-red-600 dark:text-red-400"
                       : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
                       }`}
                   >
-                    其他
+                    删除
                   </button>
                 </nav>
               </div>
@@ -872,9 +883,70 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                 </div>
               )}
 
-              {activeTab === "other" && (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  <p>其他编辑功能待实现</p>
+              {activeTab === "delete" && (
+                <div className="space-y-6">
+                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <h3 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-2">
+                      ⚠️ 警告：此操作不可撤销
+                    </h3>
+                    <p className="text-sm text-red-700 dark:text-red-400">
+                      删除此电视剧将永久移除所有相关数据，包括下载的剧集、观看进度等信息。此操作无法恢复。
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      请输入电视剧名称以确认删除
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      请输入 "<span className="font-semibold">{details.tv.name}</span>" 以确认删除
+                    </p>
+                    <input
+                      type="text"
+                      value={deleteConfirmName}
+                      onChange={(e) => setDeleteConfirmName(e.target.value)}
+                      placeholder={details.tv.name}
+                      className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      disabled={deleting}
+                    />
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={async () => {
+                        if (deleteConfirmName !== details.tv.name) {
+                          setError("输入的电视剧名称不匹配");
+                          return;
+                        }
+
+                        setDeleting(true);
+                        setError(null);
+                        try {
+                          await removeTV({ id: details.tv.id });
+                          // 删除成功后跳转到列表页
+                          window.location.href = "/";
+                        } catch (err) {
+                          setError(err instanceof Error ? err.message : "删除时发生错误");
+                          console.error("Remove TV error:", err);
+                          setDeleting(false);
+                        }
+                      }}
+                      disabled={deleting || deleteConfirmName !== details.tv.name}
+                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-red-700 dark:hover:bg-red-600"
+                    >
+                      {deleting ? "删除中..." : "确认删除"}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDeleteConfirmName("");
+                        setError(null);
+                      }}
+                      disabled={deleting}
+                      className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors disabled:opacity-50"
+                    >
+                      清空
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

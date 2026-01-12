@@ -12,6 +12,7 @@ __all__ = [
     "Echo",
     "SearchTV",
     "AddTV",
+    "RemoveTV",
     "UpdateTVSource",
     "UpdateEpisodeSeries",
     "GetTVInfos",
@@ -68,6 +69,14 @@ class AddTV(BaseModel):
 
     class Response(BaseModel):
         id: int
+
+
+class RemoveTV(BaseModel):
+    class Request(BaseModel):
+        id: int
+
+    class Response(BaseModel):
+        pass
 
 
 class UpdateTVSource(BaseModel):
