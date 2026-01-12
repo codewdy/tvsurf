@@ -137,10 +137,7 @@ export default function Errors() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8 flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          错误日志
-        </h1>
+      <div className="mb-8 flex justify-end items-center">
         <div className="flex gap-2">
           {selectedIds.size > 0 && (
             <button

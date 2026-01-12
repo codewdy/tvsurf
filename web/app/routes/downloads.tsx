@@ -106,11 +106,6 @@ export default function Downloads() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-          下载进度
-        </h1>
-      </div>
 
       {/* 错误信息 */}
       {error && (
