@@ -615,7 +615,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                           onChange={(e) => setSourceType(e.target.value as "tv" | "episode")}
                           className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                         />
-                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">换 TV 源</span>
+                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">更换整部剧源</span>
                       </label>
                       <label className="flex items-center cursor-pointer">
                         <input
@@ -625,12 +625,12 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                           onChange={(e) => setSourceType(e.target.value as "tv" | "episode")}
                           className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                         />
-                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">换 Episode 源</span>
+                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">更换单集源</span>
                       </label>
                     </div>
                   </div>
 
-                  {/* 选择剧集（仅当换 Episode 源时显示） */}
+                  {/* 选择剧集（仅当更换单集源时显示） */}
                   {sourceType === "episode" && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -734,7 +734,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                               style={{ width: "320px", height: "180px" }}
                               onClick={() => {
                                 if (sourceType === "tv") {
-                                  // TV 源直接选择并更新
+                                  // 整部剧源直接选择并更新
                                   (async () => {
                                     try {
                                       await updateTVSource({
@@ -752,7 +752,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                                     }
                                   })();
                                 } else {
-                                  // Episode 源需要先选择，然后选择剧集
+                                  // 单集源需要先选择，然后选择剧集
                                   setSelectedSourceIndex(index);
                                   setSelectedEpisodeInNewSource(0);
                                 }
