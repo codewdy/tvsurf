@@ -18,7 +18,6 @@ interface TVSettingsModalProps {
   details: GetTVDetailsResponse;
   onClose: () => void;
   onUpdate: () => Promise<void>;
-  onError: (error: string) => void;
 }
 
 export default function TVSettingsModal({
@@ -26,7 +25,6 @@ export default function TVSettingsModal({
   details,
   onClose,
   onUpdate,
-  onError,
 }: TVSettingsModalProps) {
   const [activeTab, setActiveTab] = useState<"general" | "source" | "delete">("general");
   // 删除相关状态
@@ -53,6 +51,8 @@ export default function TVSettingsModal({
     episodeIndex?: number;
     newEpisodeIndex?: number;
   } | null>(null);
+  // 错误信息状态
+  const [errorMessage, setErrorMessage] = useState<string>("");
 
   const handleClose = () => {
     setShowConfirmDialog(false);
@@ -67,6 +67,7 @@ export default function TVSettingsModal({
     setPendingSourceChange(null);
     setDeleteConfirmName("");
     setActiveTab("general");
+    setErrorMessage("");
     onClose();
   };
 
@@ -131,6 +132,31 @@ export default function TVSettingsModal({
               </nav>
             </div>
 
+            {/* 错误信息显示 */}
+            {errorMessage && (
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <h3 className="text-sm font-semibold text-red-800 dark:text-red-300 mb-1">
+                      错误信息
+                    </h3>
+                    <p className="text-sm text-red-700 dark:text-red-400">
+                      {errorMessage}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setErrorMessage("")}
+                    className="ml-4 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                    aria-label="关闭错误信息"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Tab 内容 */}
             {activeTab === "general" && (
               <div className="space-y-6">
@@ -156,7 +182,7 @@ export default function TVSettingsModal({
                         onChange={async (e) => {
                           const newTracking = e.target.checked;
                           setUpdatingTracking(true);
-                          onError("");
+                          setErrorMessage("");
                           try {
                             await setTVTracking({
                               tv_id: details.tv.id,
@@ -165,7 +191,7 @@ export default function TVSettingsModal({
                             // 刷新详情
                             await onUpdate();
                           } catch (err) {
-                            onError(
+                            setErrorMessage(
                               err instanceof Error
                                 ? err.message
                                 : "更新追更状态时发生错误"
@@ -233,12 +259,12 @@ export default function TVSettingsModal({
                               : -1;
 
                             if (episodeId < 0 || isNaN(episodeId)) {
-                              onError("请选择要重新下载的剧集");
+                              setErrorMessage("请选择要重新下载的剧集");
                               return;
                             }
 
                             setReschedulingDownload(true);
-                            onError("");
+                            setErrorMessage("");
                             try {
                               await scheduleEpisodeDownload({
                                 tv_id: details.tv.id,
@@ -247,7 +273,7 @@ export default function TVSettingsModal({
                               // 刷新详情以更新状态
                               await onUpdate();
                             } catch (err) {
-                              onError(
+                              setErrorMessage(
                                 err instanceof Error
                                   ? err.message
                                   : "重新调度下载时发生错误"
@@ -344,7 +370,7 @@ export default function TVSettingsModal({
                         setSourceSearchResults(data.source || []);
                         setSourceSearchErrors(data.search_error || []);
                       } catch (err) {
-                        onError(err instanceof Error ? err.message : "搜索时发生错误");
+                        setErrorMessage(err instanceof Error ? err.message : "搜索时发生错误");
                         console.error("Search error:", err);
                       } finally {
                         setSourceSearchLoading(false);
@@ -496,7 +522,7 @@ export default function TVSettingsModal({
                               const selectedSource = sourceSearchResults[selectedSourceIndex];
                               const selectedEp = selectedSource.episodes[selectedEpisodeInNewSource];
                               if (!selectedEp) {
-                                onError("所选剧集不存在");
+                                setErrorMessage("所选剧集不存在");
                                 return;
                               }
                               // 显示确认对话框
@@ -567,18 +593,18 @@ export default function TVSettingsModal({
                   <button
                     onClick={async () => {
                       if (deleteConfirmName !== details.tv.name) {
-                        onError("输入的电视剧名称不匹配");
+                        setErrorMessage("输入的电视剧名称不匹配");
                         return;
                       }
 
                       setDeleting(true);
-                      onError("");
+                      setErrorMessage("");
                       try {
                         await removeTV({ id: details.tv.id });
                         // 删除成功后跳转到列表页
                         window.location.href = "/";
                       } catch (err) {
-                        onError(err instanceof Error ? err.message : "删除时发生错误");
+                        setErrorMessage(err instanceof Error ? err.message : "删除时发生错误");
                         console.error("Remove TV error:", err);
                         setDeleting(false);
                       }
@@ -591,7 +617,7 @@ export default function TVSettingsModal({
                   <button
                     onClick={() => {
                       setDeleteConfirmName("");
-                      onError("");
+                      setErrorMessage("");
                     }}
                     disabled={deleting}
                     className="px-6 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors disabled:opacity-50"
@@ -709,7 +735,7 @@ export default function TVSettingsModal({
                         const selectedSource = sourceSearchResults[pendingSourceChange.sourceIndex];
                         const selectedEp = selectedSource.episodes[pendingSourceChange.newEpisodeIndex || 0];
                         if (!selectedEp) {
-                          onError("所选剧集不存在");
+                          setErrorMessage("所选剧集不存在");
                           return;
                         }
                         await updateEpisodeSource({
@@ -722,7 +748,7 @@ export default function TVSettingsModal({
                       await onUpdate();
                       handleClose();
                     } catch (err) {
-                      onError(err instanceof Error ? err.message : "更新源时发生错误");
+                      setErrorMessage(err instanceof Error ? err.message : "更新源时发生错误");
                       console.error("Update source error:", err);
                       setShowConfirmDialog(false);
                       setPendingSourceChange(null);

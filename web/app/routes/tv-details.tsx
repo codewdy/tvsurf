@@ -525,7 +525,6 @@ export default function TVDetails({ params }: Route.ComponentProps) {
               await fetchTVDetails(details.tv.id);
             }
           }}
-          onError={setError}
         />
       )}
     </div>
