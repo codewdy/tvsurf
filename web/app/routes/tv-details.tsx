@@ -907,7 +907,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                       当前源
                     </h3>
                     <div className="text-sm text-gray-900 dark:text-gray-100">
-                      <p className="font-medium">{details.tv.name}</p>
+                      <p className="font-medium">{details.tv.source.name}</p>
                       <p className="text-gray-600 dark:text-gray-400 mt-1">
                         来源: {details.tv.source.source.source_name} | 频道: {details.tv.source.source.channel_name}
                       </p>
@@ -945,6 +945,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                       当前剧集
                     </h3>
                     <div className="text-sm text-gray-900 dark:text-gray-100">
+                      <p className="font-medium text-base mb-1">{details.tv.name}</p>
                       <p className="font-medium">
                         {details.tv.source.episodes[pendingSourceChange.episodeIndex || 0]?.name}
                       </p>
@@ -959,6 +960,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                       新源剧集
                     </h3>
                     <div className="text-sm text-gray-900 dark:text-gray-100">
+                      <p className="font-medium text-base mb-1">{sourceSearchResults[pendingSourceChange.sourceIndex]?.name}</p>
                       <p className="font-medium">
                         {sourceSearchResults[pendingSourceChange.sourceIndex]?.episodes[pendingSourceChange.newEpisodeIndex || 0]?.name}
                       </p>
