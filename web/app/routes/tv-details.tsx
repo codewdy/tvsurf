@@ -9,6 +9,7 @@ import {
   updateTVSource,
   updateEpisodeSource,
   removeTV,
+  setTVTracking,
 } from "../api/client";
 import type {
   Tag,
@@ -43,7 +44,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   // 编辑模态框相关状态
   const [showEditModal, setShowEditModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<"source" | "delete">("source");
+  const [activeTab, setActiveTab] = useState<"general" | "source" | "delete">("general");
   // 删除相关状态
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -58,6 +59,8 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   const [selectedEpisodeInNewSource, setSelectedEpisodeInNewSource] = useState<number>(0);
   // 确认对话框相关状态
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  // 追更相关状态
+  const [updatingTracking, setUpdatingTracking] = useState(false);
   const [pendingSourceChange, setPendingSourceChange] = useState<{
     type: "tv" | "episode";
     sourceIndex: number;
@@ -346,12 +349,12 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                     <span className="font-medium text-gray-900 dark:text-gray-100">{details.tv.source.source.channel_name}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400">追踪状态:</span>
+                    <span className="text-gray-600 dark:text-gray-400">追更状态:</span>
                     <span
                       className={`font-medium ${details.tv.track.tracking ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"
                         }`}
                     >
-                      {details.tv.track.tracking ? "追踪中" : "未追踪"}
+                      {details.tv.track.tracking ? "追更中" : "未追更"}
                     </span>
                   </div>
                   <div className="flex justify-between">
@@ -560,7 +563,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
             setSelectedEpisodeForSource(0);
             setPendingSourceChange(null);
             setDeleteConfirmName("");
-            setActiveTab("source");
+            setActiveTab("general");
           }}
         >
           <div
@@ -584,7 +587,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                     setSelectedEpisodeForSource(0);
                     setPendingSourceChange(null);
                     setDeleteConfirmName("");
-                    setActiveTab("source");
+                    setActiveTab("general");
                   }}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
@@ -597,6 +600,15 @@ export default function TVDetails({ params }: Route.ComponentProps) {
               {/* Tab 导航 */}
               <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
                 <nav className="flex space-x-8">
+                  <button
+                    onClick={() => setActiveTab("general")}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "general"
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                      }`}
+                  >
+                    常规
+                  </button>
                   <button
                     onClick={() => setActiveTab("source")}
                     className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "source"
@@ -622,6 +634,74 @@ export default function TVDetails({ params }: Route.ComponentProps) {
               </div>
 
               {/* Tab 内容 */}
+              {activeTab === "general" && (
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      追更设置
+                    </label>
+                    <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                          自动追更
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400">
+                          {details.tv.track.tracking
+                            ? "开启后，系统会自动检查并下载新剧集"
+                            : "关闭后，系统将不再自动检查新剧集"}
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={details.tv.track.tracking}
+                          onChange={async (e) => {
+                            if (!details) return;
+                            const newTracking = e.target.checked;
+                            setUpdatingTracking(true);
+                            setError(null);
+                            try {
+                              await setTVTracking({
+                                tv_id: details.tv.id,
+                                tracking: newTracking,
+                              });
+                              // 更新本地状态
+                              setDetails({
+                                ...details,
+                                tv: {
+                                  ...details.tv,
+                                  track: {
+                                    ...details.tv.track,
+                                    tracking: newTracking,
+                                  },
+                                },
+                              });
+                            } catch (err) {
+                              setError(
+                                err instanceof Error
+                                  ? err.message
+                                  : "更新追更状态时发生错误"
+                              );
+                              console.error("Set tracking error:", err);
+                            } finally {
+                              setUpdatingTracking(false);
+                            }
+                          }}
+                          disabled={updatingTracking}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600 dark:peer-checked:bg-blue-500 disabled:opacity-50"></div>
+                      </label>
+                    </div>
+                    {updatingTracking && (
+                      <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        更新中...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {activeTab === "source" && (
                 <div className="space-y-6">
                   {/* 选择换源类型 */}

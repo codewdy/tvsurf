@@ -28,6 +28,8 @@ import type {
   UpdateEpisodeSourceResponse,
   RemoveTVRequest,
   RemoveTVResponse,
+  SetTVTrackingRequest,
+  SetTVTrackingResponse,
 } from "./types";
 
 // 基础 API 调用函数
@@ -195,4 +197,14 @@ export async function removeTV(
   request: RemoveTVRequest
 ): Promise<RemoveTVResponse> {
   return apiCall<RemoveTVRequest, RemoveTVResponse>("/api/remove_tv", request);
+}
+
+// 设置 TV 追更
+export async function setTVTracking(
+  request: SetTVTrackingRequest
+): Promise<SetTVTrackingResponse> {
+  return apiCall<SetTVTrackingRequest, SetTVTrackingResponse>(
+    "/api/set_tv_tracking",
+    request
+  );
 }

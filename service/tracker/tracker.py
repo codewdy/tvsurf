@@ -260,6 +260,13 @@ class Tracker:
         return SetTVTag.Response()
 
     @api("user")
+    async def set_tv_tracking(
+        self, user: User, request: SetTVTracking.Request
+    ) -> SetTVTracking.Response:
+        await self.local_manager.set_tv_tracking(request.tv_id, request.tracking)
+        return SetTVTracking.Response()
+
+    @api("user")
     async def get_monitor(
         self, user: User, request: GetMonitor.Request
     ) -> GetMonitor.Response:

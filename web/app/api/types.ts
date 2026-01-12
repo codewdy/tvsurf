@@ -288,3 +288,14 @@ export interface RemoveTVRequest {
 export interface RemoveTVResponse {
   // 空响应
 }
+
+// 设置 TV 追更请求
+export interface SetTVTrackingRequest {
+  tv_id: number;
+  tracking: boolean;
+}
+
+// 设置 TV 追更响应
+export interface SetTVTrackingResponse {
+  // 空响应
+}

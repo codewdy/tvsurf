@@ -265,3 +265,9 @@ class LocalManager:
         tv.storage.episodes[episode_id].status = DownloadStatus.RUNNING
         self.download_manager.submit_episode(tv_id, episode_id)
         self.tvdb.commit()
+
+    async def set_tv_tracking(self, id: int, tracking: bool) -> None:
+        tv = self.tvdb.tvs[id]
+        tv.track.tracking = tracking
+        tv.track.last_update = datetime.now()
+        self.tvdb.commit()
