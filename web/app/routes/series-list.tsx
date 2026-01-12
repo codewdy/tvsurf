@@ -29,6 +29,7 @@ export default function SeriesList() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<Set<number>>(new Set());
+  const [searchKeyword, setSearchKeyword] = useState("");
 
   // 获取系列列表和 TV 信息
   const fetchSeries = async () => {
@@ -117,6 +118,25 @@ export default function SeriesList() {
   useEffect(() => {
     fetchSeries();
   }, []);
+
+  // 根据搜索关键词过滤系列列表
+  const filteredSeriesList = seriesList.filter((series) => {
+    if (!searchKeyword.trim()) {
+      return true;
+    }
+
+    const keyword = searchKeyword.trim().toLowerCase();
+
+    // 检查系列名字是否匹配
+    if (series.name.toLowerCase().includes(keyword)) {
+      return true;
+    }
+
+    // 检查TV名字是否匹配
+    return series.tvInfos.some((tv) =>
+      tv.name.toLowerCase().includes(keyword)
+    );
+  });
 
   // 监听 ESC 键关闭添加系列模态框
   useEffect(() => {
@@ -244,6 +264,16 @@ export default function SeriesList() {
             </button>
           )}
         </div>
+        {/* 搜索框 */}
+        <div className="mb-4">
+          <input
+            type="text"
+            value={searchKeyword}
+            onChange={(e) => setSearchKeyword(e.target.value)}
+            placeholder="搜索系列名称或TV名称..."
+            className="w-full max-w-md px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+          />
+        </div>
       </div>
 
       {/* 错误信息 */}
@@ -254,7 +284,7 @@ export default function SeriesList() {
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-        {seriesList.map((series) => {
+        {filteredSeriesList.map((series) => {
           const firstTV = series.tvInfos[0];
           const coverUrl = firstTV?.cover_url || null;
           const isDeleting = deleting.has(series.id);
@@ -403,8 +433,8 @@ export default function SeriesList() {
                 }}
                 placeholder="输入系列名称..."
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${nameError
-                    ? "border-red-500 focus:ring-red-500 dark:border-red-500"
-                    : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                  ? "border-red-500 focus:ring-red-500 dark:border-red-500"
+                  : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
                   }`}
                 autoFocus
               />

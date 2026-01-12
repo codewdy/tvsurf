@@ -19,6 +19,7 @@ export default function TVList() {
   const [tvs, setTVs] = useState<TVInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [searchKeyword, setSearchKeyword] = useState("");
   // 折叠状态：watching 默认展开，其他默认折叠
   const [expandedTags, setExpandedTags] = useState<Record<Tag, boolean>>({
     watching: true,
@@ -47,6 +48,15 @@ export default function TVList() {
     fetchTVs();
   }, []);
 
+  // 根据搜索关键词过滤TV列表
+  const filteredTVs = tvs.filter((tv) => {
+    if (!searchKeyword.trim()) {
+      return true;
+    }
+    const keyword = searchKeyword.trim().toLowerCase();
+    return tv.name.toLowerCase().includes(keyword);
+  });
+
   // 按 tag 分组并排序
   const groupedTVs = () => {
     const groups: Record<Tag, TVInfo[]> = {
@@ -58,7 +68,7 @@ export default function TVList() {
     };
 
     // 按 tag 分组
-    tvs.forEach((tv) => {
+    filteredTVs.forEach((tv) => {
       groups[tv.user_data.tag].push(tv);
     });
 
@@ -106,6 +116,17 @@ export default function TVList() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* 搜索框 */}
+      <div className="mb-6">
+        <input
+          type="text"
+          value={searchKeyword}
+          onChange={(e) => setSearchKeyword(e.target.value)}
+          placeholder="搜索TV名称..."
+          className="w-full max-w-md px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
+        />
+      </div>
+
       {TAG_ORDER.map((tag) => {
         const tagTVs = groups[tag];
         if (tagTVs.length === 0) return null;
@@ -152,9 +173,9 @@ export default function TVList() {
         );
       })}
 
-      {tvs.length === 0 && (
+      {filteredTVs.length === 0 && (
         <div className="text-center text-gray-500 dark:text-gray-400 py-12">
-          暂无 TV
+          {searchKeyword.trim() ? "未找到匹配的TV" : "暂无 TV"}
         </div>
       )}
     </div>
