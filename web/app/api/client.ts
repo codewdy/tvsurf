@@ -14,6 +14,8 @@ import type {
   GetSeriesResponse,
   AddSeriesRequest,
   AddSeriesResponse,
+  RemoveSeriesRequest,
+  RemoveSeriesResponse,
   UpdateSeriesTVsRequest,
   GetDownloadProgressRequest,
   GetDownloadProgressResponse,
@@ -111,6 +113,16 @@ export async function addSeries(
 ): Promise<AddSeriesResponse> {
   return apiCall<AddSeriesRequest, AddSeriesResponse>(
     "/api/add_series",
+    request
+  );
+}
+
+// 删除系列
+export async function removeSeries(
+  request: RemoveSeriesRequest
+): Promise<RemoveSeriesResponse> {
+  return apiCall<RemoveSeriesRequest, RemoveSeriesResponse>(
+    "/api/remove_series",
     request
   );
 }

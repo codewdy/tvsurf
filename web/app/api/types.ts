@@ -215,6 +215,16 @@ export interface AddSeriesResponse {
   id: number;
 }
 
+// 删除系列请求
+export interface RemoveSeriesRequest {
+  id: number;
+}
+
+// 删除系列响应
+export interface RemoveSeriesResponse {
+  // 空响应
+}
+
 // 更新系列 TV 列表请求
 export interface UpdateSeriesTVsRequest {
   id: number;
