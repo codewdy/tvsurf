@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import type { Route } from "./+types/system-setup";
 import { hashPassword } from "../utils/password";
+import { isValidUsername } from "../utils/username";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -43,8 +44,14 @@ export default function SystemSetup() {
     // 单用户模式不需要验证用户名和密码
     if (!singleUserMode) {
       // 验证输入
-      if (!username.trim()) {
+      if (!username) {
         setError("请输入用户名");
+        return;
+      }
+
+      // 验证用户名格式：只允许字母和数字
+      if (!isValidUsername(username)) {
+        setError("用户名只能包含字母和数字");
         return;
       }
 
@@ -65,7 +72,7 @@ export default function SystemSetup() {
       // 在前端使用 bcrypt 加密密码（如果不是单用户模式，salt 中包含 username）
       let passwordHash = "";
       if (!singleUserMode) {
-        passwordHash = await hashPassword(password, username.trim());
+        passwordHash = await hashPassword(password, username);
       }
 
       // 调用 API
@@ -74,7 +81,7 @@ export default function SystemSetup() {
         password_hash: string;
         single_user_mode: boolean;
       } = {
-        username: singleUserMode ? "" : username.trim(),
+        username: singleUserMode ? "" : username,
         password_hash: passwordHash,
         single_user_mode: singleUserMode,
       };

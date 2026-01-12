@@ -3,6 +3,7 @@ import type { FormEvent } from "react";
 import type { Route } from "./+types/login";
 import { useNavigate, useSearchParams } from "react-router";
 import { hashPassword } from "../utils/password";
+import { isValidUsername } from "../utils/username";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -40,8 +41,14 @@ export default function Login() {
     setError(null);
 
     // 验证输入
-    if (!username.trim()) {
+    if (!username) {
       setError("请输入用户名");
+      return;
+    }
+
+    // 验证用户名格式：只允许字母和数字
+    if (!isValidUsername(username)) {
+      setError("用户名只能包含字母、数字、下划线和减号");
       return;
     }
 
@@ -54,7 +61,7 @@ export default function Login() {
 
     try {
       // 在前端使用 bcrypt 加密密码（salt 中包含 username）
-      const passwordHash = await hashPassword(password, username.trim());
+      const passwordHash = await hashPassword(password, username);
 
       // 调用 API
       const response = await fetch("/api/login", {
@@ -64,7 +71,7 @@ export default function Login() {
         },
         credentials: "include", // 包含 cookie
         body: JSON.stringify({
-          username: username.trim(),
+          username: username,
           password_hash: passwordHash,
         }),
       });

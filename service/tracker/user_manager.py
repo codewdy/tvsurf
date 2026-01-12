@@ -2,6 +2,7 @@ from service.lib.context import Context
 from service.schema.user_db import UserDB, User
 from uuid import uuid4
 from typing import Optional
+import re
 
 
 _SINGLE_USER_NAME = "user"
@@ -13,6 +14,15 @@ class UserManager:
 
     def has_user(self) -> bool:
         return len(self.db.users) > 0
+
+    def validate_username(self, username: str):
+        """验证用户名是否只包含字母、数字、下划线和减号"""
+        if not username:
+            return False
+        # 只允许字母（大小写）、数字、下划线(_)和减号(-)
+        pattern = r"^[a-zA-Z0-9_-]+$"
+        if not bool(re.match(pattern, username)):
+            raise ValueError("用户名只能包含字母、数字、下划线和减号")
 
     def set_single_user_mode(self) -> str:
         if self.has_user():
@@ -31,6 +41,7 @@ class UserManager:
     def add_user(self, username: str, password_hash: str, group: list[str]) -> str:
         if self.db.single_user_mode:
             raise Exception("单用户模式下无法添加用户")
+        self.validate_username(username)
         if username in self.db.users:
             raise KeyError(f"用户 {username} 已存在")
         token = str(uuid4())
@@ -50,6 +61,7 @@ class UserManager:
     def get_user_token(self, username: str, password_hash: str) -> str:
         if self.db.single_user_mode:
             return self.db.users[_SINGLE_USER_NAME].token
+        self.validate_username(username)
         user = next(
             (
                 user
