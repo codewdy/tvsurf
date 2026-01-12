@@ -1,5 +1,5 @@
 from .dtype import BaseModel
-from .tvdb import Source, Series, TV
+from .tvdb import Source, Series, TV, SourceUrl
 from .downloader import DownloadProgressWithName
 from .error import Error
 from .searcher import SearchError
@@ -12,6 +12,8 @@ __all__ = [
     "Echo",
     "SearchTV",
     "AddTV",
+    "UpdateTVSource",
+    "UpdateEpisodeSeries",
     "GetTVInfos",
     "GetTVDetails",
     "GetDownloadProgress",
@@ -66,6 +68,25 @@ class AddTV(BaseModel):
 
     class Response(BaseModel):
         id: int
+
+
+class UpdateTVSource(BaseModel):
+    class Request(BaseModel):
+        id: int
+        source: Source
+
+    class Response(BaseModel):
+        pass
+
+
+class UpdateEpisodeSeries(BaseModel):
+    class Request(BaseModel):
+        tv_id: int
+        episode_id: int
+        source: SourceUrl
+
+    class Response(BaseModel):
+        pass
 
 
 class GetTVInfos(BaseModel):

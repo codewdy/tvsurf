@@ -112,11 +112,14 @@ class TaskDownloadManager:
         task.task = self.runner.schedule(downloader.run)
         task.task.add_done_callback(lambda _: self.tasks.remove(task))
 
-    def remove_filtered_task(self, filter: Callable[[Any], bool]) -> None:
+    async def remove_filtered_task(self, filter: Callable[[Any], bool]) -> None:
         remove_tasks = [task for task in self.tasks if filter(task.metadata)]
         for task in remove_tasks:
             if task.task:
                 task.task.cancel()
+        await asyncio.gather(
+            *[task.task for task in remove_tasks], return_exceptions=True  # type: ignore
+        )
 
     def get_progress(self) -> list[DownloadProgressWithName]:
         return [

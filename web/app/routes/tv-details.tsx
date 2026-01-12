@@ -5,12 +5,19 @@ import {
   setTVTag,
   setWatchProgress,
   getSeries,
+  searchTV,
+  updateTVSource,
+  updateEpisodeSource,
 } from "../api/client";
 import type {
   Tag,
   GetTVDetailsResponse,
   Series,
   GetSeriesResponse,
+  Source,
+  SearchTVResponse,
+  SearchError,
+  SourceUrl,
 } from "../api/types";
 import { TAG_NAMES } from "../api/types";
 
@@ -33,6 +40,18 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   const [seriesList, setSeriesList] = useState<Series[]>([]);
   const [lastProgressUpdate, setLastProgressUpdate] = useState<number>(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  // 编辑模态框相关状态
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<"source" | "other">("source");
+  // 换源相关状态
+  const [sourceSearchKeyword, setSourceSearchKeyword] = useState("");
+  const [sourceSearchLoading, setSourceSearchLoading] = useState(false);
+  const [sourceSearchResults, setSourceSearchResults] = useState<Source[]>([]);
+  const [sourceSearchErrors, setSourceSearchErrors] = useState<SearchError[]>([]);
+  const [sourceType, setSourceType] = useState<"tv" | "episode">("tv");
+  const [selectedEpisodeForSource, setSelectedEpisodeForSource] = useState<number>(0);
+  const [selectedSourceIndex, setSelectedSourceIndex] = useState<number | null>(null);
+  const [selectedEpisodeInNewSource, setSelectedEpisodeInNewSource] = useState<number>(0);
 
   useEffect(() => {
     if (id) {
@@ -219,7 +238,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
             {error || "未找到电视剧详情"}
           </div>
           <a
-            href="/tv-list"
+            href="/"
             className="mt-4 inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 transition-colors"
           >
             返回列表
@@ -236,8 +255,14 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
       <div className="container mx-auto px-4 max-w-7xl">
         {/* 导航栏 */}
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{details.tv.name}</h1>
+          <button
+            onClick={() => setShowEditModal(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors dark:bg-blue-700 dark:hover:bg-blue-600"
+          >
+            编辑
+          </button>
         </div>
 
         {/* 错误信息 */}
@@ -505,6 +530,364 @@ export default function TVDetails({ params }: Route.ComponentProps) {
           </div>
         </div>
       </div>
+
+      {/* 编辑模态框 */}
+      {showEditModal && details && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => {
+            setShowEditModal(false);
+            // 重置状态
+            setSourceSearchKeyword("");
+            setSourceSearchResults([]);
+            setSourceSearchErrors([]);
+            setSelectedSourceIndex(null);
+            setSelectedEpisodeInNewSource(0);
+            setSourceType("tv");
+            setSelectedEpisodeForSource(0);
+          }}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">编辑</h2>
+                <button
+                  onClick={() => {
+                    setShowEditModal(false);
+                    // 重置状态
+                    setSourceSearchKeyword("");
+                    setSourceSearchResults([]);
+                    setSourceSearchErrors([]);
+                    setSelectedSourceIndex(null);
+                    setSelectedEpisodeInNewSource(0);
+                    setSourceType("tv");
+                    setSelectedEpisodeForSource(0);
+                  }}
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Tab 导航 */}
+              <div className="border-b border-gray-200 dark:border-gray-700 mb-6">
+                <nav className="flex space-x-8">
+                  <button
+                    onClick={() => setActiveTab("source")}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "source"
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                      }`}
+                  >
+                    换源
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("other")}
+                    className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "other"
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                      }`}
+                  >
+                    其他
+                  </button>
+                </nav>
+              </div>
+
+              {/* Tab 内容 */}
+              {activeTab === "source" && (
+                <div className="space-y-6">
+                  {/* 选择换源类型 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      换源类型
+                    </label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          value="tv"
+                          checked={sourceType === "tv"}
+                          onChange={(e) => setSourceType(e.target.value as "tv" | "episode")}
+                          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                        />
+                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">换 TV 源</span>
+                      </label>
+                      <label className="flex items-center cursor-pointer">
+                        <input
+                          type="radio"
+                          value="episode"
+                          checked={sourceType === "episode"}
+                          onChange={(e) => setSourceType(e.target.value as "tv" | "episode")}
+                          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+                        />
+                        <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">换 Episode 源</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* 选择剧集（仅当换 Episode 源时显示） */}
+                  {sourceType === "episode" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                        选择剧集
+                      </label>
+                      <select
+                        value={selectedEpisodeForSource}
+                        onChange={(e) => setSelectedEpisodeForSource(parseInt(e.target.value))}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                      >
+                        {details.tv.source.episodes.map((episode, index) => (
+                          <option key={index} value={index}>
+                            {episode.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* 搜索框 */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      搜索新源
+                    </label>
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (!sourceSearchKeyword.trim()) return;
+
+                        setSourceSearchLoading(true);
+                        setSourceSearchResults([]);
+                        setSourceSearchErrors([]);
+
+                        try {
+                          const data = await searchTV({ keyword: sourceSearchKeyword.trim() });
+                          setSourceSearchResults(data.source || []);
+                          setSourceSearchErrors(data.search_error || []);
+                        } catch (err) {
+                          setError(err instanceof Error ? err.message : "搜索时发生错误");
+                          console.error("Search error:", err);
+                        } finally {
+                          setSourceSearchLoading(false);
+                        }
+                      }}
+                      className="flex gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={sourceSearchKeyword}
+                        onChange={(e) => setSourceSearchKeyword(e.target.value)}
+                        placeholder="输入搜索关键词..."
+                        className="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                        disabled={sourceSearchLoading}
+                      />
+                      <button
+                        type="submit"
+                        disabled={sourceSearchLoading || !sourceSearchKeyword.trim()}
+                        className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-blue-700 dark:hover:bg-blue-600"
+                      >
+                        {sourceSearchLoading ? "搜索中..." : "搜索"}
+                      </button>
+                    </form>
+                  </div>
+
+                  {/* 搜索错误信息 */}
+                  {sourceSearchErrors.length > 0 && (
+                    <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                      <h3 className="text-sm font-semibold text-yellow-800 dark:text-yellow-300 mb-2">
+                        搜索过程中部分来源出现错误 ({sourceSearchErrors.length})
+                      </h3>
+                      <div className="space-y-1">
+                        {sourceSearchErrors.map((searchError, index) => (
+                          <div
+                            key={index}
+                            className="p-2 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded text-xs"
+                          >
+                            <p className="font-medium text-yellow-900 dark:text-yellow-200">
+                              {searchError.source_name}: {searchError.error}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 搜索结果 */}
+                  {sourceSearchResults.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                        找到 {sourceSearchResults.length} 个结果
+                      </h3>
+                      <div className="overflow-x-auto pb-2" style={{ maxHeight: "400px" }}>
+                        <div className="flex gap-4 pb-2" style={{ minWidth: "max-content" }}>
+                          {sourceSearchResults.map((source, index) => (
+                            <div
+                              key={index}
+                              className={`bg-gray-50 dark:bg-gray-700 rounded-lg border-2 transition-colors flex-shrink-0 ${selectedSourceIndex === index
+                                ? "border-blue-500 dark:border-blue-400"
+                                : "border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer"
+                                }`}
+                              style={{ width: "320px", height: "180px" }}
+                              onClick={() => {
+                                if (sourceType === "tv") {
+                                  // TV 源直接选择并更新
+                                  (async () => {
+                                    try {
+                                      await updateTVSource({
+                                        id: details.tv.id,
+                                        source: source,
+                                      });
+                                      // 刷新详情
+                                      await fetchTVDetails(details.tv.id);
+                                      setShowEditModal(false);
+                                      setSourceSearchResults([]);
+                                      setSourceSearchKeyword("");
+                                    } catch (err) {
+                                      setError(err instanceof Error ? err.message : "更新源时发生错误");
+                                      console.error("Update source error:", err);
+                                    }
+                                  })();
+                                } else {
+                                  // Episode 源需要先选择，然后选择剧集
+                                  setSelectedSourceIndex(index);
+                                  setSelectedEpisodeInNewSource(0);
+                                }
+                              }}
+                            >
+                              <div className="flex h-full">
+                                {/* 封面 */}
+                                <div className="w-32 h-full bg-gray-200 dark:bg-gray-600 rounded-l-lg overflow-hidden flex-shrink-0">
+                                  {source.cover_url ? (
+                                    <img
+                                      src={source.cover_url}
+                                      alt={source.name}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = "none";
+                                      }}
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                                      无封面
+                                    </div>
+                                  )}
+                                </div>
+                                {/* 信息 */}
+                                <div className="flex-1 p-3 flex flex-col justify-between overflow-hidden">
+                                  <div>
+                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 overflow-hidden" style={{
+                                      display: "-webkit-box",
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: "vertical",
+                                    }}>
+                                      {source.name}
+                                    </div>
+                                    <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                                      <p className="truncate">来源: {source.source.source_name}</p>
+                                      <p className="truncate">频道: {source.source.channel_name}</p>
+                                      <p>剧集数: {source.episodes.length}</p>
+                                    </div>
+                                  </div>
+                                  {selectedSourceIndex === index && sourceType === "episode" && (
+                                    <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                      已选择
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Episode 源选择剧集 */}
+                      {sourceType === "episode" && selectedSourceIndex !== null && (
+                        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                            选择新源中的剧集（当前要更换的剧集：{details.tv.source.episodes[selectedEpisodeForSource]?.name}）
+                          </h4>
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              选择剧集
+                            </label>
+                            <select
+                              value={selectedEpisodeInNewSource}
+                              onChange={(e) => setSelectedEpisodeInNewSource(parseInt(e.target.value))}
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            >
+                              {sourceSearchResults[selectedSourceIndex]?.episodes.map((episode, index) => (
+                                <option key={index} value={index}>
+                                  {episode.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  const selectedSource = sourceSearchResults[selectedSourceIndex];
+                                  const selectedEp = selectedSource.episodes[selectedEpisodeInNewSource];
+                                  if (!selectedEp) {
+                                    setError("所选剧集不存在");
+                                    return;
+                                  }
+                                  await updateEpisodeSource({
+                                    tv_id: details.tv.id,
+                                    episode_id: selectedEpisodeForSource,
+                                    source: selectedEp.source,
+                                  });
+                                  // 刷新详情
+                                  await fetchTVDetails(details.tv.id);
+                                  setShowEditModal(false);
+                                  setSourceSearchResults([]);
+                                  setSourceSearchKeyword("");
+                                  setSelectedSourceIndex(null);
+                                } catch (err) {
+                                  setError(err instanceof Error ? err.message : "更新源时发生错误");
+                                  console.error("Update source error:", err);
+                                }
+                              }}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors dark:bg-green-700 dark:hover:bg-green-600"
+                            >
+                              确认更换
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedSourceIndex(null);
+                                setSelectedEpisodeInNewSource(0);
+                              }}
+                              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                            >
+                              取消
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {sourceSearchLoading && (
+                    <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                      <p>搜索中，可能需要最多1分钟时间</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === "other" && (
+                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                  <p>其他编辑功能待实现</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

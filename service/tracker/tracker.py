@@ -128,6 +128,22 @@ class Tracker:
         return AddTV.Response(id=tv_id)
 
     @api("user")
+    async def update_tv_source(
+        self, user: User, request: UpdateTVSource.Request
+    ) -> UpdateTVSource.Response:
+        await self.local_manager.update_tv_source(request.id, request.source)
+        return UpdateTVSource.Response()
+
+    @api("user")
+    async def update_episode_series(
+        self, user: User, request: UpdateEpisodeSeries.Request
+    ) -> UpdateEpisodeSeries.Response:
+        await self.local_manager.update_episode_series(
+            request.tv_id, request.episode_id, request.source
+        )
+        return UpdateEpisodeSeries.Response()
+
+    @api("user")
     async def get_tv_infos(
         self, user: User, request: GetTVInfos.Request
     ) -> GetTVInfos.Response:

@@ -22,6 +22,10 @@ import type {
   GetErrorsRequest,
   GetErrorsResponse,
   RemoveErrorsRequest,
+  UpdateTVSourceRequest,
+  UpdateTVSourceResponse,
+  UpdateEpisodeSourceRequest,
+  UpdateEpisodeSourceResponse,
 } from "./types";
 
 // 基础 API 调用函数
@@ -162,4 +166,24 @@ export async function removeErrors(
   request: RemoveErrorsRequest
 ): Promise<void> {
   await apiCall<RemoveErrorsRequest, void>("/api/remove_errors", request);
+}
+
+// 更新 TV 源
+export async function updateTVSource(
+  request: UpdateTVSourceRequest
+): Promise<UpdateTVSourceResponse> {
+  return apiCall<UpdateTVSourceRequest, UpdateTVSourceResponse>(
+    "/api/update_tv_source",
+    request
+  );
+}
+
+// 更新剧集源
+export async function updateEpisodeSource(
+  request: UpdateEpisodeSourceRequest
+): Promise<UpdateEpisodeSourceResponse> {
+  return apiCall<UpdateEpisodeSourceRequest, UpdateEpisodeSourceResponse>(
+    "/api/update_episode_series",
+    request
+  );
 }

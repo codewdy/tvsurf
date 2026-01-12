@@ -1,5 +1,13 @@
 from service.lib.context import Context
-from service.schema.tvdb import TVDB, Source, TV, Storage, TrackStatus, DownloadStatus
+from service.schema.tvdb import (
+    TVDB,
+    Source,
+    TV,
+    Storage,
+    TrackStatus,
+    DownloadStatus,
+    SourceUrl,
+)
 from datetime import datetime
 from service.schema.downloader import DownloadProgressWithName
 from service.downloader.task import TaskDownloadManager
@@ -24,7 +32,7 @@ class TVDownloadManager:
     async def stop(self) -> None:
         await self.task_manager.stop()
 
-    def submit(self, tv_id: int, episode_id: int) -> None:
+    def submit_episode(self, tv_id: int, episode_id: int) -> None:
         tv = self.tvdb.tvs[tv_id]
         if tv.storage.episodes[episode_id].status != DownloadStatus.RUNNING:
             return
@@ -42,10 +50,18 @@ class TVDownloadManager:
     def submit_episodes(self, tv_id: int, ep_start: int) -> None:
         tv = self.tvdb.tvs[tv_id]
         for i in range(ep_start, len(tv.source.episodes)):
-            self.submit(tv_id, i)
+            self.submit_episode(tv_id, i)
 
-    async def cancel(self, tv_id: int) -> None:
-        raise NotImplementedError("Not implemented")
+    async def cancel_tv(self, tv_id: int) -> None:
+        await self.task_manager.remove_filtered_task(
+            lambda metadata: metadata["tv_id"] == tv_id
+        )
+
+    async def cancel_episode(self, tv_id: int, episode_id: int) -> None:
+        await self.task_manager.remove_filtered_task(
+            lambda metadata: metadata["tv_id"] == tv_id
+            and metadata["episode_id"] == episode_id
+        )
 
     def get_download_progress(self) -> list[DownloadProgressWithName]:
         return self.task_manager.get_progress()
@@ -216,3 +232,28 @@ class LocalManager:
 
     def get_download_count(self) -> int:
         return self.download_manager.get_download_count()
+
+    async def update_tv_source(self, id: int, source: Source) -> None:
+        await self.download_manager.cancel_tv(id)
+        tv = self.tvdb.tvs[id]
+        for id in range(len(tv.storage.episodes)):
+            if tv.storage.episodes[id].status == DownloadStatus.SUCCESS:
+                # do not use aiofiles to remove file, because it's in the transaction
+                os.remove(get_episode_path(tv, id))
+        tv.source = source
+        tv.storage.episodes = []
+        self.allocate_local(tv)
+        self.tvdb.commit()
+
+    async def update_episode_series(
+        self, tv_id: int, episode_id: int, source: SourceUrl
+    ) -> None:
+        await self.download_manager.cancel_episode(tv_id, episode_id)
+        tv = self.tvdb.tvs[tv_id]
+        tv.source.episodes[episode_id].source = source
+        if tv.storage.episodes[episode_id].status == DownloadStatus.SUCCESS:
+            # do not use aiofiles to remove file, because it's in the transaction
+            os.remove(get_episode_path(tv, episode_id))
+        tv.storage.episodes[episode_id].status = DownloadStatus.RUNNING
+        self.download_manager.submit_episode(tv_id, episode_id)
+        self.tvdb.commit()
