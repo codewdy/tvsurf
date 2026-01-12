@@ -20,6 +20,10 @@ class SeriesManager:
         self.tvdb.commit()
 
     def add_series(self, name: str) -> int:
+        for existing_series in self.tvdb.series.values():
+            if existing_series.name == name:
+                raise ValueError(f"系列名称 '{name}' 已存在")
+
         id = self.tvdb.new_series_id
         self.tvdb.new_series_id += 1
         self.tvdb.series[id] = Series(

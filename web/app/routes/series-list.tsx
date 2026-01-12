@@ -26,6 +26,7 @@ export default function SeriesList() {
   const [isEditing, setIsEditing] = useState(false);
   const [showAddSeriesModal, setShowAddSeriesModal] = useState(false);
   const [newSeriesName, setNewSeriesName] = useState("");
+  const [nameError, setNameError] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const [deleting, setDeleting] = useState<Set<number>>(new Set());
 
@@ -144,11 +145,27 @@ export default function SeriesList() {
     setIsEditing(false);
     setShowAddSeriesModal(false);
     setNewSeriesName("");
+    setNameError(null);
+  };
+
+  // 检查系列名称是否已存在
+  const checkSeriesName = (name: string) => {
+    if (!name) {
+      setNameError(null);
+      return;
+    }
+
+    const exists = seriesList.some(series => series.name === name);
+    if (exists) {
+      setNameError(`系列名称 '${name}' 已存在`);
+    } else {
+      setNameError(null);
+    }
   };
 
   // 添加系列
   const handleAddSeries = async () => {
-    if (!newSeriesName.trim() || adding) return;
+    if (!newSeriesName.trim() || adding || nameError) return;
 
     try {
       setAdding(true);
@@ -156,6 +173,7 @@ export default function SeriesList() {
       await addSeries({ name: newSeriesName.trim() });
       setShowAddSeriesModal(false);
       setNewSeriesName("");
+      setNameError(null);
       await fetchSeries();
     } catch (err) {
       console.error("Add series error:", err);
@@ -163,6 +181,7 @@ export default function SeriesList() {
       // 失败时也关闭模态框和退出编辑模式，以便展示错误信息
       setShowAddSeriesModal(false);
       setNewSeriesName("");
+      setNameError(null);
     } finally {
       setAdding(false);
     }
@@ -344,6 +363,7 @@ export default function SeriesList() {
           onClick={() => {
             setShowAddSeriesModal(false);
             setNewSeriesName("");
+            setNameError(null);
           }}
         >
           <div
@@ -359,6 +379,7 @@ export default function SeriesList() {
                 onClick={() => {
                   setShowAddSeriesModal(false);
                   setNewSeriesName("");
+                  setNameError(null);
                 }}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl font-bold"
               >
@@ -371,16 +392,27 @@ export default function SeriesList() {
               <input
                 type="text"
                 value={newSeriesName}
-                onChange={(e) => setNewSeriesName(e.target.value)}
+                onChange={(e) => {
+                  setNewSeriesName(e.target.value);
+                  checkSeriesName(e.target.value);
+                }}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && newSeriesName.trim()) {
+                  if (e.key === "Enter" && newSeriesName.trim() && !nameError) {
                     handleAddSeries();
                   }
                 }}
                 placeholder="输入系列名称..."
-                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${nameError
+                    ? "border-red-500 focus:ring-red-500 dark:border-red-500"
+                    : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                  }`}
                 autoFocus
               />
+              {nameError && (
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {nameError}
+                </p>
+              )}
             </div>
 
             {/* 按钮 */}
@@ -389,6 +421,7 @@ export default function SeriesList() {
                 onClick={() => {
                   setShowAddSeriesModal(false);
                   setNewSeriesName("");
+                  setNameError(null);
                 }}
                 disabled={adding}
                 className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 dark:bg-gray-600 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -397,7 +430,7 @@ export default function SeriesList() {
               </button>
               <button
                 onClick={handleAddSeries}
-                disabled={adding || !newSeriesName.trim()}
+                disabled={adding || !newSeriesName.trim() || !!nameError}
                 className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {adding ? "添加中..." : "添加"}

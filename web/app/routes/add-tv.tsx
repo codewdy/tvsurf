@@ -48,6 +48,7 @@ export default function AddTV() {
   const [seriesList, setSeriesList] = useState<Series[]>([]);
   const [loadingSeries, setLoadingSeries] = useState(false);
   const [seriesSearchKeyword, setSeriesSearchKeyword] = useState("");
+  const [seriesNameError, setSeriesNameError] = useState<string | null>(null);
   const [creatingSeries, setCreatingSeries] = useState(false);
   // 保存对话框设置（除了名称）
   const [savedTracking, setSavedTracking] = useState(false);
@@ -138,8 +139,24 @@ export default function AddTV() {
     );
   };
 
+  // 检查系列名称是否已存在
+  const checkSeriesName = (name: string) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setSeriesNameError(null);
+      return;
+    }
+
+    const exists = seriesList.some(series => series.name === trimmedName);
+    if (exists) {
+      setSeriesNameError(`系列名称 '${trimmedName}' 已存在`);
+    } else {
+      setSeriesNameError(null);
+    }
+  };
+
   const handleCreateSeries = async () => {
-    if (!seriesSearchKeyword.trim()) {
+    if (!seriesSearchKeyword.trim() || seriesNameError) {
       return;
     }
 
@@ -155,6 +172,8 @@ export default function AddTV() {
 
       // 清空输入
       setSeriesSearchKeyword("");
+      setSeriesNameError(null);
+      setSeriesNameError(null);
     } catch (err) {
       console.error("Create series error:", err);
       alert(err instanceof Error ? err.message : "创建系列时发生错误");
@@ -251,6 +270,7 @@ export default function AddTV() {
     setConfirmIndex(-1);
     setConfirmName("");
     setSeriesSearchKeyword("");
+    setSeriesNameError(null);
     setNameExists(false);
   };
 
@@ -268,6 +288,7 @@ export default function AddTV() {
         setConfirmIndex(-1);
         setConfirmName("");
         setSeriesSearchKeyword("");
+        setSeriesNameError(null);
         setNameExists(false);
       }
     };
@@ -602,22 +623,35 @@ export default function AddTV() {
                 ) : (
                   <div className="space-y-2">
                     {/* 搜索框和新建按钮 */}
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={seriesSearchKeyword}
-                        onChange={(e) => setSeriesSearchKeyword(e.target.value)}
-                        placeholder="搜索系列或输入新系列名称..."
-                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleCreateSeries}
-                        disabled={!seriesSearchKeyword.trim() || creatingSeries}
-                        className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors dark:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
-                      >
-                        {creatingSeries ? "创建中..." : "新建"}
-                      </button>
+                    <div className="space-y-1">
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={seriesSearchKeyword}
+                          onChange={(e) => {
+                            setSeriesSearchKeyword(e.target.value);
+                            checkSeriesName(e.target.value);
+                          }}
+                          placeholder="搜索系列或输入新系列名称..."
+                          className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm ${seriesNameError
+                              ? "border-red-500 focus:ring-red-500 dark:border-red-500"
+                              : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                            }`}
+                        />
+                        <button
+                          type="button"
+                          onClick={handleCreateSeries}
+                          disabled={!seriesSearchKeyword.trim() || creatingSeries || !!seriesNameError}
+                          className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors dark:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
+                        >
+                          {creatingSeries ? "创建中..." : "新建"}
+                        </button>
+                      </div>
+                      {seriesNameError && (
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          {seriesNameError}
+                        </p>
+                      )}
                     </div>
                     {/* 穿梭框 */}
                     <div className="flex gap-4">
