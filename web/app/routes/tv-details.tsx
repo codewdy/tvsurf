@@ -52,6 +52,14 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   const [selectedEpisodeForSource, setSelectedEpisodeForSource] = useState<number>(0);
   const [selectedSourceIndex, setSelectedSourceIndex] = useState<number | null>(null);
   const [selectedEpisodeInNewSource, setSelectedEpisodeInNewSource] = useState<number>(0);
+  // 确认对话框相关状态
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingSourceChange, setPendingSourceChange] = useState<{
+    type: "tv" | "episode";
+    sourceIndex: number;
+    episodeIndex?: number;
+    newEpisodeIndex?: number;
+  } | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -537,6 +545,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
           onClick={() => {
             setShowEditModal(false);
+            setShowConfirmDialog(false);
             // 重置状态
             setSourceSearchKeyword("");
             setSourceSearchResults([]);
@@ -545,6 +554,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
             setSelectedEpisodeInNewSource(0);
             setSourceType("tv");
             setSelectedEpisodeForSource(0);
+            setPendingSourceChange(null);
           }}
         >
           <div
@@ -557,6 +567,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                 <button
                   onClick={() => {
                     setShowEditModal(false);
+                    setShowConfirmDialog(false);
                     // 重置状态
                     setSourceSearchKeyword("");
                     setSourceSearchResults([]);
@@ -565,6 +576,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                     setSelectedEpisodeInNewSource(0);
                     setSourceType("tv");
                     setSelectedEpisodeForSource(0);
+                    setPendingSourceChange(null);
                   }}
                   className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
                 >
@@ -734,23 +746,12 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                               style={{ width: "320px", height: "180px" }}
                               onClick={() => {
                                 if (sourceType === "tv") {
-                                  // 整部剧源直接选择并更新
-                                  (async () => {
-                                    try {
-                                      await updateTVSource({
-                                        id: details.tv.id,
-                                        source: source,
-                                      });
-                                      // 刷新详情
-                                      await fetchTVDetails(details.tv.id);
-                                      setShowEditModal(false);
-                                      setSourceSearchResults([]);
-                                      setSourceSearchKeyword("");
-                                    } catch (err) {
-                                      setError(err instanceof Error ? err.message : "更新源时发生错误");
-                                      console.error("Update source error:", err);
-                                    }
-                                  })();
+                                  // 整部剧源显示确认对话框
+                                  setPendingSourceChange({
+                                    type: "tv",
+                                    sourceIndex: index,
+                                  });
+                                  setShowConfirmDialog(true);
                                 } else {
                                   // 单集源需要先选择，然后选择剧集
                                   setSelectedSourceIndex(index);
@@ -828,29 +829,21 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                           </div>
                           <div className="flex gap-3">
                             <button
-                              onClick={async () => {
-                                try {
-                                  const selectedSource = sourceSearchResults[selectedSourceIndex];
-                                  const selectedEp = selectedSource.episodes[selectedEpisodeInNewSource];
-                                  if (!selectedEp) {
-                                    setError("所选剧集不存在");
-                                    return;
-                                  }
-                                  await updateEpisodeSource({
-                                    tv_id: details.tv.id,
-                                    episode_id: selectedEpisodeForSource,
-                                    source: selectedEp.source,
-                                  });
-                                  // 刷新详情
-                                  await fetchTVDetails(details.tv.id);
-                                  setShowEditModal(false);
-                                  setSourceSearchResults([]);
-                                  setSourceSearchKeyword("");
-                                  setSelectedSourceIndex(null);
-                                } catch (err) {
-                                  setError(err instanceof Error ? err.message : "更新源时发生错误");
-                                  console.error("Update source error:", err);
+                              onClick={() => {
+                                const selectedSource = sourceSearchResults[selectedSourceIndex];
+                                const selectedEp = selectedSource.episodes[selectedEpisodeInNewSource];
+                                if (!selectedEp) {
+                                  setError("所选剧集不存在");
+                                  return;
                                 }
+                                // 显示确认对话框
+                                setPendingSourceChange({
+                                  type: "episode",
+                                  sourceIndex: selectedSourceIndex,
+                                  episodeIndex: selectedEpisodeForSource,
+                                  newEpisodeIndex: selectedEpisodeInNewSource,
+                                });
+                                setShowConfirmDialog(true);
                               }}
                               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors dark:bg-green-700 dark:hover:bg-green-600"
                             >
@@ -884,6 +877,151 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                   <p>其他编辑功能待实现</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 换源确认对话框 */}
+      {showConfirmDialog && pendingSourceChange && details && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => {
+            setShowConfirmDialog(false);
+            setPendingSourceChange(null);
+          }}
+        >
+          <div
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                确认换源
+              </h2>
+
+              {pendingSourceChange.type === "tv" ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      当前源
+                    </h3>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      <p className="font-medium">{details.tv.name}</p>
+                      <p className="text-gray-600 dark:text-gray-400 mt-1">
+                        来源: {details.tv.source.source.source_name} | 频道: {details.tv.source.source.channel_name}
+                      </p>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        剧集数: {details.tv.source.episodes.length}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      新源
+                    </h3>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      <p className="font-medium">{sourceSearchResults[pendingSourceChange.sourceIndex]?.name}</p>
+                      <p className="text-gray-600 dark:text-gray-400 mt-1">
+                        来源: {sourceSearchResults[pendingSourceChange.sourceIndex]?.source.source_name} | 频道: {sourceSearchResults[pendingSourceChange.sourceIndex]?.source.channel_name}
+                      </p>
+                      <p className="text-gray-600 dark:text-gray-400">
+                        剧集数: {sourceSearchResults[pendingSourceChange.sourceIndex]?.episodes.length}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                      ⚠️ 更换整部剧源将替换所有剧集的源，已下载的剧集可能需要重新下载。
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      当前剧集
+                    </h3>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      <p className="font-medium">
+                        {details.tv.source.episodes[pendingSourceChange.episodeIndex || 0]?.name}
+                      </p>
+                      <p className="text-gray-600 dark:text-gray-400 mt-1">
+                        来源: {details.tv.source.episodes[pendingSourceChange.episodeIndex || 0]?.source.source_name} | 频道: {details.tv.source.episodes[pendingSourceChange.episodeIndex || 0]?.source.channel_name}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      新源剧集
+                    </h3>
+                    <div className="text-sm text-gray-900 dark:text-gray-100">
+                      <p className="font-medium">
+                        {sourceSearchResults[pendingSourceChange.sourceIndex]?.episodes[pendingSourceChange.newEpisodeIndex || 0]?.name}
+                      </p>
+                      <p className="text-gray-600 dark:text-gray-400 mt-1">
+                        来源: {sourceSearchResults[pendingSourceChange.sourceIndex]?.episodes[pendingSourceChange.newEpisodeIndex || 0]?.source.source_name} | 频道: {sourceSearchResults[pendingSourceChange.sourceIndex]?.episodes[pendingSourceChange.newEpisodeIndex || 0]?.source.channel_name}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={async () => {
+                    try {
+                      if (pendingSourceChange.type === "tv") {
+                        const selectedSource = sourceSearchResults[pendingSourceChange.sourceIndex];
+                        await updateTVSource({
+                          id: details.tv.id,
+                          source: selectedSource,
+                        });
+                      } else {
+                        const selectedSource = sourceSearchResults[pendingSourceChange.sourceIndex];
+                        const selectedEp = selectedSource.episodes[pendingSourceChange.newEpisodeIndex || 0];
+                        if (!selectedEp) {
+                          setError("所选剧集不存在");
+                          return;
+                        }
+                        await updateEpisodeSource({
+                          tv_id: details.tv.id,
+                          episode_id: pendingSourceChange.episodeIndex || 0,
+                          source: selectedEp.source,
+                        });
+                      }
+                      // 刷新详情
+                      await fetchTVDetails(details.tv.id);
+                      setShowEditModal(false);
+                      setShowConfirmDialog(false);
+                      setSourceSearchResults([]);
+                      setSourceSearchKeyword("");
+                      setSelectedSourceIndex(null);
+                      setPendingSourceChange(null);
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : "更新源时发生错误");
+                      console.error("Update source error:", err);
+                      setShowConfirmDialog(false);
+                      setPendingSourceChange(null);
+                    }
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors dark:bg-blue-700 dark:hover:bg-blue-600"
+                >
+                  确认换源
+                </button>
+                <button
+                  onClick={() => {
+                    setShowConfirmDialog(false);
+                    setPendingSourceChange(null);
+                  }}
+                  className="flex-1 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                >
+                  取消
+                </button>
+              </div>
             </div>
           </div>
         </div>
