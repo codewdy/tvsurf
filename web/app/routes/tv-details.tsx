@@ -73,7 +73,9 @@ export default function TVDetails({ params }: Route.ComponentProps) {
 
   useEffect(() => {
     if (id) {
+      setLoading(true);
       fetchTVDetails(parseInt(id));
+      setLoading(false);
     }
   }, [id]);
 
@@ -94,7 +96,6 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   }, [details]);
 
   const fetchTVDetails = async (tvId: number) => {
-    setLoading(true);
     setError(null);
     try {
       const data = await getTVDetails({ id: tvId });
@@ -102,8 +103,6 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     } catch (err) {
       setError(err instanceof Error ? err.message : "获取电视剧详情时发生错误");
       console.error("Fetch TV details error:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -762,8 +761,6 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                                 });
                                 // 刷新详情以更新状态
                                 await fetchTVDetails(details.tv.id);
-                                // 清空选择
-                                selectElement.value = "";
                               } catch (err) {
                                 setError(
                                   err instanceof Error
