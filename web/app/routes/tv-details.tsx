@@ -10,6 +10,7 @@ import {
   updateEpisodeSource,
   removeTV,
   setTVTracking,
+  scheduleEpisodeDownload,
 } from "../api/client";
 import type {
   Tag,
@@ -61,6 +62,8 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   // 追更相关状态
   const [updatingTracking, setUpdatingTracking] = useState(false);
+  // 重新调度下载相关状态
+  const [reschedulingDownload, setReschedulingDownload] = useState(false);
   const [pendingSourceChange, setPendingSourceChange] = useState<{
     type: "tv" | "episode";
     sourceIndex: number;
@@ -698,6 +701,93 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                         更新中...
                       </div>
                     )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      重新调度下载
+                    </label>
+                    <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-4">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                          重新下载剧集
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                          选择需要重新下载的剧集，系统将取消当前下载任务并重新开始下载
+                        </div>
+                        <div className="flex gap-3">
+                          <select
+                            id="reschedule-episode-select"
+                            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+                            disabled={reschedulingDownload}
+                          >
+                            {details.tv.source.episodes.map((episode, index) => {
+                              const storageEp = details.tv.storage.episodes[index];
+                              const statusText =
+                                storageEp?.status === "success"
+                                  ? "✓ 已下载"
+                                  : storageEp?.status === "running"
+                                    ? "下载中"
+                                    : storageEp?.status === "failed"
+                                      ? "失败"
+                                      : "未下载";
+                              return (
+                                <option key={index} value={index}>
+                                  {episode.name} ({statusText})
+                                </option>
+                              );
+                            })}
+                          </select>
+                          <button
+                            onClick={async () => {
+                              if (!details) return;
+                              const selectElement = document.getElementById(
+                                "reschedule-episode-select"
+                              ) as HTMLSelectElement;
+                              const episodeId = selectElement
+                                ? parseInt(selectElement.value)
+                                : -1;
+
+                              if (episodeId < 0 || isNaN(episodeId)) {
+                                setError("请选择要重新下载的剧集");
+                                return;
+                              }
+
+                              setReschedulingDownload(true);
+                              setError(null);
+                              try {
+                                await scheduleEpisodeDownload({
+                                  tv_id: details.tv.id,
+                                  episode_id: episodeId,
+                                });
+                                // 刷新详情以更新状态
+                                await fetchTVDetails(details.tv.id);
+                                // 清空选择
+                                selectElement.value = "";
+                              } catch (err) {
+                                setError(
+                                  err instanceof Error
+                                    ? err.message
+                                    : "重新调度下载时发生错误"
+                                );
+                                console.error("Schedule download error:", err);
+                              } finally {
+                                setReschedulingDownload(false);
+                              }
+                            }}
+                            disabled={reschedulingDownload}
+                            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-blue-700 dark:hover:bg-blue-600"
+                          >
+                            {reschedulingDownload ? "调度中..." : "重新调度"}
+                          </button>
+                        </div>
+                        {reschedulingDownload && (
+                          <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                            正在重新调度下载...
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

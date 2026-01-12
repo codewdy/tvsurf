@@ -267,6 +267,15 @@ class Tracker:
         return SetTVTracking.Response()
 
     @api("user")
+    async def schedule_episode_download(
+        self, user: User, request: ScheduleEpisodeDownload.Request
+    ) -> ScheduleEpisodeDownload.Response:
+        await self.local_manager.schedule_episode_download(
+            request.tv_id, request.episode_id
+        )
+        return ScheduleEpisodeDownload.Response()
+
+    @api("user")
     async def get_monitor(
         self, user: User, request: GetMonitor.Request
     ) -> GetMonitor.Response:

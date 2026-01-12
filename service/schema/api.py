@@ -30,6 +30,7 @@ __all__ = [
     "SetWatchProgress",
     "SetTVTag",
     "SetTVTracking",
+    "ScheduleEpisodeDownload",
     "GetMonitor",
 ]
 
@@ -226,6 +227,15 @@ class SetTVTracking(BaseModel):
     class Request(BaseModel):
         tv_id: int
         tracking: bool
+
+    class Response(BaseModel):
+        pass
+
+
+class ScheduleEpisodeDownload(BaseModel):
+    class Request(BaseModel):
+        tv_id: int
+        episode_id: int
 
     class Response(BaseModel):
         pass

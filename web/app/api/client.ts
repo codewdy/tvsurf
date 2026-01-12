@@ -30,6 +30,8 @@ import type {
   RemoveTVResponse,
   SetTVTrackingRequest,
   SetTVTrackingResponse,
+  ScheduleEpisodeDownloadRequest,
+  ScheduleEpisodeDownloadResponse,
 } from "./types";
 
 // 基础 API 调用函数
@@ -205,6 +207,16 @@ export async function setTVTracking(
 ): Promise<SetTVTrackingResponse> {
   return apiCall<SetTVTrackingRequest, SetTVTrackingResponse>(
     "/api/set_tv_tracking",
+    request
+  );
+}
+
+// 重新调度剧集下载
+export async function scheduleEpisodeDownload(
+  request: ScheduleEpisodeDownloadRequest
+): Promise<ScheduleEpisodeDownloadResponse> {
+  return apiCall<ScheduleEpisodeDownloadRequest, ScheduleEpisodeDownloadResponse>(
+    "/api/schedule_episode_download",
     request
   );
 }
