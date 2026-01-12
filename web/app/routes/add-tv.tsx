@@ -6,6 +6,7 @@ import {
   getSeries,
   addSeries,
   setTVTag,
+  getTVInfos,
 } from "../api/client";
 import type {
   Tag,
@@ -16,6 +17,7 @@ import type {
   GetSeriesResponse,
   AddSeriesResponse,
   SearchError,
+  TVInfo,
 } from "../api/types";
 import { TAG_NAMES } from "../api/types";
 
@@ -51,6 +53,9 @@ export default function AddTV() {
   const [savedTracking, setSavedTracking] = useState(false);
   const [savedSeries, setSavedSeries] = useState<number[]>([]);
   const [savedTag, setSavedTag] = useState<Tag>("not_tagged");
+  // TV 名称验证
+  const [tvList, setTvList] = useState<TVInfo[]>([]);
+  const [nameExists, setNameExists] = useState(false);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +93,51 @@ export default function AddTV() {
     }
   };
 
+  const fetchTVList = async () => {
+    try {
+      const data = await getTVInfos({ ids: null });
+      setTvList(data.tvs || []);
+      return data.tvs || [];
+    } catch (err) {
+      console.error("Fetch TV list error:", err);
+      return [];
+    }
+  };
+
+  // 页面加载时获取 TV 列表
+  useEffect(() => {
+    fetchTVList();
+  }, []);
+
+  const checkNameExists = (name: string) => {
+    if (!name.trim()) {
+      setNameExists(false);
+      return;
+    }
+
+    try {
+      const trimmedName = name.trim();
+      const exists = tvList.some(
+        (tv) => tv.name.trim().toLowerCase() === trimmedName.toLowerCase()
+      );
+      setNameExists(exists);
+    } catch (err) {
+      console.error("Check name exists error:", err);
+      setNameExists(false);
+    }
+  };
+
+  // 检查搜索结果中的名称是否已存在
+  const isNameExistsInTVList = (name: string): boolean => {
+    if (!name.trim() || tvList.length === 0) {
+      return false;
+    }
+    const trimmedName = name.trim();
+    return tvList.some(
+      (tv) => tv.name.trim().toLowerCase() === trimmedName.toLowerCase()
+    );
+  };
+
   const handleCreateSeries = async () => {
     if (!seriesSearchKeyword.trim()) {
       return;
@@ -120,12 +170,19 @@ export default function AddTV() {
     setConfirmTracking(savedTracking); // 使用保存的追更状态
     setConfirmSeries(savedSeries); // 使用保存的系列选择
     setConfirmTag(savedTag); // 使用保存的tag
+    setNameExists(false); // 重置名称存在状态
     setShowConfirmDialog(true);
     fetchSeries();
+    checkNameExists(source.name); // 检查初始名称（使用缓存的 TV 列表）
   };
 
   const handleConfirmAdd = async () => {
     if (!confirmSource || confirmIndex === -1) {
+      return;
+    }
+
+    // 如果名称已存在，不允许添加
+    if (nameExists) {
       return;
     }
 
@@ -164,6 +221,9 @@ export default function AddTV() {
       }
 
       console.log(`TV 添加成功，ID: ${data.id}`);
+
+      // 更新 TV 列表缓存
+      await fetchTVList();
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : "添加时发生错误";
@@ -191,6 +251,7 @@ export default function AddTV() {
     setConfirmIndex(-1);
     setConfirmName("");
     setSeriesSearchKeyword("");
+    setNameExists(false);
   };
 
   // 监听ESC键
@@ -207,6 +268,7 @@ export default function AddTV() {
         setConfirmIndex(-1);
         setConfirmName("");
         setSeriesSearchKeyword("");
+        setNameExists(false);
       }
     };
 
@@ -334,9 +396,12 @@ export default function AddTV() {
                     handleAddTV(source, index);
                   }
                 }}
-                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative flex flex-col ${addedIds.has(index) || addingIds.has(index)
-                  ? ""
-                  : "cursor-pointer"
+                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative flex flex-col ${isNameExistsInTVList(source.name)
+                  ? "border-2 border-green-500 dark:border-green-600"
+                  : ""
+                  } ${addedIds.has(index) || addingIds.has(index)
+                    ? ""
+                    : "cursor-pointer"
                   }`}
               >
                 <div className="aspect-[2/3] bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
@@ -353,6 +418,13 @@ export default function AddTV() {
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400">
                       无封面
+                    </div>
+                  )}
+                  {/* 名称已存在标记 */}
+                  {isNameExistsInTVList(source.name) && (
+                    <div className="absolute top-2 right-2 bg-green-500 dark:bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded shadow-lg flex items-center gap-1">
+                      <span>✓</span>
+                      <span>已添加</span>
                     </div>
                   )}
                 </div>
@@ -408,11 +480,7 @@ export default function AddTV() {
                     )}
                   </div>
                   <div className="mt-2">
-                    {addedIds.has(index) ? (
-                      <div className="px-3 py-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded text-green-700 dark:text-green-400 text-sm text-center">
-                        ✓ 已添加
-                      </div>
-                    ) : addingIds.has(index) ? (
+                    {addingIds.has(index) ? (
                       <div className="px-3 py-2 bg-gray-50 dark:bg-gray-900/20 border border-gray-200 dark:border-gray-800 rounded text-gray-700 dark:text-gray-400 text-sm text-center">
                         添加中...
                       </div>
@@ -468,10 +536,21 @@ export default function AddTV() {
                 <input
                   type="text"
                   value={confirmName}
-                  onChange={(e) => setConfirmName(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                  onChange={(e) => {
+                    setConfirmName(e.target.value);
+                    checkNameExists(e.target.value);
+                  }}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${nameExists
+                    ? "border-red-500 focus:ring-red-500 dark:border-red-500"
+                    : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                    }`}
                   placeholder="输入TV名称"
                 />
+                {nameExists && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    该名称已存在，请使用其他名称
+                  </p>
+                )}
               </div>
 
               {/* 追更选项 */}
@@ -629,7 +708,7 @@ export default function AddTV() {
                 </button>
                 <button
                   onClick={handleConfirmAdd}
-                  disabled={!confirmName.trim()}
+                  disabled={!confirmName.trim() || nameExists}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-green-700 dark:hover:bg-green-600"
                 >
                   确认添加
