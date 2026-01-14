@@ -1,4 +1,4 @@
-from .app import App
+from service.app import App
 import argparse
 
 parser = argparse.ArgumentParser()

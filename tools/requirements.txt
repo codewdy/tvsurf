@@ -1,0 +1,2 @@
+tqdm==4.67.1
+pyinstaller==6.17.0

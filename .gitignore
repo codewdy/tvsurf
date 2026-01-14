@@ -1,9 +1,8 @@
 pyrightconfig.json
 __pycache__
-build
-dist
-/winapp/build.json
 /result.json
-/ffmpeg.exe
 /data
-.cursorignore
+/build
+/dist
+/deps
+/pyenv
