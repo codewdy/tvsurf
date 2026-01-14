@@ -107,7 +107,7 @@ class Context(metaclass=ContextMeta):
         )
 
         # aiohttp
-        self.client = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10))  # type: ignore
+        self.client = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30))  # type: ignore
         await self.client.__aenter__()
 
         return self
