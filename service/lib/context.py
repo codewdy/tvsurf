@@ -6,6 +6,7 @@ from .path import chromium_path
 from .error_handler import ErrorHandler
 from .logger import get_logger
 from service.schema.config import Config
+from service.schema.app_config import AppConfig
 import os
 
 
@@ -58,9 +59,16 @@ class ContextMeta(type):
     def set_data(cls, name: str, d: Any) -> None:
         cls.current.data[name] = d
 
+    def set_config(cls, config: Config) -> None:
+        cls.current.config = config
+
     @property
     def config(cls) -> Config:
         return cls.current.config
+
+    @property
+    def app_config(cls) -> AppConfig:
+        return cls.current.app_config
 
 
 class Context(metaclass=ContextMeta):
@@ -68,14 +76,15 @@ class Context(metaclass=ContextMeta):
 
     def __init__(
         self,
-        config: Config | None = None,
+        app_config: AppConfig | None = None,
     ):
-        self.config = config or Config()
-        os.makedirs(self.config.data_dir, exist_ok=True)
-        os.makedirs(os.path.join(self.config.data_dir, "log"), exist_ok=True)
+        self.config = Config()
+        self.app_config = app_config or AppConfig()
+        os.makedirs(self.app_config.data_dir, exist_ok=True)
+        os.makedirs(os.path.join(self.app_config.data_dir, "log"), exist_ok=True)
         self.logger = get_logger(
             "INFO",
-            os.path.join(self.config.data_dir, "log/log.txt"),
+            os.path.join(self.app_config.data_dir, "log/log.txt"),
             7,
         )
         self.error_handler = ErrorHandler()

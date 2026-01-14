@@ -129,15 +129,7 @@ class Updater:
             while True:
                 if self.should_update():
                     await self.update_all()
-                await asyncio.sleep(
-                    max(
-                        (
-                            Context.config.updater.update_interval
-                            - (datetime.now() - self.tvdb.last_update)
-                        ).total_seconds(),
-                        0,
-                    )
-                )
+                await asyncio.sleep(3600)
 
 
 class LocalManager:

@@ -33,9 +33,8 @@ class DB:
         self.units: dict[str, DBUnit] = {}
 
     def start(self) -> None:
-        self.dir = os.path.join(Context.config.data_dir, "db")
+        self.dir = os.path.join(Context.app_config.data_dir, "db")
         os.makedirs(self.dir, exist_ok=True)
-        self.save_interval = Context.config.db.save_interval
         self.save_task = asyncio.create_task(self._save_loop())
 
     def stop(self) -> None:
@@ -44,7 +43,7 @@ class DB:
 
     async def _save_loop(self) -> None:
         while True:
-            await asyncio.sleep(self.save_interval.total_seconds())
+            await asyncio.sleep(Context.config.db.save_interval.total_seconds())
             self.save()
 
     def manage(self, name: str, model: Type[BaseModel]) -> BaseModel:

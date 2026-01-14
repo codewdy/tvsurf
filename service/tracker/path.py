@@ -13,7 +13,7 @@ async def remove_tv_path(tv: TV):
 
 
 def get_tv_path(tv: TV) -> str:
-    return os.path.join(Context.config.data_dir, "tv", tv.storage.directory)
+    return os.path.join(Context.app_config.data_dir, "tv", tv.storage.directory)
 
 
 def get_episode_path(tv: TV, episode: int) -> str:

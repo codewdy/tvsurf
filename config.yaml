@@ -1,42 +1,6 @@
-# 配置文件
-# 所有配置项都可以是相对路径，相对路径将根据配置文件的目录作为基准
-# 所有时间间隔都可以是字符串，1s表示1秒，1m表示1分钟，1h表示1小时，1d表示1天
-
-# 数据目录
+# 数据目录，如果是相对路径，将根据配置文件的目录作为基准
 data_dir: 'data'
 # 服务端口
 port: 9399
 # local: 本地服务, 只服务本机，不对外开放端口; online: 在线服务，对外开放端口
 server_type: local
-
-# 更新器配置
-updater:
-  # 更新间隔时间，每隔一段时间就会从互联网检查是否有新的剧集
-  update_interval: 1d
-  # 跟踪超时时间，如果持续一段时间没有更新剧集，则认为该剧集已经不再更新
-  tracking_timeout: 14d
-  # 更新并行数，每次更新会并行更新多个剧集
-  update_parallel: 10
-
-# 下载配置，通常不需要修改
-download:
-  # 连接超时时间
-  connect_timeout: 1m
-  # 下载块大小，Byte/KB/MB
-  chunk_size: 1MB
-  # 最大并发下载数
-  max_concurrent_downloads: 3
-  # 单个下载任务的最大并发片段数
-  max_concurrent_fragments: 5
-  # 最大重试次数
-  max_retries: 3
-  # 下载超时时间
-  download_timeout: 1h
-  # 重试间隔时间
-  retry_interval: 1m
-
-# 数据库配置，通常不需要修改
-db:
-  # 数据库保存间隔时间，每隔一段时间就会将内存中的数据保存到磁盘
-  # 程序正常退出时也会保存一次
-  save_interval: 1m

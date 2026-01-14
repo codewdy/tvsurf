@@ -22,15 +22,7 @@ class UpdaterConfig(BaseModel):
     update_parallel: int = 10
 
 
-class ServerType(str, Enum):
-    LOCAL = "local"
-    ONLINE = "online"
-
-
 class Config(BaseModel):
-    data_dir: str = "data"
-    port: int = 9399
-    server_type: ServerType = ServerType.LOCAL
     updater: UpdaterConfig = UpdaterConfig()
     download: DownloadConfig = DownloadConfig()
     db: DBConfig = DBConfig()

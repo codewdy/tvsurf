@@ -1,5 +1,5 @@
 import yaml
-from service.schema.config import Config
+from service.schema.app_config import AppConfig
 import os
 
 
@@ -11,9 +11,8 @@ def merge_config_path(path: str, config_dict: dict, arg_1: str, *args) -> None:
         merge_config_path(path, config_dict[arg_1], *args)
 
 
-def load_config(path: str) -> Config:
+def load_config(path: str) -> AppConfig:
     with open(path, "r", encoding="utf-8") as f:
         config_dict = yaml.safe_load(f)
         merge_config_path(path, config_dict, "data_dir")
-        merge_config_path(path, config_dict, "logger", "filename")
-        return Config.model_validate(config_dict)
+        return AppConfig.model_validate(config_dict)
