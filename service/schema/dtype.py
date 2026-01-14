@@ -17,6 +17,8 @@ TimeDelta = Annotated[
 
 
 def parse_bytesize(x: str) -> int:
+    if isinstance(x, int):
+        return x
     x = x.strip().upper()
     if x.endswith("Byte"):
         return int(x[:-4])
