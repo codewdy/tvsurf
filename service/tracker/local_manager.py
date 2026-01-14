@@ -273,9 +273,12 @@ class LocalManager:
         self.tvdb.commit()
 
     async def schedule_episode_download(self, id: int, episode_ids: list[int]) -> None:
+        tv = self.tvdb.tvs[id]
         for episode_id in episode_ids:
             await self.download_manager.cancel_episode(id, episode_id)
-            tv = self.tvdb.tvs[id]
+            if tv.storage.episodes[episode_id].status == DownloadStatus.SUCCESS:
+                # do not use aiofiles to remove file, because it's in the transaction
+                os.remove(get_episode_path(tv, episode_id))
             tv.storage.episodes[episode_id].status = DownloadStatus.RUNNING
             self.download_manager.submit_episode(id, episode_id)
         self.tvdb.commit()
