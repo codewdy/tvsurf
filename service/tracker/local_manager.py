@@ -281,4 +281,4 @@ class LocalManager:
                 os.remove(get_episode_path(tv, episode_id))
             tv.storage.episodes[episode_id].status = DownloadStatus.RUNNING
             self.download_manager.submit_episode(id, episode_id)
-        self.tvdb.commit()
+            self.tvdb.commit()
