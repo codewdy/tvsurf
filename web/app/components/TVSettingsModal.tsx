@@ -268,7 +268,7 @@ export default function TVSettingsModal({
                             try {
                               await scheduleEpisodeDownload({
                                 tv_id: details.tv.id,
-                                episode_id: episodeId,
+                                episode_ids: [episodeId],
                               });
                               // 刷新详情以更新状态
                               await onUpdate();
@@ -294,6 +294,93 @@ export default function TVSettingsModal({
                           正在重新调度下载...
                         </div>
                       )}
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-3">
+                        批量操作
+                      </div>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={async () => {
+                            // 找到所有失败的剧集
+                            const failedEpisodeIds: number[] = [];
+                            details.tv.storage.episodes.forEach((ep, index) => {
+                              if (ep.status === "failed") {
+                                failedEpisodeIds.push(index);
+                              }
+                            });
+
+                            if (failedEpisodeIds.length === 0) {
+                              setErrorMessage("没有失败的剧集需要重新下载");
+                              return;
+                            }
+
+                            setReschedulingDownload(true);
+                            setErrorMessage("");
+                            try {
+                              await scheduleEpisodeDownload({
+                                tv_id: details.tv.id,
+                                episode_ids: failedEpisodeIds,
+                              });
+                              // 刷新详情以更新状态
+                              await onUpdate();
+                            } catch (err) {
+                              setErrorMessage(
+                                err instanceof Error
+                                  ? err.message
+                                  : "重新调度下载时发生错误"
+                              );
+                              console.error("Schedule download error:", err);
+                            } finally {
+                              setReschedulingDownload(false);
+                            }
+                          }}
+                          disabled={reschedulingDownload}
+                          className="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-orange-700 dark:hover:bg-orange-600"
+                        >
+                          重新下载失败集
+                        </button>
+                        <button
+                          onClick={async () => {
+                            // 获取所有剧集的ID
+                            const allEpisodeIds = details.tv.source.episodes.map((_, index) => index);
+
+                            if (allEpisodeIds.length === 0) {
+                              setErrorMessage("没有可下载的剧集");
+                              return;
+                            }
+
+                            // 确认操作
+                            if (!confirm(`确定要重新下载所有 ${allEpisodeIds.length} 集吗？这将取消所有当前下载任务并重新开始下载。`)) {
+                              return;
+                            }
+
+                            setReschedulingDownload(true);
+                            setErrorMessage("");
+                            try {
+                              await scheduleEpisodeDownload({
+                                tv_id: details.tv.id,
+                                episode_ids: allEpisodeIds,
+                              });
+                              // 刷新详情以更新状态
+                              await onUpdate();
+                            } catch (err) {
+                              setErrorMessage(
+                                err instanceof Error
+                                  ? err.message
+                                  : "重新调度下载时发生错误"
+                              );
+                              console.error("Schedule download error:", err);
+                            } finally {
+                              setReschedulingDownload(false);
+                            }
+                          }}
+                          disabled={reschedulingDownload}
+                          className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-red-700 dark:hover:bg-red-600"
+                        >
+                          重新下载所有集
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

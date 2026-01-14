@@ -303,7 +303,7 @@ export interface SetTVTrackingResponse {
 // 重新调度剧集下载请求
 export interface ScheduleEpisodeDownloadRequest {
   tv_id: number;
-  episode_id: number;
+  episode_ids: number[];
 }
 
 // 重新调度剧集下载响应

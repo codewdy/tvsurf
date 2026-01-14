@@ -271,7 +271,7 @@ class Tracker:
         self, user: User, request: ScheduleEpisodeDownload.Request
     ) -> ScheduleEpisodeDownload.Response:
         await self.local_manager.schedule_episode_download(
-            request.tv_id, request.episode_id
+            request.tv_id, request.episode_ids
         )
         return ScheduleEpisodeDownload.Response()
 

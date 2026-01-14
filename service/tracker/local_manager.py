@@ -272,9 +272,10 @@ class LocalManager:
         tv.track.last_update = datetime.now()
         self.tvdb.commit()
 
-    async def schedule_episode_download(self, id: int, episode_id: int) -> None:
-        await self.download_manager.cancel_episode(id, episode_id)
-        tv = self.tvdb.tvs[id]
-        tv.storage.episodes[episode_id].status = DownloadStatus.RUNNING
-        self.download_manager.submit_episode(id, episode_id)
+    async def schedule_episode_download(self, id: int, episode_ids: list[int]) -> None:
+        for episode_id in episode_ids:
+            await self.download_manager.cancel_episode(id, episode_id)
+            tv = self.tvdb.tvs[id]
+            tv.storage.episodes[episode_id].status = DownloadStatus.RUNNING
+            self.download_manager.submit_episode(id, episode_id)
         self.tvdb.commit()

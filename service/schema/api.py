@@ -235,7 +235,7 @@ class SetTVTracking(BaseModel):
 class ScheduleEpisodeDownload(BaseModel):
     class Request(BaseModel):
         tv_id: int
-        episode_id: int
+        episode_ids: list[int]
 
     class Response(BaseModel):
         pass
