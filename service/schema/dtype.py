@@ -49,3 +49,7 @@ class BaseModel(pydantic.BaseModel):
     def commit(self):
         if self._commit:
             self._commit()
+
+    def merge_from(self, other: "BaseModel"):
+        for field in type(self).model_fields:
+            setattr(self, field, getattr(other, field))

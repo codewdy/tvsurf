@@ -310,3 +310,53 @@ export interface ScheduleEpisodeDownloadRequest {
 export interface ScheduleEpisodeDownloadResponse {
   // 空响应
 }
+
+// 下载配置
+export interface DownloadConfig {
+  connect_timeout: string; // TimeDelta格式，如 "1m"
+  chunk_size: string; // ByteSize格式，如 "1MB"
+  max_concurrent_fragments: number;
+  max_concurrent_downloads: number;
+  max_retries: number;
+  download_timeout: string; // TimeDelta格式，如 "1h"
+  retry_interval: string; // TimeDelta格式，如 "1m"
+}
+
+// 数据库配置
+export interface DBConfig {
+  save_interval: string; // TimeDelta格式，如 "1m"
+}
+
+// 更新器配置
+export interface UpdaterConfig {
+  update_interval: string; // TimeDelta格式，如 "1d"
+  tracking_timeout: string; // TimeDelta格式，如 "14d"
+  update_parallel: number;
+}
+
+// 配置
+export interface Config {
+  updater: UpdaterConfig;
+  download: DownloadConfig;
+  db: DBConfig;
+}
+
+// 获取配置请求
+export interface GetConfigRequest {
+  // 空对象
+}
+
+// 获取配置响应
+export interface GetConfigResponse {
+  config: Config;
+}
+
+// 设置配置请求
+export interface SetConfigRequest {
+  config: Config;
+}
+
+// 设置配置响应
+export interface SetConfigResponse {
+  // 空响应
+}

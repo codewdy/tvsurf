@@ -8,6 +8,7 @@ export default [
   route("tv/:id", "routes/tv-details.tsx"),
   route("downloads", "routes/downloads.tsx"),
   route("errors", "routes/errors.tsx"),
+  route("config", "routes/config.tsx"),
   route("system-setup", "routes/system-setup.tsx"),
   route("login", "routes/login.tsx"),
 ] satisfies RouteConfig;

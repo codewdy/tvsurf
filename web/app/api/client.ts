@@ -32,6 +32,10 @@ import type {
   SetTVTrackingResponse,
   ScheduleEpisodeDownloadRequest,
   ScheduleEpisodeDownloadResponse,
+  GetConfigRequest,
+  GetConfigResponse,
+  SetConfigRequest,
+  SetConfigResponse,
 } from "./types";
 
 // 基础 API 调用函数
@@ -217,6 +221,26 @@ export async function scheduleEpisodeDownload(
 ): Promise<ScheduleEpisodeDownloadResponse> {
   return apiCall<ScheduleEpisodeDownloadRequest, ScheduleEpisodeDownloadResponse>(
     "/api/schedule_episode_download",
+    request
+  );
+}
+
+// 获取配置
+export async function getConfig(
+  request: GetConfigRequest = {}
+): Promise<GetConfigResponse> {
+  return apiCall<GetConfigRequest, GetConfigResponse>(
+    "/api/get_config",
+    request
+  );
+}
+
+// 设置配置
+export async function setConfig(
+  request: SetConfigRequest
+): Promise<SetConfigResponse> {
+  return apiCall<SetConfigRequest, SetConfigResponse>(
+    "/api/set_config",
     request
   );
 }

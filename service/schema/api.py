@@ -6,6 +6,7 @@ from .searcher import SearchError
 from typing import Optional
 from .user_data import UserTVData, Tag
 from datetime import datetime
+from .config import Config
 
 __all__ = [
     "TVInfo",
@@ -32,6 +33,8 @@ __all__ = [
     "SetTVTracking",
     "ScheduleEpisodeDownload",
     "GetMonitor",
+    "GetConfig",
+    "SetConfig",
 ]
 
 
@@ -248,3 +251,19 @@ class GetMonitor(BaseModel):
     class Response(BaseModel):
         download_count: int
         error_count: int
+
+
+class GetConfig(BaseModel):
+    class Request(BaseModel):
+        pass
+
+    class Response(BaseModel):
+        config: Config
+
+
+class SetConfig(BaseModel):
+    class Request(BaseModel):
+        config: Config
+
+    class Response(BaseModel):
+        pass

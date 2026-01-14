@@ -284,3 +284,17 @@ class Tracker:
             download_count=self.local_manager.get_download_count(),
             error_count=self.error_db.get_error_count(),
         )
+
+    @api("admin")
+    async def get_config(
+        self, user: User, request: GetConfig.Request
+    ) -> GetConfig.Response:
+        return GetConfig.Response(config=Context.config)
+
+    @api("admin")
+    async def set_config(
+        self, user: User, request: SetConfig.Request
+    ) -> SetConfig.Response:
+        Context.config.merge_from(request.config)
+        Context.config.commit()
+        return SetConfig.Response()
