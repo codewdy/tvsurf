@@ -10,7 +10,17 @@ cd ..
 call tools/windows/prepare_env.bat || exit /b 1
 
 cd web || exit /b 1
-npm run build || exit /b 1
+echo "Building web application..."
+call npm run build
+if errorlevel 1 (
+    echo "npm run build failed!"
+    exit /b 1
+)
+if not exist "build" (
+    echo "Build output directory 'build' not found!"
+    exit /b 1
+)
+echo "Web build completed successfully."
 cd ..
 
 
