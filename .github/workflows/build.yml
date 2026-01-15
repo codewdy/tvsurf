@@ -78,6 +78,8 @@ jobs:
     needs: [build-linux, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
