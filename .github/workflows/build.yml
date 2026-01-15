@@ -42,6 +42,41 @@ jobs:
           path: dist/tvsurf
           retention-days: 30
 
+  build-linux-arm64:
+    name: Build Linux ARM64
+    runs-on: ubuntu-latest-arm64
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+
+      - name: Build
+        run: |
+          chmod +x tools/linux/build.sh
+          bash tools/linux/build.sh
+
+      - name: Upload Linux ARM64 artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tvsurf-linux-arm64
+          path: dist/tvsurf
+          retention-days: 30
+
   build-windows:
     name: Build Windows
     runs-on: windows-latest
@@ -75,7 +110,7 @@ jobs:
 
   release:
     name: Create Release
-    needs: [build-linux, build-windows]
+    needs: [build-linux, build-linux-arm64, build-windows]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -90,6 +125,12 @@ jobs:
           name: tvsurf-linux
           path: artifacts/linux
 
+      - name: Download Linux ARM64 artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tvsurf-linux-arm64
+          path: artifacts/linux-arm64
+
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
@@ -101,6 +142,11 @@ jobs:
           cd artifacts/linux
           tar -czf ../tvsurf-linux.tar.gz .
 
+      - name: Create archive for Linux ARM64
+        run: |
+          cd artifacts/linux-arm64
+          tar -czf ../tvsurf-linux-arm64.tar.gz .
+
       - name: Create archive for Windows
         run: |
           cd artifacts/windows
@@ -111,6 +157,7 @@ jobs:
         with:
           files: |
             artifacts/tvsurf-linux.tar.gz
+            artifacts/tvsurf-linux-arm64.tar.gz
             artifacts/tvsurf-windows.zip
           draft: false
           prerelease: false
