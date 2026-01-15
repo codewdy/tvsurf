@@ -35,11 +35,16 @@ jobs:
           chmod +x tools/linux/build.sh
           bash tools/linux/build.sh
 
+      - name: Create archive for Linux
+        run: |
+          cd dist
+          tar -czf tvsurf-linux.tar.gz tvsurf
+
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tvsurf-linux
-          path: dist/tvsurf
+          path: dist/tvsurf-linux.tar.gz
           retention-days: 30
 
   build-linux-arm64:
@@ -70,11 +75,16 @@ jobs:
           chmod +x tools/linux/build.sh
           bash tools/linux/build.sh
 
+      - name: Create archive for Linux ARM64
+        run: |
+          cd dist
+          tar -czf tvsurf-linux-arm64.tar.gz tvsurf
+
       - name: Upload Linux ARM64 artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tvsurf-linux-arm64
-          path: dist/tvsurf
+          path: dist/tvsurf-linux-arm64.tar.gz
           retention-days: 30
 
   build-windows:
@@ -101,11 +111,17 @@ jobs:
         run: |
           tools\windows\build.bat
 
+      - name: Create archive for Windows
+        shell: powershell
+        run: |
+          cd dist
+          Compress-Archive -Path tvsurf -DestinationPath tvsurf-windows.zip -Force
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: tvsurf-windows
-          path: dist\tvsurf
+          path: dist\tvsurf-windows.zip
           retention-days: 30
 
   build-docker:
@@ -134,13 +150,25 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tvsurf-linux
-          path: dist/tvsurf-amd64
+          path: dist
 
       - name: Download Linux ARM64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: tvsurf-linux-arm64
-          path: dist/tvsurf-arm64
+          path: dist
+
+      - name: Extract Linux artifacts
+        run: |
+          cd dist
+          tar -xzf tvsurf-linux.tar.gz
+          mv tvsurf tvsurf-amd64
+
+      - name: Extract Linux ARM64 artifacts
+        run: |
+          cd dist
+          tar -xzf tvsurf-linux-arm64.tar.gz
+          mv tvsurf tvsurf-arm64
 
       - name: Extract version from tag
         id: version
@@ -234,34 +262,19 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: tvsurf-linux
-          path: artifacts/linux
+          path: artifacts
 
       - name: Download Linux ARM64 artifacts
         uses: actions/download-artifact@v4
         with:
           name: tvsurf-linux-arm64
-          path: artifacts/linux-arm64
+          path: artifacts
 
       - name: Download Windows artifacts
         uses: actions/download-artifact@v4
         with:
           name: tvsurf-windows
-          path: artifacts/windows
-
-      - name: Create archive for Linux
-        run: |
-          cd artifacts/linux
-          tar -czf ../tvsurf-linux.tar.gz .
-
-      - name: Create archive for Linux ARM64
-        run: |
-          cd artifacts/linux-arm64
-          tar -czf ../tvsurf-linux-arm64.tar.gz .
-
-      - name: Create archive for Windows
-        run: |
-          cd artifacts/windows
-          zip -r ../tvsurf-windows.zip .
+          path: artifacts
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
