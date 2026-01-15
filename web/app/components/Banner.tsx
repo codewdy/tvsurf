@@ -126,17 +126,23 @@ export function Banner() {
             ) : userInfo ? (
               <Link
                 to="/user"
-                className={`text-sm font-medium transition-colors ${location.pathname === "/user"
-                    ? "text-blue-700 dark:text-blue-300"
-                    : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === "/user"
+                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
                   }`}
               >
                 {userInfo.username}
               </Link>
             ) : (
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                未登录
-              </div>
+              <Link
+                to="/login"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === "/login"
+                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+                  }`}
+              >
+                登录
+              </Link>
             )}
           </div>
         </div>
