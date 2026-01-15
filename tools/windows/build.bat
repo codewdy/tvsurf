@@ -6,7 +6,7 @@ cd /d "%~dp0"
 cd ..
 cd ..
 
-call tools/windows/prepare_env.bat
+call tools/windows/prepare_env.bat || exit /b 1
 
 cd web || exit /b 1
 npm run build || exit /b 1

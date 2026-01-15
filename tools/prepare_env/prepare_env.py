@@ -3,6 +3,13 @@ from download_ffmpeg import download_ffmpeg
 from pathlib import Path
 import os
 import argparse
+import sys
+
+if sys.platform == "win32":
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
 
 
 def main():
