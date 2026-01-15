@@ -9,6 +9,9 @@ WORKDIR /app
 # 复制构建产物（构建上下文会根据平台准备对应的 dist/tvsurf 目录）
 COPY dist/tvsurf /app/tvsurf
 
+# 复制配置文件
+COPY config.docker.yaml /app/tvsurf/config.yaml
+
 # 设置可执行权限
 RUN chmod +x /app/tvsurf/tvsurf
 
