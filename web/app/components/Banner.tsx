@@ -124,9 +124,15 @@ export function Banner() {
                 加载中...
               </div>
             ) : userInfo ? (
-              <span className="text-sm text-gray-700 dark:text-gray-300">
+              <Link
+                to="/user"
+                className={`text-sm font-medium transition-colors ${location.pathname === "/user"
+                    ? "text-blue-700 dark:text-blue-300"
+                    : "text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                  }`}
+              >
                 {userInfo.username}
-              </span>
+              </Link>
             ) : (
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 未登录

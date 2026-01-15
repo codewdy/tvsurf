@@ -35,6 +35,7 @@ __all__ = [
     "GetMonitor",
     "GetConfig",
     "SetConfig",
+    "SetMyPassword",
 ]
 
 
@@ -264,6 +265,14 @@ class GetConfig(BaseModel):
 class SetConfig(BaseModel):
     class Request(BaseModel):
         config: Config
+
+    class Response(BaseModel):
+        pass
+
+
+class SetMyPassword(BaseModel):
+    class Request(BaseModel):
+        password_hash: str
 
     class Response(BaseModel):
         pass

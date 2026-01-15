@@ -74,6 +74,14 @@ class UserManager:
             raise Exception("用户名或密码错误")
         return user.token
 
+    def set_user_password(self, username: str, password_hash: str) -> None:
+        if self.db.single_user_mode:
+            raise Exception("单用户模式下无法设置用户密码")
+        self.validate_username(username)
+        user = self.db.users[username]
+        user.password_hash = password_hash
+        self.db.commit()
+
     @property
     def single_user_mode(self) -> bool:
         return self.db.single_user_mode

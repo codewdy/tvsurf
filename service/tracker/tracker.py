@@ -298,3 +298,10 @@ class Tracker:
         Context.config.merge_from(request.config)
         Context.config.commit()
         return SetConfig.Response()
+
+    @api("user")
+    async def set_my_password(
+        self, user: User, request: SetMyPassword.Request
+    ) -> SetMyPassword.Response:
+        self.user_manager.set_user_password(user.username, request.password_hash)
+        return SetMyPassword.Response()

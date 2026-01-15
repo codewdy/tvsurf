@@ -360,3 +360,25 @@ export interface SetConfigRequest {
 export interface SetConfigResponse {
   // 空响应
 }
+
+// 获取当前用户信息请求
+export interface WhoamiRequest {
+  // 空对象
+}
+
+// 获取当前用户信息响应
+export interface WhoamiResponse {
+  username: string;
+  group: string[];
+  single_user_mode: boolean;
+}
+
+// 设置我的密码请求
+export interface SetMyPasswordRequest {
+  password_hash: string;
+}
+
+// 设置我的密码响应
+export interface SetMyPasswordResponse {
+  // 空响应
+}

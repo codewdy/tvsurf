@@ -36,6 +36,10 @@ import type {
   GetConfigResponse,
   SetConfigRequest,
   SetConfigResponse,
+  WhoamiRequest,
+  WhoamiResponse,
+  SetMyPasswordRequest,
+  SetMyPasswordResponse,
 } from "./types";
 
 // 基础 API 调用函数
@@ -241,6 +245,23 @@ export async function setConfig(
 ): Promise<SetConfigResponse> {
   return apiCall<SetConfigRequest, SetConfigResponse>(
     "/api/set_config",
+    request
+  );
+}
+
+// 获取当前用户信息
+export async function whoami(
+  request: WhoamiRequest = {}
+): Promise<WhoamiResponse> {
+  return apiCall<WhoamiRequest, WhoamiResponse>("/api/whoami", request);
+}
+
+// 设置我的密码
+export async function setMyPassword(
+  request: SetMyPasswordRequest
+): Promise<SetMyPasswordResponse> {
+  return apiCall<SetMyPasswordRequest, SetMyPasswordResponse>(
+    "/api/set_my_password",
     request
   );
 }
