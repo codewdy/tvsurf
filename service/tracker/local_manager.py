@@ -253,7 +253,8 @@ class LocalManager:
         tv.source.episodes[episode_id].source = source
         if tv.storage.episodes[episode_id].status == DownloadStatus.SUCCESS:
             # do not use aiofiles to remove file, because it's in the transaction
-            os.remove(get_episode_path(tv, episode_id))
+            if os.path.exists(get_episode_path(tv, episode_id)):
+                os.remove(get_episode_path(tv, episode_id))
         tv.storage.episodes[episode_id].status = DownloadStatus.RUNNING
         self.download_manager.submit_episode(tv_id, episode_id)
         self.tvdb.commit()
@@ -270,7 +271,8 @@ class LocalManager:
             await self.download_manager.cancel_episode(id, episode_id)
             if tv.storage.episodes[episode_id].status == DownloadStatus.SUCCESS:
                 # do not use aiofiles to remove file, because it's in the transaction
-                os.remove(get_episode_path(tv, episode_id))
+                if os.path.exists(get_episode_path(tv, episode_id)):
+                    os.remove(get_episode_path(tv, episode_id))
             tv.storage.episodes[episode_id].status = DownloadStatus.RUNNING
             self.download_manager.submit_episode(id, episode_id)
             self.tvdb.commit()
