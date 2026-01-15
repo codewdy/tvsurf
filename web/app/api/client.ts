@@ -40,6 +40,16 @@ import type {
   WhoamiResponse,
   SetMyPasswordRequest,
   SetMyPasswordResponse,
+  GetUsersRequest,
+  GetUsersResponse,
+  AddUserRequest,
+  AddUserResponse,
+  RemoveUserRequest,
+  RemoveUserResponse,
+  UpdateUserGroupRequest,
+  UpdateUserGroupResponse,
+  SetUserPasswordRequest,
+  SetUserPasswordResponse,
 } from "./types";
 
 // 基础 API 调用函数
@@ -262,6 +272,50 @@ export async function setMyPassword(
 ): Promise<SetMyPasswordResponse> {
   return apiCall<SetMyPasswordRequest, SetMyPasswordResponse>(
     "/api/set_my_password",
+    request
+  );
+}
+
+// 获取用户列表
+export async function getUsers(
+  request: GetUsersRequest = {}
+): Promise<GetUsersResponse> {
+  return apiCall<GetUsersRequest, GetUsersResponse>("/api/get_users", request);
+}
+
+// 添加用户
+export async function addUser(
+  request: AddUserRequest
+): Promise<AddUserResponse> {
+  return apiCall<AddUserRequest, AddUserResponse>("/api/add_user", request);
+}
+
+// 删除用户
+export async function removeUser(
+  request: RemoveUserRequest
+): Promise<RemoveUserResponse> {
+  return apiCall<RemoveUserRequest, RemoveUserResponse>(
+    "/api/remove_user",
+    request
+  );
+}
+
+// 更新用户组
+export async function updateUserGroup(
+  request: UpdateUserGroupRequest
+): Promise<UpdateUserGroupResponse> {
+  return apiCall<UpdateUserGroupRequest, UpdateUserGroupResponse>(
+    "/api/update_user_group",
+    request
+  );
+}
+
+// 设置用户密码
+export async function setUserPassword(
+  request: SetUserPasswordRequest
+): Promise<SetUserPasswordResponse> {
+  return apiCall<SetUserPasswordRequest, SetUserPasswordResponse>(
+    "/api/set_user_password",
     request
   );
 }

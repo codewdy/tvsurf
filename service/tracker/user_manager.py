@@ -85,3 +85,21 @@ class UserManager:
     @property
     def single_user_mode(self) -> bool:
         return self.db.single_user_mode
+
+    def get_users(self) -> list[User]:
+        return list(self.db.users.values())
+
+    def remove_user(self, username: str) -> None:
+        if self.db.single_user_mode:
+            raise Exception("单用户模式下无法删除用户")
+        self.validate_username(username)
+        del self.db.users[username]
+        self.db.commit()
+
+    def update_user_group(self, username: str, group: list[str]) -> None:
+        if self.db.single_user_mode:
+            raise Exception("单用户模式下无法修改用户组")
+        self.validate_username(username)
+        user = self.db.users[username]
+        user.group = group
+        self.db.commit()

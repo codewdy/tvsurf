@@ -102,8 +102,7 @@ class Tracker:
     @api("user")
     async def whoami(self, user: User, request: Whoami.Request) -> Whoami.Response:
         return Whoami.Response(
-            username=user.username,
-            group=user.group,
+            user=UserInfo(username=user.username, group=user.group),
             single_user_mode=self.user_manager.single_user_mode,
         )
 
@@ -305,3 +304,47 @@ class Tracker:
     ) -> SetMyPassword.Response:
         self.user_manager.set_user_password(user.username, request.password_hash)
         return SetMyPassword.Response()
+
+    @api("admin")
+    async def add_user(self, user: User, request: AddUser.Request) -> AddUser.Response:
+        self.user_manager.add_user(
+            request.username, request.password_hash, request.group
+        )
+        return AddUser.Response()
+
+    @api("admin")
+    async def remove_user(
+        self, user: User, request: RemoveUser.Request
+    ) -> RemoveUser.Response:
+        if user.username == request.username:
+            raise Exception("不能删除当前用户")
+        self.user_manager.remove_user(request.username)
+        return RemoveUser.Response()
+
+    @api("admin")
+    async def update_user_group(
+        self, user: User, request: UpdateUserGroup.Request
+    ) -> UpdateUserGroup.Response:
+        if user.username == request.username:
+            raise Exception("不能修改当前用户组")
+        self.user_manager.update_user_group(request.username, request.group)
+        return UpdateUserGroup.Response()
+
+    @api("admin")
+    async def set_user_password(
+        self, user: User, request: SetUserPassword.Request
+    ) -> SetUserPassword.Response:
+        self.user_manager.set_user_password(request.username, request.password_hash)
+        return SetUserPassword.Response()
+
+    @api("admin")
+    async def get_users(
+        self, user: User, request: GetUsers.Request
+    ) -> GetUsers.Response:
+        return GetUsers.Response(
+            users=[
+                UserInfo(username=user.username, group=user.group)
+                for user in self.user_manager.get_users()
+            ],
+            single_user_mode=self.user_manager.single_user_mode,
+        )

@@ -75,7 +75,7 @@ export default function User() {
 
     try {
       // 使用新密码和用户名生成密码哈希
-      const passwordHash = await hashPassword(newPassword, userInfo.username);
+      const passwordHash = await hashPassword(newPassword, userInfo.user.username);
 
       // 调用 API
       const request: SetMyPasswordRequest = { password_hash: passwordHash };
@@ -163,7 +163,7 @@ export default function User() {
               用户名
             </label>
             <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg text-gray-900 dark:text-gray-100">
-              {userInfo.username}
+              {userInfo.user.username}
             </div>
           </div>
 
@@ -173,7 +173,7 @@ export default function User() {
               权限组
             </label>
             <div className="flex flex-wrap gap-2">
-              {userInfo.group.map((group) => (
+              {userInfo.user.group.map((group) => (
                 <span
                   key={group}
                   className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded-full text-sm font-medium"

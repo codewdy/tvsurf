@@ -9,6 +9,7 @@ from datetime import datetime
 from .config import Config
 
 __all__ = [
+    "UserInfo",
     "TVInfo",
     "Echo",
     "SearchTV",
@@ -36,7 +37,17 @@ __all__ = [
     "GetConfig",
     "SetConfig",
     "SetMyPassword",
+    "AddUser",
+    "RemoveUser",
+    "UpdateUserGroup",
+    "SetUserPassword",
+    "GetUsers",
 ]
+
+
+class UserInfo(BaseModel):
+    username: str
+    group: list[str]
 
 
 class TVInfo(BaseModel):
@@ -170,8 +181,7 @@ class Whoami(BaseModel):
         pass
 
     class Response(BaseModel):
-        username: str
-        group: list[str]
+        user: UserInfo
         single_user_mode: bool
 
 
@@ -276,3 +286,48 @@ class SetMyPassword(BaseModel):
 
     class Response(BaseModel):
         pass
+
+
+class AddUser(BaseModel):
+    class Request(BaseModel):
+        username: str
+        password_hash: str
+        group: list[str]
+
+    class Response(BaseModel):
+        pass
+
+
+class RemoveUser(BaseModel):
+    class Request(BaseModel):
+        username: str
+
+    class Response(BaseModel):
+        pass
+
+
+class UpdateUserGroup(BaseModel):
+    class Request(BaseModel):
+        username: str
+        group: list[str]
+
+    class Response(BaseModel):
+        pass
+
+
+class SetUserPassword(BaseModel):
+    class Request(BaseModel):
+        username: str
+        password_hash: str
+
+    class Response(BaseModel):
+        pass
+
+
+class GetUsers(BaseModel):
+    class Request(BaseModel):
+        pass
+
+    class Response(BaseModel):
+        users: list[UserInfo]
+        single_user_mode: bool

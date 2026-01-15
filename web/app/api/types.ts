@@ -368,8 +368,7 @@ export interface WhoamiRequest {
 
 // 获取当前用户信息响应
 export interface WhoamiResponse {
-  username: string;
-  group: string[];
+  user: UserInfo;
   single_user_mode: boolean;
 }
 
@@ -380,5 +379,66 @@ export interface SetMyPasswordRequest {
 
 // 设置我的密码响应
 export interface SetMyPasswordResponse {
+  // 空响应
+}
+
+// 用户信息
+export interface UserInfo {
+  username: string;
+  group: string[];
+}
+
+// 获取用户列表请求
+export interface GetUsersRequest {
+  // 空对象
+}
+
+// 获取用户列表响应
+export interface GetUsersResponse {
+  users: UserInfo[];
+  single_user_mode: boolean;
+}
+
+// 添加用户请求
+export interface AddUserRequest {
+  username: string;
+  password_hash: string;
+  group: string[];
+}
+
+// 添加用户响应
+export interface AddUserResponse {
+  // 空响应
+}
+
+// 删除用户请求
+export interface RemoveUserRequest {
+  username: string;
+}
+
+// 删除用户响应
+export interface RemoveUserResponse {
+  // 空响应
+}
+
+// 更新用户组请求
+export interface UpdateUserGroupRequest {
+  username: string;
+  group: string[];
+}
+
+// 更新用户组响应
+export interface UpdateUserGroupResponse {
+  // 空响应
+}
+
+// 设置用户密码请求
+export interface SetUserPasswordRequest {
+  username: string;
+  password_hash: string;
+}
+
+// 设置用户密码响应
+export interface SetUserPasswordResponse {
   // 空响应
 }

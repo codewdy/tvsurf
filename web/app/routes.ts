@@ -12,4 +12,5 @@ export default [
   route("system-setup", "routes/system-setup.tsx"),
   route("login", "routes/login.tsx"),
   route("user", "routes/user.tsx"),
+  route("user-management", "routes/user-management.tsx"),
 ] satisfies RouteConfig;

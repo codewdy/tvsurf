@@ -2,8 +2,10 @@ import { Link, useLocation } from "react-router";
 import { useState, useEffect } from "react";
 
 interface WhoamiResponse {
-  username: string;
-  group: string[];
+  user: {
+    username: string;
+    group: string[];
+  };
   single_user_mode: boolean;
 }
 
@@ -81,13 +83,18 @@ export function Banner() {
     { path: "/downloads", label: "下载", badge: monitor.download_count, badgeColor: "bg-blue-500", requireAdmin: false },
     { path: "/errors", label: "错误日志", badge: monitor.error_count, badgeColor: "bg-red-500", requireAdmin: false },
     { path: "/config", label: "系统配置", badge: undefined, badgeColor: undefined, requireAdmin: true },
+    { path: "/user-management", label: "用户管理", badge: undefined, badgeColor: undefined, requireAdmin: true },
   ];
 
   // 根据用户权限过滤导航项
   const navItems = allNavItems.filter((item) => {
+    // 如果是单用户模式，不显示用户管理
+    if (item.path === "/user-management" && userInfo?.single_user_mode) {
+      return false;
+    }
     if (item.requireAdmin) {
       // 需要admin权限的项，检查用户是否在admin group中
-      return userInfo?.group?.includes("admin") ?? false;
+      return userInfo?.user?.group?.includes("admin") ?? false;
     }
     return true; // 不需要admin权限的项，始终显示
   });
@@ -127,18 +134,18 @@ export function Banner() {
               <Link
                 to="/user"
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === "/user"
-                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
                   }`}
               >
-                {userInfo.username}
+                {userInfo.user.username}
               </Link>
             ) : (
               <Link
                 to="/login"
                 className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === "/login"
-                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+                  ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
                   }`}
               >
                 登录
