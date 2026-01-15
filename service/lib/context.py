@@ -105,7 +105,8 @@ class Context(metaclass=ContextMeta):
         self.playwright: AsyncContextManager[Playwright] = async_playwright()
         self.playwright_ctx: Playwright = await self.playwright.__aenter__()
         self.browser: Browser = await self.playwright_ctx.chromium.launch(
-            executable_path=chromium_path()
+            executable_path=chromium_path(),
+            chromium_sandbox=False,
         )
 
         # aiohttp

@@ -6,6 +6,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 # 创建工作目录
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y \
+    libxcb1 \
+    libdrm-dev \
+    libnss3 \
+    fontconfig \
+    fonts-dejavu-core \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
 # 复制构建产物（构建上下文会根据平台准备对应的 dist/tvsurf 目录）
 COPY dist/tvsurf /app/tvsurf
 
