@@ -8,6 +8,8 @@ from .logger import get_logger
 from service.schema.config import Config
 from service.schema.app_config import AppConfig
 import os
+import ssl
+import certifi
 
 
 class ContextMeta(type):
@@ -107,7 +109,11 @@ class Context(metaclass=ContextMeta):
         )
 
         # aiohttp
-        self.client = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=30))  # type: ignore
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        self.client = aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=30),
+            connector=aiohttp.TCPConnector(ssl=ssl_context),
+        )  # type: ignore
         await self.client.__aenter__()
 
         return self
