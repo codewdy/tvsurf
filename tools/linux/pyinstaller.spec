@@ -4,9 +4,7 @@
 a = Analysis(
     ['../../service/main.py'],
     pathex=['../..'],
-    binaries=[
-                ('../../deps/chrome-headless-shell-linux64/chrome-headless-shell', 'chrome-headless-shell-linux64'),
-    ],
+    binaries=[],
     datas=[
         ('../../deps', 'deps'),
         ('../../web/build/client', 'web'),
