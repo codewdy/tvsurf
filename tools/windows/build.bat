@@ -14,8 +14,11 @@ npm run build || exit /b 1
 cd ..
 
 
+echo "Activating Python environment..."
 call pyenv/Scripts/activate || exit /b 1
+echo "Building Windows executable..."
 pyinstaller tools/windows/pyinstaller.spec -y || exit /b 1
+echo "Copying config.yaml..."
 
 copy "config.yaml" "dist\tvsurf\config.yaml" || exit /b 1
 
