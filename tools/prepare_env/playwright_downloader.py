@@ -149,7 +149,7 @@ def download_all_browsers(directory: str):
     os.makedirs(directory, exist_ok=True)
     browsers = get_playwright_info()
     for browser in browsers:
-        if browser.name in ["chromium"]:
+        if browser.name in ["chromium-headless-shell"]:
             download_browser(browser, f"{directory}/{browser.name}.zip")
             unzip_preserve_permissions(f"{directory}/{browser.name}.zip", directory)
             os.remove(f"{directory}/{browser.name}.zip")

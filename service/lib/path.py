@@ -14,9 +14,13 @@ def deps_path():
 @cache
 def chromium_path():
     if platform.system() == "Windows":
-        return os.path.join(deps_path(), "chrome-win64", "chrome.exe")
+        return os.path.join(
+            deps_path(), "chrome-headless-shell-win64", "chrome-headless-shell.exe"
+        )
     elif platform.system() == "Linux":
-        return os.path.join(deps_path(), "chrome-linux64", "chrome")
+        return os.path.join(
+            deps_path(), "chrome-headless-shell-linux64", "chrome-headless-shell"
+        )
     else:
         return None
 
