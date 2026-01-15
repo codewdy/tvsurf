@@ -187,19 +187,37 @@ jobs:
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           
-          # 创建带版本号的 manifest
-          docker manifest rm ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }} || true
-          docker manifest create ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }} \
-            --amend ghcr.io/${{ github.repository }}:amd64-${{ steps.version.outputs.version }} \
-            --amend ghcr.io/${{ github.repository }}:arm64-${{ steps.version.outputs.version }}
-          docker manifest push ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+          # 从 manifest list 中提取单个架构的 digest
+          # 如果镜像是 manifest list，提取对应架构的 digest；否则直接使用镜像引用
+          AMD64_REF="ghcr.io/${{ github.repository }}:amd64-${{ steps.version.outputs.version }}"
+          ARM64_REF="ghcr.io/${{ github.repository }}:arm64-${{ steps.version.outputs.version }}"
           
-          # 创建 latest manifest
-          docker manifest rm ghcr.io/${{ github.repository }}:latest || true
-          docker manifest create ghcr.io/${{ github.repository }}:latest \
-            --amend ghcr.io/${{ github.repository }}:amd64-${{ steps.version.outputs.version }} \
-            --amend ghcr.io/${{ github.repository }}:arm64-${{ steps.version.outputs.version }}
-          docker manifest push ghcr.io/${{ github.repository }}:latest
+          # 检查并提取 amd64 架构
+          MANIFEST_TYPE=$(docker manifest inspect "$AMD64_REF" 2>/dev/null | jq -r '.mediaType' || echo "")
+          if [ "$MANIFEST_TYPE" = "application/vnd.docker.distribution.manifest.list.v2+json" ]; then
+            AMD64_DIGEST=$(docker buildx imagetools inspect "$AMD64_REF" --raw | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest' | head -1)
+            if [ -n "$AMD64_DIGEST" ]; then
+              AMD64_REF="ghcr.io/${{ github.repository }}@${AMD64_DIGEST}"
+            fi
+          fi
+          
+          # 检查并提取 arm64 架构
+          MANIFEST_TYPE=$(docker manifest inspect "$ARM64_REF" 2>/dev/null | jq -r '.mediaType' || echo "")
+          if [ "$MANIFEST_TYPE" = "application/vnd.docker.distribution.manifest.list.v2+json" ]; then
+            ARM64_DIGEST=$(docker buildx imagetools inspect "$ARM64_REF" --raw | jq -r '.manifests[] | select(.platform.architecture == "arm64") | .digest' | head -1)
+            if [ -n "$ARM64_DIGEST" ]; then
+              ARM64_REF="ghcr.io/${{ github.repository }}@${ARM64_DIGEST}"
+            fi
+          fi
+          
+          # 使用提取的引用创建多架构 manifest
+          docker buildx imagetools create -t ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }} \
+            $AMD64_REF \
+            $ARM64_REF
+          
+          docker buildx imagetools create -t ghcr.io/${{ github.repository }}:latest \
+            $AMD64_REF \
+            $ARM64_REF
 
   release:
     name: Create Release
