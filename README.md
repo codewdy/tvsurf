@@ -48,9 +48,46 @@ server_type: local
 export DATA_DIR=/path/to/data-dir
 export PORT=9399
 docker run -d --user $(id -u ${USER}):$(id -g ${USER}) -v ${DATA_DIR}:/app/tvsurf/data -p ${PORT}:9399 -ti ghcr.io/codewdy/tvsurf:latest
+# 如果上面的太慢，也可以选择国内的镜像站：
+# docker run -d --user $(id -u ${USER}):$(id -g ${USER}) -v ${DATA_DIR}:/app/tvsurf/data -p ${PORT}:9399 -ti ghcr.nju.edu.cn/codewdy/tvsurf:latest
  ```
 
-这将启动一个后台 docker 进程，在 9399 端口启动服务，把数据存储在/path/to/data-dir目录里。
+或者使用 docker compose，创建 `docker-compose.yml` 文件：
+
+```yaml
+version: '3.8'
+
+services:
+  tvsurf:
+    image: ghcr.io/codewdy/tvsurf:latest
+    # 如果上面的镜像太慢，也可以选择国内的镜像站：
+    # image: ghcr.nju.edu.cn/codewdy/tvsurf:latest
+
+    container_name: tvsurf
+    # 设置容器运行的用户ID和组ID，确保文件权限正确
+    # 在 NAS 系统中，通常需要设置为 NAS 管理员的 UID/GID
+    # 可以通过 SSH 登录 NAS 后执行 id 命令查看，或者查看 NAS 管理界面中的用户信息
+    # 例如：user: "1000:1000" 或 user: "${UID}:${GID}"
+    user: "${UID}:${GID}"
+    # 修改 /path/to/data-dir 到你像保存的数据文件夹
+    volumes:
+      - /path/to/data-dir:/app/tvsurf/data
+    # 修改第一个 9399 为你希望启动服务的端口
+    ports:
+      - "9399:9399"
+    restart: unless-stopped
+```
+
+然后执行：
+
+```
+# 在 Linux 系统中，自动获取当前用户的 UID 和 GID
+export UID=$(id -u)
+export GID=$(id -g)
+docker compose up -d
+```
+
+这将启动一个后台 docker 进程，在 9399 端口启动服务，把数据存储在 /path/to/data-dir 目录里。
 
 此时访问对应的端口，应该会弹出如下界面：
 
