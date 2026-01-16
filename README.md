@@ -3,9 +3,13 @@
 
 # 功能展示
 在互联网上搜索资源，动画，电视剧，电影，综艺均可搜索下载(悄悄告诉你，下载时做了去广告处理)
+
 ![搜索功能](doc/image/search.png)
+
 在线看番，可以支持播放进度记忆功能，不用再为不知道播放到哪里而崩溃了
+
 ![在线看番](doc/image/tv-details.png)
+
 自动追更，自动获取番剧最新更新。播放列表，管理所有的番剧状态。还有更多功能等你探索。
 
 # 快速开始
@@ -14,6 +18,7 @@
 访问 [github release](https://github.com/codewdy/tvsurf/releases) 来获取最新版本。
 
 双击打开 tvsurf.exe，稍微等待一段时间，即可看到弹出的网页，同时在系统托盘处，也可以找到对应的图标。
+
 注意：由于Windows Defender会进行扫描，所以第一次启动程序的时候会比较慢，可能需要几分钟，第二次之后就会好转。
 
 ![系统托盘](doc/image/tray.png)
@@ -25,6 +30,7 @@
 ### 配置
 
 注意，数据默认存储于和tvsurf.exe同目录下的data文件夹，如果你需要自己配置，可以修改config.yaml。
+
 ```
 # 数据目录，如果是相对路径，将根据配置文件的目录作为基准
 data_dir: 'data'
@@ -37,6 +43,7 @@ server_type: local
 
 ## NAS or Linux with Docker
 一句话执行：
+
 ```
 export DATA_DIR=/path/to/data-dir
 export PORT=9399
@@ -56,6 +63,7 @@ docker run -d --user $(id -u ${USER}):$(id -g ${USER}) -v ${DATA_DIR}:/app/tvsur
 访问 [github release](https://github.com/codewdy/tvsurf/releases) 来获取最新版本。
 
 对于 Ubuntu，你需要安装以下依赖：
+
 ```
 apt-get install libxcb1 libdrm-dev libnss3 fontconfig fonts-dejavu-core
 ```
@@ -65,6 +73,7 @@ apt-get install libxcb1 libdrm-dev libnss3 fontconfig fonts-dejavu-core
 然后修改 tvsurf 里面的 config.yaml，修改为你喜欢的样子，或者也可以在其他地方新建一份 config.yaml。
 
 最后执行
+
 ```
 # 也可以不用 --config，默认会在可执行文件的同目录下搜索 config.yaml
 tvsurf/tvsurf --config /path/to/config.yaml
