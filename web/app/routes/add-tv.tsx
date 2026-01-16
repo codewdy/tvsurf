@@ -450,29 +450,31 @@ export default function AddTV() {
                   )}
                 </div>
                 <div className="p-3 flex flex-col flex-1">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 flex-1">
-                      {source.name}
-                    </h3>
-                    <a
-                      href={source.source.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors dark:bg-blue-700 dark:hover:bg-blue-600 flex-shrink-0"
-                      title="前往源地址"
-                    >
-                      前往
-                    </a>
-                  </div>
+                  <h3 className="text-base font-medium text-gray-900 dark:text-gray-100 mb-1">
+                    {source.name}
+                  </h3>
                   <div className="flex-1">
                     <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                      <p>
-                        <span className="font-medium">来源:</span> {source.source.source_name}
-                      </p>
-                      <p>
-                        <span className="font-medium">频道:</span> {source.source.channel_name}
-                      </p>
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <p>
+                            <span className="font-medium">来源:</span> {source.source.source_name}
+                          </p>
+                          <p>
+                            <span className="font-medium">频道:</span> {source.source.channel_name}
+                          </p>
+                        </div>
+                        <a
+                          href={source.source.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors dark:bg-blue-700 dark:hover:bg-blue-600 flex-shrink-0"
+                          title="前往源地址"
+                        >
+                          前往源地址
+                        </a>
+                      </div>
                     </div>
                     {source.episodes && source.episodes.length > 0 && (
                       <details className="mb-2" onClick={(e) => e.stopPropagation()}>
