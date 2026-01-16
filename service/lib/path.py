@@ -4,6 +4,13 @@ import platform
 from functools import cache
 
 
+def select_path(*paths: str):
+    for path in paths:
+        if os.path.exists(path):
+            return path
+    return None
+
+
 @cache
 def deps_path():
     if hasattr(sys, "_MEIPASS"):
@@ -18,8 +25,11 @@ def chromium_path():
             deps_path(), "chrome-headless-shell-win64", "chrome-headless-shell.exe"
         )
     elif platform.system() == "Linux":
-        return os.path.join(
-            deps_path(), "chrome-headless-shell-linux64", "chrome-headless-shell"
+        return select_path(
+            os.path.join(
+                deps_path(), "chrome-headless-shell-linux64", "chrome-headless-shell"
+            ),
+            os.path.join(deps_path(), "chrome-linux64", "headless_shell"),
         )
     else:
         return None
