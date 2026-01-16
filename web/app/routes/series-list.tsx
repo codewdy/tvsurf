@@ -14,8 +14,8 @@ interface SeriesWithTVs extends Series {
 
 export function meta({ }: Route.MetaArgs) {
   return [
-    { title: "系列列表" },
-    { name: "description", content: "所有系列列表" },
+    { title: "播放列表列表" },
+    { name: "description", content: "所有播放列表列表" },
   ];
 }
 
@@ -31,13 +31,13 @@ export default function SeriesList() {
   const [deleting, setDeleting] = useState<Set<number>>(new Set());
   const [searchKeyword, setSearchKeyword] = useState("");
 
-  // 获取系列列表和 TV 信息
+  // 获取播放列表列表和 TV 信息
   const fetchSeries = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // 获取系列列表
+      // 获取播放列表列表
       const seriesData = await getSeries({ ids: null });
 
       // 收集所有 TV ID
@@ -55,7 +55,7 @@ export default function SeriesList() {
         tvMap.set(tv.id, tv);
       });
 
-      // 组合系列和 TV 信息
+      // 组合播放列表和 TV 信息
       const seriesWithTVs: SeriesWithTVs[] = seriesData.series.map((series) => ({
         ...series,
         tvInfos: series.tvs
@@ -70,7 +70,7 @@ export default function SeriesList() {
           }),
       }));
 
-      // 计算每个系列的最大更新时间并缓存
+      // 计算每个播放列表的最大更新时间并缓存
       const maxTimeCache = new Map<number, number>();
       const getMaxUpdateTime = (series: SeriesWithTVs): number => {
         if (maxTimeCache.has(series.id)) {
@@ -97,7 +97,7 @@ export default function SeriesList() {
         return maxTime;
       };
 
-      // 根据系列中所有 TV 的 last_update、user_data.last_update 和 series.last_update 的最大值进行排序
+      // 根据播放列表中所有 TV 的 last_update、user_data.last_update 和 series.last_update 的最大值进行排序
       const sortedSeries = seriesWithTVs.sort((a, b) => {
         const aMaxTime = getMaxUpdateTime(a);
         const bMaxTime = getMaxUpdateTime(b);
@@ -109,7 +109,7 @@ export default function SeriesList() {
       setSeriesList(sortedSeries);
     } catch (err) {
       console.error("Fetch series error:", err);
-      setError(err instanceof Error ? err.message : "获取系列列表失败");
+      setError(err instanceof Error ? err.message : "获取播放列表列表失败");
     } finally {
       setLoading(false);
     }
@@ -119,7 +119,7 @@ export default function SeriesList() {
     fetchSeries();
   }, []);
 
-  // 根据搜索关键词过滤系列列表
+  // 根据搜索关键词过滤播放列表列表
   const filteredSeriesList = seriesList.filter((series) => {
     if (!searchKeyword.trim()) {
       return true;
@@ -127,7 +127,7 @@ export default function SeriesList() {
 
     const keyword = searchKeyword.trim().toLowerCase();
 
-    // 检查系列名字是否匹配
+    // 检查播放列表名字是否匹配
     if (series.name.toLowerCase().includes(keyword)) {
       return true;
     }
@@ -138,7 +138,7 @@ export default function SeriesList() {
     );
   });
 
-  // 监听 ESC 键关闭添加系列模态框
+  // 监听 ESC 键关闭添加播放列表模态框
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape" && showAddSeriesModal) {
@@ -168,7 +168,7 @@ export default function SeriesList() {
     setNameError(null);
   };
 
-  // 检查系列名称是否已存在
+  // 检查播放列表名称是否已存在
   const checkSeriesName = (name: string) => {
     if (!name) {
       setNameError(null);
@@ -177,13 +177,13 @@ export default function SeriesList() {
 
     const exists = seriesList.some(series => series.name === name);
     if (exists) {
-      setNameError(`系列名称 '${name}' 已存在`);
+      setNameError(`播放列表名称 '${name}' 已存在`);
     } else {
       setNameError(null);
     }
   };
 
-  // 添加系列
+  // 添加播放列表
   const handleAddSeries = async () => {
     if (!newSeriesName.trim() || adding || nameError) return;
 
@@ -197,7 +197,7 @@ export default function SeriesList() {
       await fetchSeries();
     } catch (err) {
       console.error("Add series error:", err);
-      setError(err instanceof Error ? err.message : "添加系列失败");
+      setError(err instanceof Error ? err.message : "添加播放列表失败");
       // 失败时也关闭模态框和退出编辑模式，以便展示错误信息
       setShowAddSeriesModal(false);
       setNewSeriesName("");
@@ -207,11 +207,11 @@ export default function SeriesList() {
     }
   };
 
-  // 删除系列
+  // 删除播放列表
   const handleDeleteSeries = async (seriesId: number) => {
     if (deleting.has(seriesId)) return;
 
-    if (!confirm("确定要删除这个系列吗？")) {
+    if (!confirm("确定要删除这个播放列表吗？")) {
       return;
     }
 
@@ -222,7 +222,7 @@ export default function SeriesList() {
       await fetchSeries();
     } catch (err) {
       console.error("Delete series error:", err);
-      setError(err instanceof Error ? err.message : "删除系列失败");
+      setError(err instanceof Error ? err.message : "删除播放列表失败");
     } finally {
       setDeleting((prev) => {
         const newSet = new Set(prev);
@@ -250,7 +250,7 @@ export default function SeriesList() {
             type="text"
             value={searchKeyword}
             onChange={(e) => setSearchKeyword(e.target.value)}
-            placeholder="搜索系列名称或TV名称..."
+            placeholder="搜索播放列表名称或TV名称..."
             className="flex-1 max-w-md px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500"
           />
           {!isEditing ? (
@@ -361,7 +361,7 @@ export default function SeriesList() {
             </div>
           );
         })}
-        {/* 添加系列卡片 - 仅在编辑模式下显示 */}
+        {/* 添加播放列表卡片 - 仅在编辑模式下显示 */}
         {isEditing && (
           <div
             onClick={() => setShowAddSeriesModal(true)}
@@ -373,7 +373,7 @@ export default function SeriesList() {
                   +
                 </div>
                 <div className="text-sm text-gray-600 dark:text-gray-400">
-                  添加系列
+                  添加播放列表
                 </div>
               </div>
             </div>
@@ -381,7 +381,7 @@ export default function SeriesList() {
         )}
       </div>
 
-      {/* 添加系列模态框 */}
+      {/* 添加播放列表模态框 */}
       {showAddSeriesModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
@@ -398,7 +398,7 @@ export default function SeriesList() {
             {/* 模态框头部 */}
             <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
               <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                添加系列
+                添加播放列表
               </h3>
               <button
                 onClick={() => {
@@ -426,7 +426,7 @@ export default function SeriesList() {
                     handleAddSeries();
                   }
                 }}
-                placeholder="输入系列名称..."
+                placeholder="输入播放列表名称..."
                 className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${nameError
                   ? "border-red-500 focus:ring-red-500 dark:border-red-500"
                   : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"

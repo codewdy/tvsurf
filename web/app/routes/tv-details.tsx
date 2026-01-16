@@ -292,7 +292,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                 <div className="space-y-2 text-sm">
                   {seriesList.length > 0 && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400">系列:</span>
+                      <span className="text-gray-600 dark:text-gray-400">播放列表:</span>
                       <span className="font-medium text-gray-900 dark:text-gray-100">
                         {seriesList.map((series, index) => (
                           <span key={series.id}>

@@ -125,7 +125,7 @@ export async function setWatchProgress(
   );
 }
 
-// 获取系列列表
+// 获取播放列表列表
 export async function getSeries(
   request: GetSeriesRequest
 ): Promise<GetSeriesResponse> {
@@ -135,7 +135,7 @@ export async function getSeries(
   );
 }
 
-// 添加系列
+// 添加播放列表
 export async function addSeries(
   request: AddSeriesRequest
 ): Promise<AddSeriesResponse> {
@@ -145,7 +145,7 @@ export async function addSeries(
   );
 }
 
-// 删除系列
+// 删除播放列表
 export async function removeSeries(
   request: RemoveSeriesRequest
 ): Promise<RemoveSeriesResponse> {
@@ -155,7 +155,7 @@ export async function removeSeries(
   );
 }
 
-// 更新系列 TV 列表
+// 更新播放列表 TV 列表
 export async function updateSeriesTVs(
   request: UpdateSeriesTVsRequest
 ): Promise<void> {

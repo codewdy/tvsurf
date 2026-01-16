@@ -10,8 +10,8 @@ import type {
 
 export function meta({ }: Route.MetaArgs) {
   return [
-    { title: "系列详情" },
-    { name: "description", content: "系列详情和编辑" },
+    { title: "播放列表详情" },
+    { name: "description", content: "播放列表详情和编辑" },
   ];
 }
 
@@ -30,7 +30,7 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
   const [draggedTVId, setDraggedTVId] = useState<number | null>(null);
   const [dragTargetTVId, setDragTargetTVId] = useState<number | null>(null);
 
-  // 获取系列和 TV 信息
+  // 获取播放列表和 TV 信息
   const fetchSeriesDetails = async () => {
     if (!id) return;
 
@@ -40,20 +40,20 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
 
       const seriesId = parseInt(id);
       if (isNaN(seriesId)) {
-        throw new Error("无效的系列 ID");
+        throw new Error("无效的播放列表 ID");
       }
 
-      // 获取系列信息
+      // 获取播放列表信息
       const seriesData = await getSeries({ ids: [seriesId] });
       if (seriesData.series.length === 0) {
-        throw new Error("系列不存在");
+        throw new Error("播放列表不存在");
       }
 
       const seriesInfo = seriesData.series[0];
       setSeries(seriesInfo);
       setSelectedTVs(seriesInfo.tvs);
 
-      // 获取该系列的 TV 信息
+      // 获取该播放列表的 TV 信息
       if (seriesInfo.tvs.length > 0) {
         const tvData = await getTVInfos({ ids: seriesInfo.tvs });
         setTVInfos(tvData.tvs);
@@ -66,7 +66,7 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
       setAllTVInfos(allTVData.tvs);
     } catch (err) {
       console.error("Fetch series details error:", err);
-      setError(err instanceof Error ? err.message : "获取系列详情失败");
+      setError(err instanceof Error ? err.message : "获取播放列表详情失败");
     } finally {
       setLoading(false);
     }
@@ -130,7 +130,7 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
       setShowAddTVModal(false);
     } catch (err) {
       console.error("Update series TVs error:", err);
-      setError(err instanceof Error ? err.message : "更新系列失败");
+      setError(err instanceof Error ? err.message : "更新播放列表失败");
     } finally {
       setSaving(false);
     }
@@ -233,15 +233,15 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
   if (error || !series) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <div className="text-center text-red-600 dark:text-red-400">
-          错误: {error || "系列不存在"}
+          <div className="text-center text-red-600 dark:text-red-400">
+          错误: {error || "播放列表不存在"}
         </div>
         <div className="text-center mt-4">
           <a
             href="/series-list"
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
           >
-            返回系列列表
+            返回播放列表列表
           </a>
         </div>
       </div>
@@ -255,7 +255,7 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-4">
             <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
-              系列：{series.name}
+              播放列表：{series.name}
             </h1>
           </div>
           {!isEditing ? (
@@ -429,8 +429,8 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
               ))}
             </div>
           ) : (
-            <div className="text-center text-gray-500 dark:text-gray-400 py-12">
-              该系列暂无 TV
+              <div className="text-center text-gray-500 dark:text-gray-400 py-12">
+              该播放列表暂无 TV
             </div>
           )}
         </div>

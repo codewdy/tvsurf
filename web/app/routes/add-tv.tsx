@@ -139,7 +139,7 @@ export default function AddTV() {
     );
   };
 
-  // 检查系列名称是否已存在
+  // 检查播放列表名称是否已存在
   const checkSeriesName = (name: string) => {
     const trimmedName = name.trim();
     if (!trimmedName) {
@@ -149,7 +149,7 @@ export default function AddTV() {
 
     const exists = seriesList.some(series => series.name === trimmedName);
     if (exists) {
-      setSeriesNameError(`系列名称 '${trimmedName}' 已存在`);
+      setSeriesNameError(`播放列表名称 '${trimmedName}' 已存在`);
     } else {
       setSeriesNameError(null);
     }
@@ -164,10 +164,10 @@ export default function AddTV() {
       setCreatingSeries(true);
       const data = await addSeries({ name: seriesSearchKeyword.trim() });
 
-      // 刷新系列列表
+      // 刷新播放列表列表
       await fetchSeries();
 
-      // 将新系列添加到已选列表
+      // 将新播放列表添加到已选列表
       setConfirmSeries((prev) => [...prev, data.id]);
 
       // 清空输入
@@ -176,7 +176,7 @@ export default function AddTV() {
       setSeriesNameError(null);
     } catch (err) {
       console.error("Create series error:", err);
-      alert(err instanceof Error ? err.message : "创建系列时发生错误");
+      alert(err instanceof Error ? err.message : "创建播放列表时发生错误");
     } finally {
       setCreatingSeries(false);
     }
@@ -187,7 +187,7 @@ export default function AddTV() {
     setConfirmIndex(index);
     setConfirmName(source.name); // 名称每次都重置为 source.name
     setConfirmTracking(savedTracking); // 使用保存的追更状态
-    setConfirmSeries(savedSeries); // 使用保存的系列选择
+    setConfirmSeries(savedSeries); // 使用保存的播放列表选择
     setConfirmTag(savedTag); // 使用保存的tag
     setNameExists(false); // 重置名称存在状态
     setShowConfirmDialog(true);
@@ -337,7 +337,7 @@ export default function AddTV() {
   };
 
   const moveAllToAvailable = () => {
-    // 移除所有已选系列（不受搜索影响）
+    // 移除所有已选播放列表（不受搜索影响）
     setConfirmSeries([]);
   };
 
@@ -607,10 +607,10 @@ export default function AddTV() {
                 </select>
               </div>
 
-              {/* 系列选择 - 穿梭框 */}
+              {/* 播放列表选择 - 穿梭框 */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  选择系列
+                  选择播放列表
                 </label>
                 {loadingSeries ? (
                   <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -618,7 +618,7 @@ export default function AddTV() {
                   </div>
                 ) : seriesList.length === 0 ? (
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    暂无系列
+                    暂无播放列表
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -632,7 +632,7 @@ export default function AddTV() {
                             setSeriesSearchKeyword(e.target.value);
                             checkSeriesName(e.target.value);
                           }}
-                          placeholder="搜索系列或输入新系列名称..."
+                          placeholder="搜索播放列表或输入新播放列表名称..."
                           className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm ${seriesNameError
                               ? "border-red-500 focus:ring-red-500 dark:border-red-500"
                               : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
@@ -655,10 +655,10 @@ export default function AddTV() {
                     </div>
                     {/* 穿梭框 */}
                     <div className="flex gap-4">
-                      {/* 可用系列 */}
+                      {/* 可用播放列表 */}
                       <div className="flex-1">
                         <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                          可用系列
+                          可用播放列表
                         </div>
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
                           <div className="h-48 overflow-y-auto">
@@ -691,7 +691,7 @@ export default function AddTV() {
                                   .includes(seriesSearchKeyword.toLowerCase())
                             ).length === 0 && (
                                 <div className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">
-                                  无可用系列
+                                  无可用播放列表
                                 </div>
                               )}
                           </div>
@@ -699,10 +699,10 @@ export default function AddTV() {
                       </div>
 
 
-                      {/* 已选系列 */}
+                      {/* 已选播放列表 */}
                       <div className="flex-1">
                         <div className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                          已选系列 ({confirmSeries.length})
+                          已选播放列表 ({confirmSeries.length})
                         </div>
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
                           <div className="h-48 overflow-y-auto">
@@ -721,7 +721,7 @@ export default function AddTV() {
                               ))}
                             {confirmSeries.length === 0 && (
                               <div className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">
-                                未选择系列
+                                未选择播放列表
                               </div>
                             )}
                           </div>

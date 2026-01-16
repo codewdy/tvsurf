@@ -37,7 +37,7 @@ export interface TVInfo {
   user_data: UserTVData;
 }
 
-// 系列
+// 播放列表
 export interface Series {
   id: number;
   name: string;
@@ -195,37 +195,37 @@ export interface SetWatchProgressRequest {
   time: number;
 }
 
-// 获取系列请求
+// 获取播放列表请求
 export interface GetSeriesRequest {
   ids: number[] | null;
 }
 
-// 获取系列响应
+// 获取播放列表响应
 export interface GetSeriesResponse {
   series: Series[];
 }
 
-// 添加系列请求
+// 添加播放列表请求
 export interface AddSeriesRequest {
   name: string;
 }
 
-// 添加系列响应
+// 添加播放列表响应
 export interface AddSeriesResponse {
   id: number;
 }
 
-// 删除系列请求
+// 删除播放列表请求
 export interface RemoveSeriesRequest {
   id: number;
 }
 
-// 删除系列响应
+// 删除播放列表响应
 export interface RemoveSeriesResponse {
   // 空响应
 }
 
-// 更新系列 TV 列表请求
+// 更新播放列表 TV 列表请求
 export interface UpdateSeriesTVsRequest {
   id: number;
   tvs: number[];

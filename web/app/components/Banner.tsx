@@ -79,7 +79,7 @@ export function Banner() {
   const allNavItems = [
     { path: "/", label: "主页", badge: undefined, badgeColor: undefined, requireAdmin: false },
     { path: "/add-tv", label: "添加TV", badge: undefined, badgeColor: undefined, requireAdmin: false },
-    { path: "/series-list", label: "系列", badge: undefined, badgeColor: undefined, requireAdmin: false },
+    { path: "/series-list", label: "播放列表", badge: undefined, badgeColor: undefined, requireAdmin: false },
     { path: "/downloads", label: "下载", badge: monitor.download_count, badgeColor: "bg-blue-500", requireAdmin: false },
     { path: "/errors", label: "错误日志", badge: monitor.error_count, badgeColor: "bg-red-500", requireAdmin: false },
     { path: "/config", label: "系统配置", badge: undefined, badgeColor: undefined, requireAdmin: true },
