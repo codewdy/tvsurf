@@ -209,9 +209,14 @@ export default function SystemSetup() {
             >
               {loading ? "初始化中..." : "使用单用户模式初始化"}
             </button>
-            <p className="text-xs text-center text-gray-500">
-              单用户模式无需设置用户名和密码，适合个人使用
-            </p>
+            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+              <p className="text-xs text-center text-yellow-800 font-medium mb-1">
+                ⚠️ 安全警告
+              </p>
+              <p className="text-xs text-center text-yellow-700">
+                单用户模式无需设置用户名和密码，适合个人使用。如果将服务暴露在互联网上，则会使任何人都可以访问，存在严重安全风险。
+              </p>
+            </div>
           </div>
         </form>
       </div>
