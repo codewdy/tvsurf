@@ -29,7 +29,7 @@ def chromium_path():
             os.path.join(
                 deps_path(), "chrome-headless-shell-linux64", "chrome-headless-shell"
             ),
-            os.path.join(deps_path(), "chrome-linux64", "headless_shell"),
+            os.path.join(deps_path(), "chrome-linux", "headless_shell"),
         )
     else:
         return None
