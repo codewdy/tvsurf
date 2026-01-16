@@ -586,6 +586,33 @@ export default function AddTV() {
                   <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                     追更
                   </span>
+                  <div className="group relative inline-block ml-2">
+                    <svg
+                      className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-help"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                      <div className="space-y-1">
+                        <div className="font-semibold mb-1">追更功能说明：</div>
+                        <div className="text-gray-300">
+                          开启后，系统会自动检测该TV的新剧集更新，并在有新剧集时自动下载。
+                        </div>
+                      </div>
+                      <div className="absolute top-full left-4 -mt-1">
+                        <div className="border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
+                      </div>
+                    </div>
+                  </div>
                 </label>
               </div>
 
@@ -610,7 +637,36 @@ export default function AddTV() {
               {/* 播放列表选择 - 穿梭框 */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  选择播放列表
+                  <span className="flex items-center">
+                    选择播放列表
+                    <div className="group relative inline-block ml-2">
+                      <svg
+                        className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-help"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                        <div className="space-y-1">
+                          <div className="font-semibold mb-1">播放列表说明：</div>
+                          <div className="text-gray-300">
+                            播放列表用于管理一系列番剧或电视剧，可以将相关的TV归类到同一个播放列表中，方便统一管理和查看。
+                          </div>
+                        </div>
+                        <div className="absolute top-full left-4 -mt-1">
+                          <div className="border-4 border-transparent border-t-gray-900 dark:border-t-gray-700"></div>
+                        </div>
+                      </div>
+                    </div>
+                  </span>
                 </label>
                 {loadingSeries ? (
                   <div className="text-sm text-gray-500 dark:text-gray-400">
