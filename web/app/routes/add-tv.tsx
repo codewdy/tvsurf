@@ -616,10 +616,6 @@ export default function AddTV() {
                   <div className="text-sm text-gray-500 dark:text-gray-400">
                     加载中...
                   </div>
-                ) : seriesList.length === 0 ? (
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    暂无播放列表
-                  </div>
                 ) : (
                   <div className="space-y-2">
                     {/* 搜索框和新建按钮 */}
@@ -634,8 +630,8 @@ export default function AddTV() {
                           }}
                           placeholder="搜索播放列表或输入新播放列表名称..."
                           className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm ${seriesNameError
-                              ? "border-red-500 focus:ring-red-500 dark:border-red-500"
-                              : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                            ? "border-red-500 focus:ring-red-500 dark:border-red-500"
+                            : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
                             }`}
                         />
                         <button
