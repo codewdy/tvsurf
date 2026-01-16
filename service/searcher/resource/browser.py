@@ -42,7 +42,10 @@ class BrowserResourceSearcher(BaseResourceSearcher):
         parsed_url = urlparse(video_url)
         query_params = parse_qs(parsed_url.query)
         if "url" in query_params:
-            video_url = query_params["url"][0].decode("utf-8")
+            video_url = query_params["url"][0]
+            # I don't know why, but sometimes the video_url is a bytes object.
+            if isinstance(video_url, bytes):
+                video_url = video_url.decode("utf-8")
         return video_url
 
 
