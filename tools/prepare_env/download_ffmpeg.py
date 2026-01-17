@@ -7,11 +7,16 @@ import platform
 
 def download_ffmpeg_linux(directory: str):
     print("下载 ffmpeg 中, 请稍候...")
-    url = (
-        "https://github.com/BtbN/FFmpeg-Builds/"
-        "releases/download/autobuild-2026-01-13-13-02/"
-        "ffmpeg-N-122452-gf897bcd122-linux64-gpl.tar.xz"
-    )
+    if platform.machine() == "aarch64":
+        url = (
+            "https://github.com/BtbN/FFmpeg-Builds/releases/download/"
+            "latest/ffmpeg-master-latest-linuxarm64-gpl.tar.xz"
+        )
+    else:
+        url = (
+            "https://github.com/BtbN/FFmpeg-Builds/releases/download/"
+            "latest/ffmpeg-master-latest-linux64-gpl.tar.xz"
+        )
     pretty_download("ffmpeg", url, f"{directory}/ffmpeg-linux.tar.xz")
     print(f"解压 ffmpeg 中, 请稍候...")
     shutil.unpack_archive(f"{directory}/ffmpeg-linux.tar.xz", directory)
@@ -29,19 +34,16 @@ def download_ffmpeg_linux(directory: str):
 def download_ffmpeg_windows(directory: str):
     print("下载 ffmpeg 中, 请稍候...")
     url = (
-        "https://github.com/BtbN/FFmpeg-Builds/"
-        "releases/download/autobuild-2026-01-13-13-02/"
-        "ffmpeg-N-122452-gf897bcd122-win64-gpl.zip"
+        "https://github.com/BtbN/FFmpeg-Builds/releases/download/"
+        "latest/ffmpeg-master-latest-win64-gpl-shared.zip"
     )
     pretty_download("ffmpeg", url, f"{directory}/ffmpeg-windows.zip")
     print(f"解压 ffmpeg 中, 请稍候...")
     shutil.unpack_archive(f"{directory}/ffmpeg-windows.zip", directory)
     os.remove(f"{directory}/ffmpeg-windows.zip")
     extract_dir = url.split("/")[-1].split(".")[0]
-    os.makedirs(f"{directory}/ffmpeg", exist_ok=True)
-    shutil.move(
-        f"{directory}/{extract_dir}/bin/ffmpeg.exe", f"{directory}/ffmpeg/ffmpeg.exe"
-    )
+    shutil.rmtree(f"{directory}/ffmpeg", ignore_errors=True)
+    shutil.move(f"{directory}/{extract_dir}/bin", f"{directory}/ffmpeg")
     shutil.move(
         f"{directory}/{extract_dir}/LICENSE.txt", f"{directory}/ffmpeg/LICENSE.txt"
     )
