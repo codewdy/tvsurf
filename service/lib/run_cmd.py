@@ -15,5 +15,7 @@ async def run_cmd(*cmd):
     )
     stdout, stderr = await proc.communicate()
     if proc.returncode != 0:
-        raise ValueError(f"cmd {cmd} failed")
+        raise ValueError(
+            f"cmd {cmd} failed: \nstdout: {stdout.decode()}\nstderr: {stderr.decode()}"
+        )
     return stdout.decode(), stderr.decode()
