@@ -64,14 +64,18 @@ services:
     # image: ghcr.nju.edu.cn/codewdy/tvsurf:latest
 
     container_name: tvsurf
+
     # 设置容器运行的用户ID和组ID，确保文件权限正确
     # 在 NAS 系统中，通常需要设置为 NAS 管理员的 UID/GID
     # 可以通过 SSH 登录 NAS 后执行 id 命令查看，或者查看 NAS 管理界面中的用户信息
     # 例如：user: "1000:1000" 或 user: "${UID}:${GID}"
+    # 在群晖或某些 nas 系统中，由于权限问题，删除这一行以使用 root 执行命令
     user: "${UID}:${GID}"
+
     # 修改 /path/to/data-dir 到你像保存的数据文件夹
     volumes:
       - /path/to/data-dir:/app/tvsurf/data
+
     # 修改第一个 9399 为你希望启动服务的端口
     ports:
       - "9399:9399"
