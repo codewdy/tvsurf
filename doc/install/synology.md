@@ -1,20 +1,10 @@
 # 群晖安装 tvsurf
 
-### 第一步，新建一个文件夹，并且通过属性找到它的位置
-
-![文件属性](/doc/image/synology/file-property.png)
-
-![文件位置](/doc/image/synology/file-addr.png)
-
-(此处位置为 /volume1/data/tvsurf，以下我们都按这个地址)
-
-### 第二步，部署 docker （需要 Container Manager 套件）
-
 打开 Container Manager（默认在套件中心），然后点击项目，点击新增
 
 ![新增项目](/doc/image/synology/new-docker-compose.png)
 
-然后选择刚才的路径（对于我们的示例来说，就是 /data/tvsurf），然后选择创建 docker compose.yml，填入我们准备好的 docker compose 配置。
+然后选择你想要保存数据的路径，然后选择创建 docker compose.yml，填入我们准备好的 docker compose 配置。
 
 请仔细阅读 yaml 中的提示，修改 volumes 章节里面的数据里的文件夹到你希望的文件夹。同时，推荐修改镜像到南京大学的镜像站（即注释掉的那行）。
 
@@ -29,12 +19,12 @@ services:
 
     container_name: tvsurf
 
-    # 在群晖 nas 中，由于权限问题，使用 root 用户操作目录
+    # 在群晖 nas 中，由于权限问题，使用 root 用户操作目录，所以这里注释掉了
     # user: "${UID}:${GID}"
 
-    # 修改 /volume1/data/tvsurf 到你像保存的数据文件夹
+    # 存在项目路径下，如果想换路径，修改冒号前面的部分
     volumes:
-      - /volume1/data/tvsurf:/app/tvsurf/data
+      - .:/app/tvsurf/data
 
     # 修改第一个 9399 为你希望启动服务的端口
     ports:
