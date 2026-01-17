@@ -43,7 +43,7 @@ export default function TVSettingsModal({
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   // 追更相关状态
   const [updatingTracking, setUpdatingTracking] = useState(false);
-  // 重新调度下载相关状态
+  // 重新下载相关状态
   const [reschedulingDownload, setReschedulingDownload] = useState(false);
   const [pendingSourceChange, setPendingSourceChange] = useState<{
     type: "tv" | "episode";
@@ -216,7 +216,7 @@ export default function TVSettingsModal({
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    重新调度下载
+                    重新下载
                   </label>
                   <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-lg space-y-4">
                     <div>
@@ -276,7 +276,7 @@ export default function TVSettingsModal({
                               setErrorMessage(
                                 err instanceof Error
                                   ? err.message
-                                  : "重新调度下载时发生错误"
+                                  : "重新提交下载任务时发生错误"
                               );
                               console.error("Schedule download error:", err);
                             } finally {
@@ -286,12 +286,12 @@ export default function TVSettingsModal({
                           disabled={reschedulingDownload}
                           className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-blue-700 dark:hover:bg-blue-600"
                         >
-                          {reschedulingDownload ? "调度中..." : "重新调度"}
+                          {reschedulingDownload ? "提交中..." : "重新下载"}
                         </button>
                       </div>
                       {reschedulingDownload && (
                         <div className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                          正在重新调度下载...
+                          正在提交下载任务...
                         </div>
                       )}
                     </div>
@@ -328,7 +328,7 @@ export default function TVSettingsModal({
                               setErrorMessage(
                                 err instanceof Error
                                   ? err.message
-                                  : "重新调度下载时发生错误"
+                                  : "重新提交下载任务时发生错误"
                               );
                               console.error("Schedule download error:", err);
                             } finally {
@@ -368,7 +368,7 @@ export default function TVSettingsModal({
                               setErrorMessage(
                                 err instanceof Error
                                   ? err.message
-                                  : "重新调度下载时发生错误"
+                                  : "重新提交下载任务时发生错误"
                               );
                               console.error("Schedule download error:", err);
                             } finally {
