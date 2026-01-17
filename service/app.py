@@ -30,6 +30,9 @@ class App:
     async def on_startup(self) -> None:
         await self.tracker.start()
 
+    async def on_shutdown(self) -> None:
+        self.tracker.save()
+
     async def on_cleanup(self) -> None:
         self.sock.close()
         await self.tracker.stop()
@@ -56,6 +59,7 @@ class App:
 
         self.app.on_startup.append(lambda app: self.on_startup())
         self.app.on_cleanup.append(lambda app: self.on_cleanup())
+        self.app.on_shutdown.append(lambda app: self.on_shutdown())
 
     def mk_socket_local(self):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

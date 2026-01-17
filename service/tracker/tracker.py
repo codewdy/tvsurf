@@ -52,6 +52,11 @@ class Tracker:
         print("Tracker stopped successfully")
         await self.context.__aexit__(None, None, None)
 
+    def save(self) -> None:
+        print("Saving tracker data")
+        self.db.save()
+        print("Tracker data saved successfully")
+
     def wait_start(self) -> None:
         self.start_event.wait()
 

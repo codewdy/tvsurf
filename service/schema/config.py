@@ -13,7 +13,7 @@ class DownloadConfig(BaseModel):
 
 
 class DBConfig(BaseModel):
-    save_interval: TimeDelta = "1m"  # type: ignore
+    save_interval: TimeDelta = "10s"  # type: ignore
 
 
 class UpdaterConfig(BaseModel):
