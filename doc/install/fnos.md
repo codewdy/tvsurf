@@ -17,8 +17,10 @@ services:
 
     container_name: tvsurf
 
-    # 飞牛 OS 的 UID 和 GID 获取方式
-    user: "${TRIM_UID}:${TRIM_GID}"
+    # 飞牛 OS 默认的第一个用户的 UID 是 1000， users 的 id 是 1001，
+    # 也可以修改为你的用户的 id
+    # 在 ssh 终端输入"id -a" 以获取对应的uid/gid
+    user: "1000:1001"
 
     # 存在项目路径下，如果想换路径，修改冒号前面的部分
     volumes:
