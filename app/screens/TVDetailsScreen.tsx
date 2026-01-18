@@ -6,6 +6,7 @@ import {
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
+    BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { VideoView, useVideoPlayer } from 'expo-video';
@@ -40,6 +41,16 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         player.loop = false;
         player.muted = false;
     });
+
+    // 监听 Android 后退按钮
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            onBack();
+            return true; // 阻止默认行为
+        });
+
+        return () => backHandler.remove();
+    }, [onBack]);
 
     // 加载 TV 详情
     useEffect(() => {
@@ -239,9 +250,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
             <SafeAreaView style={styles.container}>
                 <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>{error}</Text>
-                    <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                        <Text style={styles.backButtonText}>返回</Text>
-                    </TouchableOpacity>
                 </View>
             </SafeAreaView>
         );
@@ -252,9 +260,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
             <SafeAreaView style={styles.container}>
                 <View style={styles.errorContainer}>
                     <Text style={styles.errorText}>未找到电视剧详情</Text>
-                    <TouchableOpacity style={styles.backButton} onPress={onBack}>
-                        <Text style={styles.backButtonText}>返回</Text>
-                    </TouchableOpacity>
                 </View>
             </SafeAreaView>
         );
@@ -271,13 +276,9 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         <SafeAreaView style={styles.container}>
             {/* 标题栏 */}
             <View style={styles.titleBar}>
-                <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>← 返回</Text>
-                </TouchableOpacity>
                 <Text style={styles.titleBarText} numberOfLines={1}>
                     {details.tv.name || ''}
                 </Text>
-                <View style={styles.titleBarRight} />
             </View>
 
             <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
@@ -334,7 +335,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                                         styles.episodeCard,
                                         isSelected && styles.episodeCardSelected,
                                         epIsWatched && styles.episodeCardWatched,
-                                        { marginHorizontal: 3, marginBottom: 6 },
+                                        { marginHorizontal: 2, marginBottom: 6 },
                                     ]}
                                     onPress={() => handleEpisodeSelect(index)}
                                     disabled={!hasDownloaded && !isDownloading}
@@ -393,26 +394,13 @@ const styles = StyleSheet.create({
         borderBottomColor: '#e0e0e0',
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'space-between',
+        justifyContent: 'center',
     },
     titleBarText: {
         fontSize: 18,
         fontWeight: 'bold',
         color: '#333',
-        flex: 1,
         textAlign: 'center',
-        marginHorizontal: 8,
-    },
-    titleBarRight: {
-        width: 60,
-    },
-    backButton: {
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-    },
-    backButtonText: {
-        fontSize: 16,
-        color: '#007AFF',
     },
     scrollView: {
         flex: 1,
@@ -497,16 +485,16 @@ const styles = StyleSheet.create({
     episodesGrid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginHorizontal: -3,
+        marginHorizontal: -2,
     },
     episodeCard: {
         backgroundColor: '#fff',
         borderRadius: 6,
-        padding: 8,
-        width: '31%',
+        padding: 6,
+        width: '23%',
         borderWidth: 1.5,
         borderColor: '#e0e0e0',
-        minHeight: 60,
+        minHeight: 48,
         justifyContent: 'space-between',
     },
     episodeCardSelected: {
@@ -517,10 +505,10 @@ const styles = StyleSheet.create({
         backgroundColor: '#e8f5e9',
     },
     episodeName: {
-        fontSize: 12,
+        fontSize: 11,
         fontWeight: '500',
         color: '#333',
-        marginBottom: 4,
+        marginBottom: 3,
     },
     episodeNameDisabled: {
         color: '#999',
