@@ -176,10 +176,30 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
             }
         };
 
-        // 设置定期更新
-        progressUpdateIntervalRef.current = setInterval(() => {
-            updateProgress();
-        }, 1000);
+        // 启动定期更新的函数
+        const startProgressUpdate = () => {
+            // 清除已有的定时器
+            if (progressUpdateIntervalRef.current) {
+                clearInterval(progressUpdateIntervalRef.current);
+            }
+            // 只在播放时设置定期更新
+            if (player.playing) {
+                progressUpdateIntervalRef.current = setInterval(() => {
+                    updateProgress();
+                }, 1000);
+            }
+        };
+
+        // 停止定期更新的函数
+        const stopProgressUpdate = () => {
+            if (progressUpdateIntervalRef.current) {
+                clearInterval(progressUpdateIntervalRef.current);
+                progressUpdateIntervalRef.current = null;
+            }
+        };
+
+        // 根据初始播放状态启动或停止定期更新
+        startProgressUpdate();
 
         // 监听播放结束
         const endSubscription = player.addListener('playToEnd', () => {
@@ -193,8 +213,12 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
 
         // 监听播放状态变化（包括暂停）
         const playingChangeSubscription = player.addListener('playingChange', (payload: { isPlaying: boolean }) => {
-            // 当播放器暂停时（从播放变为暂停），立即更新进度
-            if (!payload.isPlaying) {
+            if (payload.isPlaying) {
+                // 开始播放时，启动定期更新
+                startProgressUpdate();
+            } else {
+                // 暂停时，停止定期更新并立即更新一次进度
+                stopProgressUpdate();
                 updateProgressImmediately();
             }
         });
@@ -202,9 +226,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         return () => {
             endSubscription.remove();
             playingChangeSubscription.remove();
-            if (progressUpdateIntervalRef.current) {
-                clearInterval(progressUpdateIntervalRef.current);
-            }
+            stopProgressUpdate();
         };
     }, [player, details, selectedEpisode, hasVideo, updateWatchProgress, handleEpisodeSelect, updateProgressImmediately]);
 
