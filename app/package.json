@@ -12,10 +12,13 @@
     "expo": "~54.0.31",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
-    "react-native": "0.81.5"
+    "react-native": "0.81.5",
+    "@react-native-async-storage/async-storage": "^2.1.0",
+    "bcryptjs": "^2.4.3"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "@types/bcryptjs": "^2.4.6",
     "typescript": "~5.9.2"
   },
   "private": true
