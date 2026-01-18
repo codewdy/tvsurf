@@ -19,8 +19,11 @@ services:
 
     container_name: tvsurf
 
-    # 在群晖 nas 中，由于权限问题，使用 root 用户操作目录，所以这里注释掉了
-    # user: "${UID}:${GID}"
+    # 在群晖 nas 中，由于权限问题，使用 root 用户操作目录，
+    # 所以这里注释掉了
+    # environment:
+    #   - PUID=1026
+    #   - PGID=100
 
     # 存在项目路径下，如果想换路径，修改冒号前面的部分
     volumes:

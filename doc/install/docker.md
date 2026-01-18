@@ -18,11 +18,11 @@ services:
     container_name: tvsurf
 
     # 设置容器运行的用户ID和组ID，确保文件权限正确
-    # 在 NAS 系统中，通常需要设置为 NAS 管理员的 UID/GID
-    # 可以通过 SSH 登录 NAS 后执行 id 命令查看，或者查看 NAS 管理界面中的用户信息
-    # 例如：user: "1000:1000"
-    # 在群晖 nas 中，由于权限问题，删除这一行以使用 root 执行命令
-    user: "${UID}:${GID}"
+    # 在 NAS 系统中，通常需要设置为 NAS 用户的 UID/GID
+    # 如果不设置，将使用 root 用户运行（PUID=0, PGID=0）
+    environment:
+      - PUID=${UID:-0}
+      - PGID=${GID:-0}
 
     # 修改 /path/to/data-dir 到你像保存的数据文件夹
     volumes:
@@ -37,7 +37,8 @@ services:
 然后执行：
 
 ```shell
-# 在 Linux 系统中，自动获取当前用户的 UID 和 GID
+# 在 Linux 系统中，自动获取当前用户的 UID 和 GID（可选）
+# 如果不设置，容器将使用 root 用户运行
 export UID=$(id -u)
 export GID=$(id -g)
 docker compose up -d
@@ -58,7 +59,7 @@ docker compose up -d
 ```shell
 export DATA_DIR=/path/to/data-dir
 export PORT=9399
-docker run -d --user $(id -u ${USER}):$(id -g ${USER}) -v ${DATA_DIR}:/app/tvsurf/data -p ${PORT}:9399 -ti ghcr.io/codewdy/tvsurf:latest
+docker run -d -e PUID=$(id -u ${USER}) -e PGID=$(id -g ${USER}) -v ${DATA_DIR}:/app/tvsurf/data -p ${PORT}:9399 -ti ghcr.io/codewdy/tvsurf:latest
 # 如果上面的太慢，也可以选择国内的镜像站：
-# docker run -d --user $(id -u ${USER}):$(id -g ${USER}) -v ${DATA_DIR}:/app/tvsurf/data -p ${PORT}:9399 -ti ghcr.nju.edu.cn/codewdy/tvsurf:latest
+# docker run -d -e PUID=${PUID} -e PGID=${PGID} -v ${DATA_DIR}:/app/tvsurf/data -p ${PORT}:9399 -ti ghcr.nju.edu.cn/codewdy/tvsurf:latest
  ```

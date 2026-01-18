@@ -34,8 +34,11 @@ services:
 
     container_name: tvsurf
 
+    # 设置容器运行的用户ID和组ID，确保文件权限正确
     # 这里的 1000 就是你之前获取的 uid，100是对应的用户组 anyone，通常不需要修改
-    user: 1000:100
+    environment:
+      - PUID=1000
+      - PGID=100
 
     # 我这里用的是 /Public/tvsurf 作为内部存储
     # 注意在这里需要加上 /share 前缀
