@@ -1,6 +1,6 @@
 // API 客户端
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { LoginRequest, LoginResponse } from './types';
+import type { LoginRequest, LoginResponse, GetTVInfosRequest, GetTVInfosResponse } from './types';
 
 // API 基础 URL 存储键
 export const API_BASE_URL_KEY = '@tvsurf_api_base_url';
@@ -62,14 +62,21 @@ export async function clearApiToken(): Promise<void> {
 async function apiCall<TRequest, TResponse>(
     baseUrl: string,
     endpoint: string,
-    request: TRequest
+    request: TRequest,
+    token?: string | null
 ): Promise<TResponse> {
     const url = `${baseUrl}${endpoint}`;
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
     const response = await fetch(url, {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify(request),
     });
 
@@ -87,4 +94,22 @@ export async function login(
     request: LoginRequest
 ): Promise<LoginResponse> {
     return apiCall<LoginRequest, LoginResponse>(baseUrl, '/api/login', request);
+}
+
+// 获取 TV 信息列表 API
+export async function getTVInfos(
+    request: GetTVInfosRequest = { ids: null }
+): Promise<GetTVInfosResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<GetTVInfosRequest, GetTVInfosResponse>(
+        baseUrl,
+        '/api/get_tv_infos',
+        request,
+        token
+    );
 }
