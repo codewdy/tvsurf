@@ -434,9 +434,12 @@ const styles = StyleSheet.create({
     },
     playerContainer: {
         backgroundColor: '#000',
-        borderRadius: 8,
+        borderRadius: 0,
         overflow: 'hidden',
         marginBottom: 12,
+        marginLeft: -12,
+        marginRight: -12,
+        marginTop: -12,
         aspectRatio: 16 / 9,
         justifyContent: 'center',
         alignItems: 'center',
