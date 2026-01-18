@@ -11,14 +11,15 @@ import {
     RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getApiBaseUrl, getApiToken, getTVInfos } from '../api/client';
+import { getTVInfos, getApiBaseUrl, getApiToken } from '../api/client-proxy';
 import type { TVInfo, Tag } from '../api/types';
 
 interface HomeScreenProps {
     onLogout: () => void;
+    onTVPress?: (tv: TVInfo) => void;
 }
 
-export default function HomeScreen({ onLogout }: HomeScreenProps) {
+export default function HomeScreen({ onLogout, onTVPress }: HomeScreenProps) {
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -175,7 +176,12 @@ export default function HomeScreen({ onLogout }: HomeScreenProps) {
                                     {!collapsedTags[tag] && tvsInGroup.map((tv) => {
                                         const unwatchedEpisodes = tv.total_episodes - tv.user_data.watch_progress.episode_id;
                                         return (
-                                            <TouchableOpacity key={tv.id} style={styles.tvCard}>
+                                            <TouchableOpacity
+                                                key={tv.id}
+                                                style={styles.tvCard}
+                                                onPress={() => onTVPress?.(tv)}
+                                                activeOpacity={0.7}
+                                            >
                                                 <Image
                                                     source={{ uri: getCoverUrl(tv.cover_url) }}
                                                     style={styles.coverImage}

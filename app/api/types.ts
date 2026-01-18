@@ -50,3 +50,85 @@ export interface GetTVInfosRequest {
 export interface GetTVInfosResponse {
     tvs: TVInfo[];
 }
+
+// GetTVDetails 相关类型定义
+
+// 下载状态
+export type DownloadStatus = "running" | "success" | "failed";
+
+// 源 URL
+export interface SourceUrl {
+    source_key: string;
+    source_name: string;
+    channel_name: string;
+    url: string;
+}
+
+// 源剧集
+export interface SourceEpisode {
+    source: SourceUrl;
+    name: string;
+}
+
+// 源
+export interface Source {
+    source: SourceUrl;
+    name: string;
+    cover_url: string;
+    episodes: SourceEpisode[];
+}
+
+// 存储剧集
+export interface StorageEpisode {
+    name: string;
+    filename: string;
+    status: DownloadStatus;
+}
+
+// 存储
+export interface Storage {
+    directory: string;
+    episodes: StorageEpisode[];
+    cover: string;
+}
+
+// 追踪状态
+export interface TrackStatus {
+    tracking: boolean;
+    last_update: string; // ISO datetime string
+}
+
+// TV 详情
+export interface TV {
+    id: number;
+    name: string;
+    source: Source;
+    storage: Storage;
+    track: TrackStatus;
+    series: number[];
+}
+
+// 获取 TV 详情请求
+export interface GetTVDetailsRequest {
+    id: number;
+}
+
+// 获取 TV 详情响应
+export interface GetTVDetailsResponse {
+    tv: TV;
+    info: TVInfo;
+    episodes: (string | null)[];
+}
+
+// 设置 TV 标签请求
+export interface SetTVTagRequest {
+    tv_id: number;
+    tag: Tag;
+}
+
+// 设置观看进度请求
+export interface SetWatchProgressRequest {
+    tv_id: number;
+    episode_id: number;
+    time: number;
+}

@@ -3,10 +3,16 @@ import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, Text, StyleSheet } from 'react-native';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
+import TVDetailsScreen from './screens/TVDetailsScreen';
 import { getApiToken } from './api/client';
+import type { TVInfo } from './api/types';
+
+type Screen = 'home' | 'tv-details';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [selectedTV, setSelectedTV] = useState<TVInfo | null>(null);
 
   useEffect(() => {
     checkLoginStatus();
@@ -28,6 +34,18 @@ export default function App() {
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setCurrentScreen('home');
+    setSelectedTV(null);
+  };
+
+  const handleTVPress = (tv: TVInfo) => {
+    setSelectedTV(tv);
+    setCurrentScreen('tv-details');
+  };
+
+  const handleBackToHome = () => {
+    setCurrentScreen('home');
+    setSelectedTV(null);
   };
 
   // 显示加载状态
@@ -44,7 +62,16 @@ export default function App() {
   return (
     <>
       {isLoggedIn ? (
-        <HomeScreen onLogout={handleLogout} />
+        currentScreen === 'home' ? (
+          <HomeScreen onLogout={handleLogout} onTVPress={handleTVPress} />
+        ) : selectedTV ? (
+          <TVDetailsScreen
+            tv={selectedTV}
+            onBack={handleBackToHome}
+          />
+        ) : (
+          <HomeScreen onLogout={handleLogout} onTVPress={handleTVPress} />
+        )
       ) : (
         <LoginScreen onLoginSuccess={handleLoginSuccess} />
       )}

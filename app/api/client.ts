@@ -1,6 +1,6 @@
 // API 客户端
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { LoginRequest, LoginResponse, GetTVInfosRequest, GetTVInfosResponse } from './types';
+import type { LoginRequest, LoginResponse, GetTVInfosRequest, GetTVInfosResponse, GetTVDetailsRequest, GetTVDetailsResponse, SetTVTagRequest, SetWatchProgressRequest } from './types';
 
 // API 基础 URL 存储键
 export const API_BASE_URL_KEY = '@tvsurf_api_base_url';
@@ -109,6 +109,60 @@ export async function getTVInfos(
     return apiCall<GetTVInfosRequest, GetTVInfosResponse>(
         baseUrl,
         '/api/get_tv_infos',
+        request,
+        token
+    );
+}
+
+// 获取 TV 详情 API
+export async function getTVDetails(
+    request: GetTVDetailsRequest
+): Promise<GetTVDetailsResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<GetTVDetailsRequest, GetTVDetailsResponse>(
+        baseUrl,
+        '/api/get_tv_details',
+        request,
+        token
+    );
+}
+
+// 设置 TV 标签 API
+export async function setTVTag(
+    request: SetTVTagRequest
+): Promise<void> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    await apiCall<SetTVTagRequest, void>(
+        baseUrl,
+        '/api/set_tv_tag',
+        request,
+        token
+    );
+}
+
+// 设置观看进度 API
+export async function setWatchProgress(
+    request: SetWatchProgressRequest
+): Promise<void> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    await apiCall<SetWatchProgressRequest, void>(
+        baseUrl,
+        '/api/set_watch_progress',
         request,
         token
     );
