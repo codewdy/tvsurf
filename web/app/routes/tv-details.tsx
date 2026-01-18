@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { Route } from "./+types/tv-details";
 import {
   getTVDetails,
@@ -14,6 +14,8 @@ import type {
 } from "../api/types";
 import { TAG_NAMES } from "../api/types";
 import TVSettingsModal from "../components/TVSettingsModal";
+import Player from "xgplayer";
+import "xgplayer/dist/index.min.css";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -32,10 +34,56 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [updatingTag, setUpdatingTag] = useState(false);
   const [seriesList, setSeriesList] = useState<Series[]>([]);
-  const [lastProgressUpdate, setLastProgressUpdate] = useState<number>(0);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const lastProgressUpdateRef = useRef<number>(0);
+  const playerRef = useRef<Player | null>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+  const isInitialLoadRef = useRef<boolean>(true);
   // 编辑模态框相关状态
   const [showEditModal, setShowEditModal] = useState(false);
+
+  const updateWatchProgress = useCallback(async (episodeId: number, time: number) => {
+    if (!details) return;
+
+    try {
+      await setWatchProgress({
+        tv_id: details.tv.id,
+        episode_id: episodeId,
+        time: time,
+      });
+    } catch (err) {
+      console.error("Update watch progress error:", err);
+    }
+  }, [details]);
+
+  const handleEpisodeSelect = useCallback((episodeIndex: number, autoPlay: boolean = false) => {
+    if (details) {
+      updateWatchProgress(episodeIndex, 0);
+    }
+
+    setSelectedEpisode(episodeIndex);
+    const newVideoUrl = details?.episodes[episodeIndex] || null;
+
+    if (newVideoUrl && playerRef.current) {
+      // 更新播放器视频源
+      playerRef.current.src = newVideoUrl;
+      setVideoTime(0);
+      const now = Date.now();
+      lastProgressUpdateRef.current = now; // 重置更新时间
+      if (autoPlay) {
+        playerRef.current.once("canplay", () => {
+          playerRef.current?.play().catch((err: unknown) => {
+            console.error('自动播放失败:', err);
+          });
+        });
+      }
+    } else if (!newVideoUrl && playerRef.current) {
+      // 如果下一集没有视频（下载中、下载失败或未下载），停止并清空播放器
+      playerRef.current.pause();
+      playerRef.current.src = '';
+      setVideoTime(0);
+      setIsPlaying(false);
+    }
+  }, [details, updateWatchProgress]);
 
   useEffect(() => {
     if (id) {
@@ -46,12 +94,13 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   }, [id]);
 
   useEffect(() => {
-    if (details && details.info.user_data.watch_progress.episode_id >= 0) {
+    if (details) {
+      isInitialLoadRef.current = true;
       setSelectedEpisode(details.info.user_data.watch_progress.episode_id);
-      if (videoRef.current) {
-        videoRef.current.currentTime =
-          details.info.user_data.watch_progress.time;
-      }
+      // 其他初始化逻辑会在初始化 xgplayer 时执行
+
+      // 同步 ref
+      lastProgressUpdateRef.current = Date.now();
     }
   }, [details]);
 
@@ -60,6 +109,113 @@ export default function TVDetails({ params }: Route.ComponentProps) {
       fetchSeries(details.info.series);
     }
   }, [details]);
+
+  // 初始化 xgplayer
+  useEffect(() => {
+    if (!playerContainerRef.current || !details) return;
+
+    // 如果播放器已存在，先销毁
+    if (playerRef.current) {
+      playerRef.current.destroy();
+      playerRef.current = null;
+    }
+
+    const currentVideoUrl = details.episodes[selectedEpisode];
+    if (!currentVideoUrl) return;
+
+    // 创建播放器实例
+    const player = new Player({
+      el: playerContainerRef.current,
+      url: currentVideoUrl,
+      autoplay: false,
+      volume: 0.6,
+      playbackRate: [0.5, 0.75, 1, 1.25, 1.5, 2],
+      defaultPlaybackRate: 1,
+      fluid: true,
+      lang: "zh-cn",
+    });
+
+    playerRef.current = player;
+
+    // 只在初始加载时恢复播放进度
+    const shouldRestoreProgress = isInitialLoadRef.current &&
+      details.info.user_data.watch_progress.episode_id === selectedEpisode;
+
+    if (shouldRestoreProgress) {
+      const savedTime = details.info.user_data.watch_progress.time;
+      if (savedTime > 0) {
+        player.once("canplay", () => {
+          player.currentTime = savedTime;
+          // 恢复进度后，标记初始加载完成
+          isInitialLoadRef.current = false;
+        });
+      } else {
+        // 如果没有保存的进度，直接标记初始加载完成
+        isInitialLoadRef.current = false;
+      }
+    } else {
+      // 如果不是需要恢复进度的情况，标记初始加载完成
+      isInitialLoadRef.current = false;
+    }
+
+    // 监听播放事件
+    player.on("play", () => {
+      setIsPlaying(true);
+    });
+
+    // 监听暂停事件
+    player.on("pause", () => {
+      setIsPlaying(false);
+      if (playerRef.current) {
+        updateWatchProgress(selectedEpisode, playerRef.current.currentTime);
+        const now = Date.now();
+        lastProgressUpdateRef.current = now;
+      }
+    });
+
+    // 监听时间更新事件
+    player.on("timeupdate", () => {
+      if (playerRef.current) {
+        const currentTime = playerRef.current.currentTime;
+        setVideoTime(currentTime);
+
+        // 每5秒更新一次播放进度
+        const now = Date.now();
+        if (now - lastProgressUpdateRef.current >= 5000) {
+          updateWatchProgress(selectedEpisode, currentTime);
+          lastProgressUpdateRef.current = now;
+        }
+      }
+    });
+
+    // 监听跳转完成事件
+    player.on("seeked", () => {
+      if (playerRef.current) {
+        updateWatchProgress(selectedEpisode, playerRef.current.currentTime);
+        const now = Date.now();
+        lastProgressUpdateRef.current = now;
+      }
+    });
+
+    // 监听播放结束事件
+    player.on("ended", () => {
+      // 播放完成后，更新为下一集的第0秒
+      const nextEpisode = selectedEpisode + 1;
+      updateWatchProgress(nextEpisode, 0);
+      const now = Date.now();
+      lastProgressUpdateRef.current = now;
+
+      handleEpisodeSelect(nextEpisode, true);
+    });
+
+    // 清理函数
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+    };
+  }, [details, selectedEpisode, updateWatchProgress, handleEpisodeSelect]);
 
   const fetchTVDetails = async (tvId: number) => {
     setError(null);
@@ -107,79 +263,6 @@ export default function TVDetails({ params }: Route.ComponentProps) {
       console.error("Set tag error:", err);
     } finally {
       setUpdatingTag(false);
-    }
-  };
-
-  const updateWatchProgress = async (episodeId: number, time: number) => {
-    if (!details) return;
-
-    try {
-      await setWatchProgress({
-        tv_id: details.tv.id,
-        episode_id: episodeId,
-        time: time,
-      });
-    } catch (err) {
-      console.error("Update watch progress error:", err);
-    }
-  };
-
-  const handleEpisodeSelect = (episodeIndex: number, autoPlay: boolean = false) => {
-    // 换集前，先更新上一集的进度
-    if (videoRef.current && details) {
-      updateWatchProgress(episodeIndex, 0);
-    }
-
-    setSelectedEpisode(episodeIndex);
-    if (videoRef.current) {
-      const newVideoUrl = details?.episodes[episodeIndex] || null;
-      if (newVideoUrl) {
-        videoRef.current.src = newVideoUrl;
-        videoRef.current.load();
-        setVideoTime(0);
-        setLastProgressUpdate(Date.now()); // 重置更新时间
-        if (autoPlay) {
-          videoRef.current.addEventListener('loadeddata', () => {
-            videoRef.current?.play().catch(err => {
-              console.error('自动播放失败:', err);
-            });
-          }, { once: true });
-        }
-      } else {
-        // 如果下一集没有视频（下载中、下载失败或未下载），停止并清空播放器
-        videoRef.current.pause();
-        videoRef.current.src = '';
-        videoRef.current.load();
-        setVideoTime(0);
-        setIsPlaying(false);
-      }
-    }
-  };
-
-  const handleVideoPlay = () => {
-    setIsPlaying(true);
-  };
-
-  const handleVideoPause = () => {
-    setIsPlaying(false);
-    // 暂停时更新播放进度
-    if (videoRef.current) {
-      updateWatchProgress(selectedEpisode, videoRef.current.currentTime);
-      setLastProgressUpdate(Date.now());
-    }
-  };
-
-  const handleVideoTimeUpdate = () => {
-    if (videoRef.current) {
-      const currentTime = videoRef.current.currentTime;
-      setVideoTime(currentTime);
-
-      // 每5秒更新一次播放进度
-      const now = Date.now();
-      if (now - lastProgressUpdate >= 5000) {
-        updateWatchProgress(selectedEpisode, currentTime);
-        setLastProgressUpdate(now);
-      }
     }
   };
 
@@ -368,97 +451,75 @@ export default function TVDetails({ params }: Route.ComponentProps) {
             {/* 视频播放器 */}
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">播放</h2>
-              {selectedEpisode >= details.tv.source.episodes.length ? (
-                <div className="space-y-4">
-                  <div className="relative bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center" style={{ aspectRatio: "16/9" }}>
-                    <div className="text-center">
-                      <p className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">播放完成</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        您已观看完所有剧集
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>播放完成</span>
-                  </div>
-                </div>
-              ) : hasVideo ? (
-                <div className="space-y-4">
-                  <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: "16/9" }}>
-                    <video
-                      ref={videoRef}
-                      src={currentVideoUrl}
-                      controls
-                      className="w-full h-full"
-                      onPlay={handleVideoPlay}
-                      onPause={handleVideoPause}
-                      onTimeUpdate={handleVideoTimeUpdate}
-                      onSeeked={() => {
-                        // Seek 完成后更新播放进度
-                        if (videoRef.current) {
-                          updateWatchProgress(selectedEpisode, videoRef.current.currentTime);
-                          setLastProgressUpdate(Date.now());
-                        }
-                      }}
-                      onEnded={() => {
-                        // 播放完成后，更新为下一集的第0秒
-                        const nextEpisode = selectedEpisode + 1;
-                        updateWatchProgress(nextEpisode, 0);
-                        setLastProgressUpdate(Date.now());
+              <div className="space-y-4">
+                <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: "16/9" }}>
+                  {/* 播放器容器始终渲染，但根据情况隐藏 */}
+                  <div ref={playerContainerRef} className={`w-full h-full ${hasVideo && selectedEpisode < details.tv.source.episodes.length ? '' : 'hidden'}`}></div>
 
-                        // 如果不是最后一集，自动切换到下一集
-                        handleEpisodeSelect(nextEpisode, true);
-                      }}
-                    >
-                      您的浏览器不支持视频播放
-                    </video>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                    <span>
-                      正在播放: {details.tv.source.episodes[selectedEpisode]?.name || "全部集数已播放完成"}
-                    </span>
-                    {videoRef.current && (
-                      <span>
-                        {formatTime(videoTime)} / {formatTime(videoRef.current.duration || 0)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="relative bg-gray-100 dark:bg-gray-700 rounded-lg overflow-hidden flex items-center justify-center" style={{ aspectRatio: "16/9" }}>
-                    <div className="text-center text-gray-500 dark:text-gray-400">
-                      {details.tv.storage.episodes[selectedEpisode]?.status === "running" ? (
-                        <div>
-                          <p className="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-300">该集正在下载中...</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {details.tv.storage.episodes[selectedEpisode].name}
-                          </p>
-                        </div>
-                      ) : details.tv.storage.episodes[selectedEpisode]?.status === "failed" ? (
-                        <div>
-                          <p className="mb-2 text-lg font-semibold text-red-600 dark:text-red-400">该集下载失败</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {details.tv.storage.episodes[selectedEpisode].name}
-                          </p>
-                        </div>
-                      ) : (
-                        <div>
-                          <p className="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-300">该集尚未下载</p>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {details.tv.source.episodes[selectedEpisode]?.name || `第 ${selectedEpisode + 1} 集`}
-                          </p>
-                        </div>
-                      )}
+                  {/* 播放完成提示 */}
+                  {selectedEpisode >= details.tv.source.episodes.length && (
+                    <div className="absolute inset-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                      <div className="text-center">
+                        <p className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">播放完成</p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400">
+                          您已观看完所有剧集
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                  )}
+
+                  {/* 无视频时的提示 */}
+                  {!hasVideo && selectedEpisode < details.tv.source.episodes.length && (
+                    <div className="absolute inset-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
+                      <div className="text-center text-gray-500 dark:text-gray-400">
+                        {details.tv.storage.episodes[selectedEpisode]?.status === "running" ? (
+                          <div>
+                            <p className="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-300">该集正在下载中...</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {details.tv.storage.episodes[selectedEpisode].name}
+                            </p>
+                          </div>
+                        ) : details.tv.storage.episodes[selectedEpisode]?.status === "failed" ? (
+                          <div>
+                            <p className="mb-2 text-lg font-semibold text-red-600 dark:text-red-400">该集下载失败</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {details.tv.storage.episodes[selectedEpisode].name}
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-300">该集尚未下载</p>
+                            <p className="text-sm text-gray-500 dark:text-gray-400">
+                              {details.tv.source.episodes[selectedEpisode]?.name || `第 ${selectedEpisode + 1} 集`}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
+                  {selectedEpisode >= details.tv.source.episodes.length ? (
+                    <span>播放完成</span>
+                  ) : hasVideo ? (
+                    <>
+                      <span>
+                        正在播放: {details.tv.source.episodes[selectedEpisode]?.name || "全部集数已播放完成"}
+                      </span>
+                      {playerRef.current && (
+                        <span>
+                          {formatTime(videoTime)} / {formatTime(playerRef.current.duration || 0)}
+                        </span>
+                      )}
+                    </>
+                  ) : (
                     <span>
                       {details.tv.source.episodes[selectedEpisode]?.name || `第 ${selectedEpisode + 1} 集`}
                     </span>
-                  </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
 
             {/* 剧集列表 */}
