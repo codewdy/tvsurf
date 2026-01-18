@@ -22,6 +22,10 @@
 
 [群晖](doc/install/synology.md)
 
+[威联通](doc/install/qnap.md)
+
+[飞牛](doc/install/fnos.md)
+
 [其他 nas 使用 docker 安装](doc/install/docker.md)
 
 ### Linux:
