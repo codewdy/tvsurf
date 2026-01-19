@@ -14,6 +14,8 @@ interface VideoPlayerProps {
     resumeTime?: number;
     onPlaybackState?: (state: PlaybackState) => void;
     onPlayToEnd?: () => void;
+    isFullscreen?: boolean;
+    onToggleFullscreen?: () => void;
 }
 
 export default function VideoPlayer({
@@ -21,6 +23,8 @@ export default function VideoPlayer({
     resumeTime = 0,
     onPlaybackState,
     onPlayToEnd,
+    isFullscreen = false,
+    onToggleFullscreen,
 }: VideoPlayerProps) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [playbackTime, setPlaybackTime] = useState(0);
@@ -214,6 +218,11 @@ export default function VideoPlayer({
                         <Text style={styles.timeText}>
                             {formatTime(playbackTime)} / {formatTime(duration)}
                         </Text>
+                        {onToggleFullscreen ? (
+                            <TouchableOpacity style={styles.controlButton} onPress={onToggleFullscreen}>
+                                <Ionicons name={isFullscreen ? 'contract' : 'expand'} size={18} color="#fff" />
+                            </TouchableOpacity>
+                        ) : null}
                     </View>
                 </View>
             )}

@@ -7,8 +7,11 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     BackHandler,
+    Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import * as NavigationBar from 'expo-navigation-bar';
 import VideoPlayer from '../components/VideoPlayer';
 import { getTVDetails, setWatchProgress } from '../api/client-proxy';
 import type { GetTVDetailsResponse } from '../api/types';
@@ -33,9 +36,12 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         duration: 0,
         isPlaying: false,
     });
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const lastUpdateTimeRef = useRef<number>(-1);
     const lastKnownTimeRef = useRef<number>(-1);
     const lastKnownEpisodeRef = useRef<number>(-1);
+    const autoFullscreenEnabledRef = useRef(true);
+    const autoFullscreenActiveRef = useRef(false);
 
     // 获取当前视频 URL
     const currentVideoUrl = details?.episodes[selectedEpisode] || null;
@@ -44,12 +50,18 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     // 监听 Android 后退按钮
     useEffect(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            if (isFullscreen) {
+                autoFullscreenEnabledRef.current = false;
+                autoFullscreenActiveRef.current = false;
+                setIsFullscreen(false);
+                return true;
+            }
             onBack();
             return true; // 阻止默认行为
         });
 
         return () => backHandler.remove();
-    }, [onBack]);
+    }, [onBack, isFullscreen]);
 
     // 加载 TV 详情
     useEffect(() => {
@@ -100,6 +112,8 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         updateWatchProgress(episodeIndex, 0);
         setSelectedEpisode(episodeIndex);
         setResumeTime(0);
+        autoFullscreenEnabledRef.current = true;
+        autoFullscreenActiveRef.current = false;
     }, [details, updateWatchProgress, setResumeTime, setSelectedEpisode]);
 
     // 监听播放进度并定期更新
@@ -126,6 +140,61 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
             }
         };
     }, [details, updateWatchProgress]);
+
+    useEffect(() => {
+        if (!isFullscreen) {
+            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
+            return;
+        }
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => null);
+    }, [isFullscreen]);
+
+    useEffect(() => {
+        if (Platform.OS !== 'android') return;
+
+        const syncNavigationBar = async () => {
+            try {
+                if (isFullscreen) {
+                    await NavigationBar.setVisibilityAsync('hidden');
+                } else {
+                    await NavigationBar.setVisibilityAsync('visible');
+                }
+            } catch (err) {
+                console.error('Update navigation bar error:', err);
+            }
+        };
+
+        syncNavigationBar();
+    }, [isFullscreen]);
+
+    useEffect(() => {
+        if (playbackState.isPlaying) {
+            if (autoFullscreenEnabledRef.current && !isFullscreen) {
+                setIsFullscreen(true);
+                autoFullscreenActiveRef.current = true;
+            }
+            return;
+        }
+        if (autoFullscreenActiveRef.current && isFullscreen) {
+            setIsFullscreen(false);
+            autoFullscreenActiveRef.current = false;
+        }
+    }, [playbackState.isPlaying, isFullscreen]);
+
+    useEffect(() => {
+        return () => {
+            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
+            if (Platform.OS === 'android') {
+                NavigationBar.setVisibilityAsync('visible').catch(() => null);
+            }
+        };
+    }, []);
+
+    const handleToggleFullscreen = useCallback(() => {
+        autoFullscreenEnabledRef.current = false;
+        autoFullscreenActiveRef.current = false;
+        setIsFullscreen((prev) => !prev);
+    }, []);
 
     if (loading) {
         return (
@@ -166,99 +235,103 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
 
     return (
         <SafeAreaView style={styles.container}>
-            {/* 标题栏 */}
-            <View style={styles.titleBar}>
-                <Text style={styles.titleBarText} numberOfLines={1}>
-                    {details.tv.name || ''}
-                </Text>
-            </View>
+            {!isFullscreen && (
+                <View style={styles.titleBar}>
+                    <Text style={styles.titleBarText} numberOfLines={1}>
+                        {details.tv.name || ''}
+                    </Text>
+                </View>
+            )}
 
-            <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-                {error && (
-                    <View style={styles.errorBanner}>
-                        <Text style={styles.errorBannerText}>{error}</Text>
+            <View style={[styles.playerContainer, isFullscreen && styles.playerContainerFullscreen]}>
+                {hasVideo ? (
+                    <VideoPlayer
+                        videoUrl={currentVideoUrl}
+                        resumeTime={resumeTime}
+                        onPlaybackState={setPlaybackState}
+                        onPlayToEnd={() => handleEpisodeSelect(selectedEpisode + 1)}
+                        isFullscreen={isFullscreen}
+                        onToggleFullscreen={handleToggleFullscreen}
+                    />
+                ) : (
+                    <View style={styles.noVideoContainer}>
+                        {selectedEpisode >= details.episodes.length ? (
+                            <Text style={styles.noVideoText}>已全部播放完毕</Text>
+                        ) : storageEp?.status === 'running' ? (
+                            <Text style={styles.noVideoText}>该集正在下载中...</Text>
+                        ) : storageEp?.status === 'failed' ? (
+                            <Text style={styles.noVideoText}>该集下载失败</Text>
+                        ) : (
+                            <Text style={styles.noVideoText}>该集尚未下载</Text>
+                        )}
+                        {currentEpisode ? (
+                            <Text style={styles.noVideoSubtext}>{currentEpisode.name || ''}</Text>
+                        ) : null}
                     </View>
                 )}
+            </View>
 
-                {/* 视频播放器 */}
-                <View style={styles.playerContainer}>
-                    {hasVideo ? (
-                        <VideoPlayer
-                            videoUrl={currentVideoUrl}
-                            resumeTime={resumeTime}
-                            onPlaybackState={setPlaybackState}
-                            onPlayToEnd={() => handleEpisodeSelect(selectedEpisode + 1)}
-                        />
-                    ) : (
-                        <View style={styles.noVideoContainer}>
-                            {selectedEpisode >= details.episodes.length ? (
-                                <Text style={styles.noVideoText}>已全部播放完毕</Text>
-                            ) : storageEp?.status === 'running' ? (
-                                <Text style={styles.noVideoText}>该集正在下载中...</Text>
-                            ) : storageEp?.status === 'failed' ? (
-                                <Text style={styles.noVideoText}>该集下载失败</Text>
-                            ) : (
-                                <Text style={styles.noVideoText}>该集尚未下载</Text>
-                            )}
-                            {currentEpisode ? (
-                                <Text style={styles.noVideoSubtext}>{currentEpisode.name || ''}</Text>
-                            ) : null}
+            {!isFullscreen && (
+                <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+                    {error && (
+                        <View style={styles.errorBanner}>
+                            <Text style={styles.errorBannerText}>{error}</Text>
                         </View>
                     )}
-                </View>
 
-                {/* 剧集列表 */}
-                <View style={styles.episodesSection}>
-                    <Text style={styles.sectionTitle}>剧集列表</Text>
-                    <View style={styles.episodesGrid}>
-                        {details.tv.source.episodes.map((episode, index) => {
-                            const epStorage = details.tv.storage.episodes[index];
-                            const hasDownloaded = epStorage?.status === 'success';
-                            const isDownloading = epStorage?.status === 'running';
-                            const isFailed = epStorage?.status === 'failed';
-                            const isSelected = index === selectedEpisode;
-                            const epIsWatched =
-                                details.info.user_data.watch_progress.episode_id > index ||
-                                (details.info.user_data.watch_progress.episode_id === index &&
-                                    details.info.user_data.watch_progress.time > 0);
+                    {/* 剧集列表 */}
+                    <View style={styles.episodesSection}>
+                        <Text style={styles.sectionTitle}>剧集列表</Text>
+                        <View style={styles.episodesGrid}>
+                            {details.tv.source.episodes.map((episode, index) => {
+                                const epStorage = details.tv.storage.episodes[index];
+                                const hasDownloaded = epStorage?.status === 'success';
+                                const isDownloading = epStorage?.status === 'running';
+                                const isFailed = epStorage?.status === 'failed';
+                                const isSelected = index === selectedEpisode;
+                                const epIsWatched =
+                                    details.info.user_data.watch_progress.episode_id > index ||
+                                    (details.info.user_data.watch_progress.episode_id === index &&
+                                        details.info.user_data.watch_progress.time > 0);
 
-                            return (
-                                <TouchableOpacity
-                                    key={index}
-                                    style={[
-                                        styles.episodeCard,
-                                        isSelected && styles.episodeCardSelected,
-                                        { marginHorizontal: 2, marginBottom: 6 },
-                                    ]}
-                                    onPress={() => handleEpisodeSelect(index)}
-                                    disabled={!hasDownloaded && !isDownloading}
-                                >
-                                    <Text
+                                return (
+                                    <TouchableOpacity
+                                        key={index}
                                         style={[
-                                            styles.episodeName,
-                                            (!hasDownloaded && !isDownloading) && styles.episodeNameDisabled,
+                                            styles.episodeCard,
+                                            isSelected && styles.episodeCardSelected,
+                                            { marginHorizontal: 2, marginBottom: 6 },
                                         ]}
-                                        numberOfLines={2}
+                                        onPress={() => handleEpisodeSelect(index)}
+                                        disabled={!hasDownloaded && !isDownloading}
                                     >
-                                        {episode.name || ''}
-                                    </Text>
-                                    <View style={styles.episodeStatus}>
-                                        {hasDownloaded ? (
-                                            <Text style={styles.episodeStatusText}>✓</Text>
-                                        ) : isDownloading ? (
-                                            <Text style={styles.episodeStatusTextDownloading}>下载中</Text>
-                                        ) : isFailed ? (
-                                            <Text style={styles.episodeStatusTextFailed}>失败</Text>
-                                        ) : (
-                                            <Text style={styles.episodeStatusText}>-</Text>
-                                        )}
-                                    </View>
-                                </TouchableOpacity>
-                            );
-                        })}
+                                        <Text
+                                            style={[
+                                                styles.episodeName,
+                                                (!hasDownloaded && !isDownloading) && styles.episodeNameDisabled,
+                                            ]}
+                                            numberOfLines={2}
+                                        >
+                                            {episode.name || ''}
+                                        </Text>
+                                        <View style={styles.episodeStatus}>
+                                            {hasDownloaded ? (
+                                                <Text style={styles.episodeStatusText}>✓</Text>
+                                            ) : isDownloading ? (
+                                                <Text style={styles.episodeStatusTextDownloading}>下载中</Text>
+                                            ) : isFailed ? (
+                                                <Text style={styles.episodeStatusTextFailed}>失败</Text>
+                                            ) : (
+                                                <Text style={styles.episodeStatusText}>-</Text>
+                                            )}
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
                     </View>
-                </View>
-            </ScrollView>
+                </ScrollView>
+            )}
         </SafeAreaView>
     );
 }
@@ -329,13 +402,23 @@ const styles = StyleSheet.create({
         backgroundColor: '#000',
         borderRadius: 0,
         overflow: 'hidden',
-        marginBottom: 12,
         marginLeft: -12,
         marginRight: -12,
         marginTop: -12,
+        marginBottom: 12,
         aspectRatio: 16 / 9,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    playerContainerFullscreen: {
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 10,
+        elevation: 10,
+        aspectRatio: undefined,
+        marginLeft: 0,
+        marginRight: 0,
+        marginTop: 0,
+        marginBottom: 0,
     },
     noVideoContainer: {
         flex: 1,
