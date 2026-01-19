@@ -34,6 +34,8 @@ export default function VideoPlayer({
     const resumeAppliedRef = useRef(false);
     const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const lastClickTimeRef = useRef<number>(0);
+    const autoHideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const AUTO_HIDE_DELAY_MS = 10000;
 
     const player = useVideoPlayer(videoUrl, (player) => {
         player.loop = false;
@@ -110,6 +112,26 @@ export default function VideoPlayer({
         return () => clearInterval(syncInterval);
     }, [player, onPlaybackState]);
 
+    const clearAutoHide = useCallback(() => {
+        if (autoHideTimeoutRef.current) {
+            clearTimeout(autoHideTimeoutRef.current);
+            autoHideTimeoutRef.current = null;
+        }
+    }, []);
+
+    const scheduleAutoHide = useCallback(() => {
+        clearAutoHide();
+        autoHideTimeoutRef.current = setTimeout(() => {
+            setShowControls(false);
+            autoHideTimeoutRef.current = null;
+        }, AUTO_HIDE_DELAY_MS);
+    }, [clearAutoHide]);
+
+    const showControlsWithAutoHide = useCallback(() => {
+        setShowControls(true);
+        scheduleAutoHide();
+    }, [scheduleAutoHide]);
+
     const togglePlay = useCallback(() => {
         if (!player) return;
         try {
@@ -118,10 +140,11 @@ export default function VideoPlayer({
             } else {
                 player.play();
             }
+            showControlsWithAutoHide();
         } catch (err) {
             console.error('Error toggling play:', err);
         }
-    }, [player]);
+    }, [player, showControlsWithAutoHide]);
 
     const handleVideoPress = useCallback(() => {
         const now = Date.now();
@@ -141,12 +164,20 @@ export default function VideoPlayer({
             // 否则，延迟执行单击操作（显示/隐藏UI）
             lastClickTimeRef.current = now;
             clickTimeoutRef.current = setTimeout(() => {
-                setShowControls((prev) => !prev);
+                setShowControls((prev) => {
+                    const next = !prev;
+                    if (next) {
+                        scheduleAutoHide();
+                    } else {
+                        clearAutoHide();
+                    }
+                    return next;
+                });
                 clickTimeoutRef.current = null;
                 lastClickTimeRef.current = 0;
             }, 300);
         }
-    }, [togglePlay]);
+    }, [togglePlay, scheduleAutoHide, clearAutoHide]);
 
     // 清理定时器
     useEffect(() => {
@@ -154,12 +185,14 @@ export default function VideoPlayer({
             if (clickTimeoutRef.current) {
                 clearTimeout(clickTimeoutRef.current);
             }
+            clearAutoHide();
         };
-    }, []);
+    }, [clearAutoHide]);
 
     const handleSeek = useCallback(
         (event: { nativeEvent: { locationX: number } }) => {
             if (!player || duration <= 0 || progressBarWidth <= 0) return;
+            showControlsWithAutoHide();
             const ratio = Math.min(1, Math.max(0, event.nativeEvent.locationX / progressBarWidth));
             const newTime = ratio * duration;
             try {
@@ -169,7 +202,7 @@ export default function VideoPlayer({
                 console.error('Error seeking video:', err);
             }
         },
-        [player, duration, progressBarWidth],
+        [player, duration, progressBarWidth, showControlsWithAutoHide],
     );
 
     const formatTime = (seconds: number | undefined | null): string => {
@@ -186,6 +219,20 @@ export default function VideoPlayer({
     };
 
     const progressPercent = duration > 0 ? Math.min(1, playbackTime / duration) * 100 : 0;
+
+    useEffect(() => {
+        if (showControls) {
+            scheduleAutoHide();
+        } else {
+            clearAutoHide();
+        }
+        return clearAutoHide;
+    }, [showControls, scheduleAutoHide, clearAutoHide]);
+
+    const handleToggleFullscreen = useCallback(() => {
+        showControlsWithAutoHide();
+        onToggleFullscreen?.();
+    }, [showControlsWithAutoHide, onToggleFullscreen]);
 
     return (
         <View style={styles.container}>
@@ -219,7 +266,7 @@ export default function VideoPlayer({
                             {formatTime(playbackTime)} / {formatTime(duration)}
                         </Text>
                         {onToggleFullscreen ? (
-                            <TouchableOpacity style={styles.controlButton} onPress={onToggleFullscreen}>
+                            <TouchableOpacity style={styles.controlButton} onPress={handleToggleFullscreen}>
                                 <Ionicons name={isFullscreen ? 'contract' : 'expand'} size={18} color="#fff" />
                             </TouchableOpacity>
                         ) : null}
