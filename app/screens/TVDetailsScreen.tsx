@@ -9,13 +9,15 @@ import {
     BackHandler,
     Platform,
     StatusBar,
+    Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
+import { Ionicons } from '@expo/vector-icons';
 import VideoPlayer from '../components/VideoPlayer';
-import { getTVDetails, setWatchProgress } from '../api/client-proxy';
-import type { GetTVDetailsResponse } from '../api/types';
+import { getTVDetails, setWatchProgress, setTVTag } from '../api/client-proxy';
+import type { GetTVDetailsResponse, Tag } from '../api/types';
 
 interface TVDetailsScreenProps {
     tv: {
@@ -38,6 +40,8 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         isPlaying: false,
     });
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [showMenu, setShowMenu] = useState(false);
+    const [showTagSelector, setShowTagSelector] = useState(false);
     const lastUpdateTimeRef = useRef<number>(-1);
     const lastKnownTimeRef = useRef<number>(-1);
     const lastKnownEpisodeRef = useRef<number>(-1);
@@ -202,6 +206,20 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         setIsFullscreen((prev) => !prev);
     }, []);
 
+    const handleTagChange = useCallback(async (tag: Tag) => {
+        if (!details) return;
+
+        try {
+            await setTVTag({ tv_id: details.tv.id, tag });
+            // 重新加载详情以更新标签
+            await loadTVDetails();
+            setShowTagSelector(false);
+            setShowMenu(false);
+        } catch (err) {
+            console.error('Error setting tag:', err);
+        }
+    }, [details]);
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -246,6 +264,12 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                     <Text style={styles.titleBarText} numberOfLines={1}>
                         {details.tv.name || ''}
                     </Text>
+                    <TouchableOpacity
+                        style={styles.menuButton}
+                        onPress={() => setShowMenu(true)}
+                    >
+                        <Ionicons name="ellipsis-vertical" size={24} color="#333" />
+                    </TouchableOpacity>
                 </View>
             )}
 
@@ -338,6 +362,98 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                     </View>
                 </ScrollView>
             )}
+
+            {/* 菜单弹窗 */}
+            <Modal
+                visible={showMenu}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowMenu(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowMenu(false)}
+                >
+                    <View style={styles.menuContainer}>
+                        <TouchableOpacity
+                            style={styles.menuItem}
+                            onPress={() => {
+                                setShowMenu(false);
+                                setShowTagSelector(true);
+                            }}
+                        >
+                            <Ionicons name="pricetag-outline" size={20} color="#333" />
+                            <Text style={styles.menuItemText}>修改标签</Text>
+                        </TouchableOpacity>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
+
+            {/* 标签选择器弹窗 */}
+            <Modal
+                visible={showTagSelector}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowTagSelector(false)}
+            >
+                <TouchableOpacity
+                    style={styles.modalOverlay}
+                    activeOpacity={1}
+                    onPress={() => setShowTagSelector(false)}
+                >
+                    <View style={styles.tagSelectorContainer}>
+                        <Text style={styles.tagSelectorTitle}>选择标签</Text>
+                        <View style={styles.tagList}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.tagItem,
+                                    details?.info.user_data.tag === 'watching' && styles.tagItemSelected
+                                ]}
+                                onPress={() => handleTagChange('watching')}
+                            >
+                                <Text style={styles.tagItemText}>在看</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.tagItem,
+                                    details?.info.user_data.tag === 'wanted' && styles.tagItemSelected
+                                ]}
+                                onPress={() => handleTagChange('wanted')}
+                            >
+                                <Text style={styles.tagItemText}>想看</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.tagItem,
+                                    details?.info.user_data.tag === 'watched' && styles.tagItemSelected
+                                ]}
+                                onPress={() => handleTagChange('watched')}
+                            >
+                                <Text style={styles.tagItemText}>看过</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.tagItem,
+                                    details?.info.user_data.tag === 'on_hold' && styles.tagItemSelected
+                                ]}
+                                onPress={() => handleTagChange('on_hold')}
+                            >
+                                <Text style={styles.tagItemText}>搁置</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.tagItem,
+                                    details?.info.user_data.tag === 'not_tagged' && styles.tagItemSelected
+                                ]}
+                                onPress={() => handleTagChange('not_tagged')}
+                            >
+                                <Text style={styles.tagItemText}>未标记</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableOpacity>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -364,15 +480,30 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#e0e0e0',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
+        position: 'relative',
     },
     titleBarText: {
-        fontSize: 18,
+        fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
         textAlign: 'center',
+        flex: 1,
+    },
+    menuButton: {
+        position: 'absolute',
+        right: 16,
+        padding: 4,
     },
     scrollView: {
         flex: 1,
@@ -410,8 +541,8 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         marginLeft: -12,
         marginRight: -12,
-        marginTop: -12,
-        marginBottom: 12,
+        marginTop: 0,
+        marginBottom: 0,
         aspectRatio: 16 / 9,
         justifyContent: 'center',
         alignItems: 'center',
@@ -506,5 +637,73 @@ const styles = StyleSheet.create({
     episodeStatusTextFailed: {
         fontSize: 10,
         color: '#FF3B30',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-start',
+        alignItems: 'flex-end',
+        paddingTop: 60,
+        paddingRight: 16,
+    },
+    menuContainer: {
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        minWidth: 150,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        gap: 12,
+    },
+    menuItemText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    tagSelectorContainer: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 20,
+        marginHorizontal: 40,
+        marginTop: 200,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    tagSelectorTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+        marginBottom: 16,
+        textAlign: 'center',
+    },
+    tagList: {
+        gap: 10,
+    },
+    tagItem: {
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderRadius: 8,
+        backgroundColor: '#f5f5f5',
+        borderWidth: 2,
+        borderColor: 'transparent',
+    },
+    tagItemSelected: {
+        backgroundColor: '#e3f2fd',
+        borderColor: '#007AFF',
+    },
+    tagItemText: {
+        fontSize: 16,
+        color: '#333',
+        textAlign: 'center',
     },
 });
