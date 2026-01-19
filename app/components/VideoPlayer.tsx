@@ -12,6 +12,7 @@ type PlaybackState = {
 interface VideoPlayerProps {
     videoUrl: string;
     resumeTime?: number;
+    autoPlay?: boolean;
     onPlaybackState?: (state: PlaybackState) => void;
     onPlayToEnd?: () => void;
     isFullscreen?: boolean;
@@ -21,6 +22,7 @@ interface VideoPlayerProps {
 export default function VideoPlayer({
     videoUrl,
     resumeTime = 0,
+    autoPlay = false,
     onPlaybackState,
     onPlayToEnd,
     isFullscreen = false,
@@ -57,13 +59,17 @@ export default function VideoPlayer({
             if (player && videoUrl) {
                 try {
                     await player.replaceAsync(videoUrl);
+                    if (autoPlay) {
+                        await player.play();
+                        setIsPlaying(true);
+                    }
                 } catch (err) {
                     console.error('Error replacing video source:', err);
                 }
             }
         };
         updateVideoSource();
-    }, [player, videoUrl]);
+    }, [player, videoUrl, autoPlay]);
 
     useEffect(() => {
         if (!player || resumeAppliedRef.current || resumeTime <= 0) return;

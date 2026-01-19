@@ -34,6 +34,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     const [error, setError] = useState<string | null>(null);
     const [selectedEpisode, setSelectedEpisode] = useState<number>(0);
     const [resumeTime, setResumeTime] = useState<number>(0);
+    const [autoPlay, setAutoPlay] = useState(false);
     const [playbackState, setPlaybackState] = useState({
         currentTime: 0,
         duration: 0,
@@ -79,6 +80,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
             const savedEpisode = details.info.user_data.watch_progress.episode_id;
             setSelectedEpisode(savedEpisode);
             setResumeTime(details.info.user_data.watch_progress.time);
+            setAutoPlay(false);
         }
     }, [details]);
 
@@ -110,13 +112,14 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         }
     }, [details]);
 
-    const handleEpisodeSelect = useCallback((episodeIndex: number) => {
+    const handleEpisodeSelect = useCallback((episodeIndex: number, autoPlay: boolean) => {
         if (!details) return;
 
         // 更新观看进度为当前集数的第0秒
         updateWatchProgress(episodeIndex, 0);
         setSelectedEpisode(episodeIndex);
         setResumeTime(0);
+        setAutoPlay(autoPlay);
         autoFullscreenEnabledRef.current = true;
         autoFullscreenActiveRef.current = false;
     }, [details, updateWatchProgress, setResumeTime, setSelectedEpisode]);
@@ -278,8 +281,9 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                     <VideoPlayer
                         videoUrl={currentVideoUrl}
                         resumeTime={resumeTime}
+                        autoPlay={autoPlay}
                         onPlaybackState={setPlaybackState}
-                        onPlayToEnd={() => handleEpisodeSelect(selectedEpisode + 1)}
+                        onPlayToEnd={() => handleEpisodeSelect(selectedEpisode + 1, true)}
                         isFullscreen={isFullscreen}
                         onToggleFullscreen={handleToggleFullscreen}
                     />
@@ -332,7 +336,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                                             isSelected && styles.episodeCardSelected,
                                             { marginHorizontal: 2, marginBottom: 6 },
                                         ]}
-                                        onPress={() => handleEpisodeSelect(index)}
+                                        onPress={() => handleEpisodeSelect(index, false)}
                                         disabled={!hasDownloaded && !isDownloading}
                                     >
                                         <Text
