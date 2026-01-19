@@ -228,7 +228,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                                     style={[
                                         styles.episodeCard,
                                         isSelected && styles.episodeCardSelected,
-                                        epIsWatched && styles.episodeCardWatched,
                                         { marginHorizontal: 2, marginBottom: 6 },
                                     ]}
                                     onPress={() => handleEpisodeSelect(index)}
@@ -393,9 +392,6 @@ const styles = StyleSheet.create({
     episodeCardSelected: {
         borderColor: '#007AFF',
         backgroundColor: '#e3f2fd',
-    },
-    episodeCardWatched: {
-        backgroundColor: '#e8f5e9',
     },
     episodeName: {
         fontSize: 11,
