@@ -45,7 +45,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     const lastUpdateTimeRef = useRef<number>(-1);
     const lastKnownTimeRef = useRef<number>(-1);
     const lastKnownEpisodeRef = useRef<number>(-1);
-    const autoFullscreenEnabledRef = useRef(true);
+    const autoFullscreenEnabledRef = useRef(false);
     const autoFullscreenActiveRef = useRef(false);
 
     // 获取当前视频 URL
