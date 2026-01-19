@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     BackHandler,
     Platform,
+    StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -147,6 +148,11 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
             return;
         }
         ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => null);
+    }, [isFullscreen]);
+
+    useEffect(() => {
+        StatusBar.setHidden(isFullscreen, 'fade');
+        return () => StatusBar.setHidden(false, 'fade');
     }, [isFullscreen]);
 
     useEffect(() => {
