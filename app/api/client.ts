@@ -82,6 +82,12 @@ async function apiCall<TRequest, TResponse>(
 
     if (!response.ok) {
         const errorText = await response.text();
+        // 401 未授权错误，抛出特殊错误
+        if (response.status === 401) {
+            const error = new Error(`Unauthorized`);
+            (error as any).status = 401;
+            throw error;
+        }
         throw new Error(`API error: ${response.statusText} - ${errorText}`);
     }
 

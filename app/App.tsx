@@ -4,7 +4,7 @@ import { ActivityIndicator, View, Text, StyleSheet } from 'react-native';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import TVDetailsScreen from './screens/TVDetailsScreen';
-import { getApiToken } from './api/client';
+import { getApiToken, clearApiToken } from './api/client';
 import type { TVInfo } from './api/types';
 
 type Screen = 'home' | 'tv-details';
@@ -32,7 +32,13 @@ export default function App() {
     setIsLoggedIn(true);
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // 清除存储的 token
+      await clearApiToken();
+    } catch (error) {
+      console.error('Error clearing token:', error);
+    }
     setIsLoggedIn(false);
     setCurrentScreen('home');
     setSelectedTV(null);

@@ -11,6 +11,7 @@ type PlaybackState = {
 
 interface VideoPlayerProps {
     videoUrl: string;
+    headers?: Record<string, string>;
     resumeTime?: number;
     autoPlay?: boolean;
     onPlaybackState?: (state: PlaybackState) => void;
@@ -21,6 +22,7 @@ interface VideoPlayerProps {
 
 export default function VideoPlayer({
     videoUrl,
+    headers,
     resumeTime = 0,
     autoPlay = false,
     onPlaybackState,
@@ -45,7 +47,18 @@ export default function VideoPlayer({
     const AUTO_HIDE_DELAY_MS = 10000;
     const SEEK_SECONDS_PER_FULL_SWIPE = 100; // 拖动整个播放器宽度对应的秒数
 
-    const player = useVideoPlayer(videoUrl, (player) => {
+    // 构建视频源，包含headers
+    const videoSource = React.useMemo(() => {
+        if (headers) {
+            return {
+                uri: videoUrl,
+                headers: headers
+            };
+        }
+        return videoUrl;
+    }, [videoUrl, headers]);
+
+    const player = useVideoPlayer(videoSource, (player) => {
         player.loop = false;
         player.muted = false;
     });
@@ -56,9 +69,9 @@ export default function VideoPlayer({
 
     useEffect(() => {
         const updateVideoSource = async () => {
-            if (player && videoUrl) {
+            if (player && videoSource) {
                 try {
-                    await player.replaceAsync(videoUrl);
+                    await player.replaceAsync(videoSource);
                     if (autoPlay) {
                         await player.play();
                         setIsPlaying(true);
@@ -69,7 +82,7 @@ export default function VideoPlayer({
             }
         };
         updateVideoSource();
-    }, [player, videoUrl, autoPlay]);
+    }, [player, videoSource, autoPlay]);
 
     useEffect(() => {
         if (!player || resumeAppliedRef.current || resumeTime <= 0) return;

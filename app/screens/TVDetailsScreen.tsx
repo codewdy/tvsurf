@@ -16,7 +16,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import VideoPlayer from '../components/VideoPlayer';
-import { getTVDetails, setWatchProgress, setTVTag } from '../api/client-proxy';
+import { getTVDetails, setWatchProgress, setTVTag, getApiToken } from '../api/client-proxy';
 import type { GetTVDetailsResponse, Tag } from '../api/types';
 
 interface TVDetailsScreenProps {
@@ -29,6 +29,7 @@ interface TVDetailsScreenProps {
 }
 
 export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
+    const [token, setToken] = useState<string | null>(null);
     const [details, setDetails] = useState<GetTVDetailsResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -46,6 +47,23 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     const lastUpdateTimeRef = useRef<number>(-1);
     const lastKnownTimeRef = useRef<number>(-1);
     const lastKnownEpisodeRef = useRef<number>(-1);
+
+    // 获取 token
+    useEffect(() => {
+        const fetchToken = async () => {
+            const apiToken = await getApiToken();
+            setToken(apiToken);
+        };
+        fetchToken();
+    }, []);
+
+    // 构建请求headers
+    const requestHeaders = React.useMemo(() => {
+        if (token) {
+            return { Cookie: `tvsurf_token=${token}` };
+        }
+        return undefined;
+    }, [token]);
 
     // 获取当前视频 URL
     const currentVideoUrl = details?.episodes[selectedEpisode] || null;
@@ -253,6 +271,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                 {hasVideo ? (
                     <VideoPlayer
                         videoUrl={currentVideoUrl}
+                        headers={requestHeaders}
                         resumeTime={resumeTime}
                         autoPlay={autoPlay}
                         onPlaybackState={setPlaybackState}

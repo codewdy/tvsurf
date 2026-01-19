@@ -7,9 +7,9 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Platform,
-    Image,
     RefreshControl,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getTVInfos, getApiBaseUrl, getApiToken } from '../api/client-proxy';
 import type { TVInfo, Tag } from '../api/types';
@@ -55,6 +55,12 @@ export default function HomeScreen({ onLogout, onTVPress }: HomeScreenProps) {
             }
         } catch (error) {
             console.error('Error loading data:', error);
+            // 检查是否是401错误
+            if (error && typeof error === 'object' && (error as any).status === 401) {
+                // 401未授权，执行登出
+                onLogout();
+                return;
+            }
             setError(error instanceof Error ? error.message : '加载失败');
         } finally {
             setLoading(false);
@@ -69,6 +75,12 @@ export default function HomeScreen({ onLogout, onTVPress }: HomeScreenProps) {
             setTvs(response.tvs);
         } catch (error) {
             console.error('Error refreshing TV list:', error);
+            // 检查是否是401错误
+            if (error && typeof error === 'object' && (error as any).status === 401) {
+                // 401未授权，执行登出
+                onLogout();
+                return;
+            }
             setError(error instanceof Error ? error.message : '刷新失败');
         } finally {
             setRefreshing(false);
@@ -87,6 +99,14 @@ export default function HomeScreen({ onLogout, onTVPress }: HomeScreenProps) {
         const path = coverUrl.startsWith('/') ? coverUrl : `/${coverUrl}`;
         return `${base}${path}`;
     };
+
+    // 构建请求headers
+    const requestHeaders = React.useMemo(() => {
+        if (token) {
+            return { Cookie: `tvsurf_token=${token}` };
+        }
+        return undefined;
+    }, [token]);
 
     // 按tag分组TV
     const groupedTvs = React.useMemo(() => {
@@ -183,9 +203,13 @@ export default function HomeScreen({ onLogout, onTVPress }: HomeScreenProps) {
                                                 activeOpacity={0.7}
                                             >
                                                 <Image
-                                                    source={{ uri: getCoverUrl(tv.cover_url) }}
+                                                    source={{
+                                                        uri: getCoverUrl(tv.cover_url),
+                                                        headers: requestHeaders
+                                                    }}
                                                     style={styles.coverImage}
-                                                    resizeMode="cover"
+                                                    contentFit="cover"
+                                                    cachePolicy="disk"
                                                 />
                                                 <View style={styles.tvInfo}>
                                                     <Text style={styles.tvName} numberOfLines={2}>

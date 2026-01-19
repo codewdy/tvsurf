@@ -13,6 +13,7 @@
     "@react-native-async-storage/async-storage": "^2.1.0",
     "bcryptjs": "^2.4.3",
     "expo": "~54.0.31",
+    "expo-image": "^3.0.11",
     "expo-navigation-bar": "^5.0.10",
     "expo-screen-orientation": "^9.0.8",
     "expo-sensors": "^15.0.8",
