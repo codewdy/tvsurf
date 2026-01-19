@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -26,7 +26,10 @@ export default function VideoPlayer({
     const [playbackTime, setPlaybackTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [progressBarWidth, setProgressBarWidth] = useState(0);
+    const [showControls, setShowControls] = useState(true);
     const resumeAppliedRef = useRef(false);
+    const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const lastClickTimeRef = useRef<number>(0);
 
     const player = useVideoPlayer(videoUrl, (player) => {
         player.loop = false;
@@ -116,6 +119,40 @@ export default function VideoPlayer({
         }
     }, [player]);
 
+    const handleVideoPress = useCallback(() => {
+        const now = Date.now();
+        const timeSinceLastClick = now - lastClickTimeRef.current;
+
+        // 清除之前的单击定时器
+        if (clickTimeoutRef.current) {
+            clearTimeout(clickTimeoutRef.current);
+            clickTimeoutRef.current = null;
+        }
+
+        // 如果距离上次点击小于300ms，认为是双击
+        if (timeSinceLastClick < 300) {
+            togglePlay();
+            lastClickTimeRef.current = 0;
+        } else {
+            // 否则，延迟执行单击操作（显示/隐藏UI）
+            lastClickTimeRef.current = now;
+            clickTimeoutRef.current = setTimeout(() => {
+                setShowControls((prev) => !prev);
+                clickTimeoutRef.current = null;
+                lastClickTimeRef.current = 0;
+            }, 300);
+        }
+    }, [togglePlay]);
+
+    // 清理定时器
+    useEffect(() => {
+        return () => {
+            if (clickTimeoutRef.current) {
+                clearTimeout(clickTimeoutRef.current);
+            }
+        };
+    }, []);
+
     const handleSeek = useCallback(
         (event: { nativeEvent: { locationX: number } }) => {
             if (!player || duration <= 0 || progressBarWidth <= 0) return;
@@ -147,41 +184,63 @@ export default function VideoPlayer({
     const progressPercent = duration > 0 ? Math.min(1, playbackTime / duration) * 100 : 0;
 
     return (
-        <>
+        <View style={styles.container}>
             <VideoView
                 player={player}
                 style={styles.videoPlayer}
                 contentFit="contain"
                 nativeControls={false}
             />
-            <View style={styles.controlsOverlay}>
-                <View style={styles.controlsRow}>
-                    <TouchableOpacity style={styles.controlButton} onPress={togglePlay}>
-                        <Ionicons name={isPlaying ? 'pause' : 'play'} size={18} color="#fff" />
-                    </TouchableOpacity>
-                    <View
-                        style={styles.progressBar}
-                        onLayout={(event) => setProgressBarWidth(event.nativeEvent.layout.width)}
-                        onStartShouldSetResponder={() => true}
-                        onResponderGrant={handleSeek}
-                    >
-                        <View style={styles.progressTrack} />
-                        <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-                        <View style={[styles.progressThumb, { left: `${progressPercent}%` }]} />
+            <Pressable style={styles.touchOverlay} onPress={handleVideoPress}>
+                <View style={styles.touchArea} />
+            </Pressable>
+            {showControls && (
+                <View style={styles.controlsOverlay} pointerEvents="box-none">
+                    <View style={styles.controlsRow}>
+                        <TouchableOpacity style={styles.controlButton} onPress={togglePlay}>
+                            <Ionicons name={isPlaying ? 'pause' : 'play'} size={18} color="#fff" />
+                        </TouchableOpacity>
+                        <View
+                            style={styles.progressBar}
+                            onLayout={(event) => setProgressBarWidth(event.nativeEvent.layout.width)}
+                            onStartShouldSetResponder={() => true}
+                            onResponderGrant={handleSeek}
+                            onResponderTerminationRequest={() => false}
+                        >
+                            <View style={styles.progressTrack} />
+                            <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+                            <View style={[styles.progressThumb, { left: `${progressPercent}%` }]} />
+                        </View>
+                        <Text style={styles.timeText}>
+                            {formatTime(playbackTime)} / {formatTime(duration)}
+                        </Text>
                     </View>
-                    <Text style={styles.timeText}>
-                        {formatTime(playbackTime)} / {formatTime(duration)}
-                    </Text>
                 </View>
-            </View>
-        </>
+            )}
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    container: {
+        width: '100%',
+        height: '100%',
+        position: 'relative',
+    },
     videoPlayer: {
         width: '100%',
         height: '100%',
+    },
+    touchOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 1,
+    },
+    touchArea: {
+        flex: 1,
     },
     controlsOverlay: {
         position: 'absolute',
@@ -191,6 +250,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 8,
         backgroundColor: 'rgba(0, 0, 0, 0.45)',
+        zIndex: 2,
     },
     controlsRow: {
         flexDirection: 'row',
