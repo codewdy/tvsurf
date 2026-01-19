@@ -78,7 +78,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
             setResumeTime(details.info.user_data.watch_progress.time);
             setAutoPlay(false);
         }
-    }, [details]);
+    }, [details?.info.user_data.watch_progress.episode_id, details?.info.user_data.watch_progress.time]);
 
     const loadTVDetails = async () => {
         try {
@@ -109,8 +109,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     }, [details]);
 
     const handleEpisodeSelect = useCallback((episodeIndex: number, autoPlay: boolean) => {
-        if (!details) return;
-
         // 更新观看进度为当前集数的第0秒
         updateWatchProgress(episodeIndex, 0);
         setSelectedEpisode(episodeIndex);
@@ -120,8 +118,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
 
     // 监听播放进度并定期更新
     useEffect(() => {
-        if (!details) return;
-
         if (lastKnownEpisodeRef.current != selectedEpisode || Math.abs(lastUpdateTimeRef.current - playbackState.currentTime) > 5) {
             updateWatchProgress(selectedEpisode, playbackState.currentTime);
             lastUpdateTimeRef.current = playbackState.currentTime;
@@ -192,8 +188,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
 
         try {
             await setTVTag({ tv_id: details.tv.id, tag });
-            // 重新加载详情以更新标签
-            await loadTVDetails();
+            details.info.user_data.tag = tag;
             setShowTagSelector(false);
             setShowMenu(false);
         } catch (err) {
