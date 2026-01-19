@@ -32,9 +32,9 @@ class App:
 
     async def on_shutdown(self) -> None:
         self.tracker.save()
+        self.sock.close()
 
     async def on_cleanup(self) -> None:
-        self.sock.close()
         await self.tracker.stop()
 
     def create_app(self):
@@ -88,7 +88,7 @@ class App:
         return self.config.port
 
     def run(self):
-        web.run_app(self.app, sock=self.sock, loop=self.loop, shutdown_timeout=10)
+        web.run_app(self.app, sock=self.sock, loop=self.loop, shutdown_timeout=1)
 
     def serve(self):
         self.prepare()
