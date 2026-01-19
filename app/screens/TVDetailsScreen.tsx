@@ -46,8 +46,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     const lastUpdateTimeRef = useRef<number>(-1);
     const lastKnownTimeRef = useRef<number>(-1);
     const lastKnownEpisodeRef = useRef<number>(-1);
-    const autoFullscreenEnabledRef = useRef(false);
-    const autoFullscreenActiveRef = useRef(false);
 
     // 获取当前视频 URL
     const currentVideoUrl = details?.episodes[selectedEpisode] || null;
@@ -57,8 +55,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     useEffect(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
             if (isFullscreen) {
-                autoFullscreenEnabledRef.current = false;
-                autoFullscreenActiveRef.current = false;
                 setIsFullscreen(false);
                 return true;
             }
@@ -120,8 +116,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         setSelectedEpisode(episodeIndex);
         setResumeTime(0);
         setAutoPlay(autoPlay);
-        autoFullscreenEnabledRef.current = true;
-        autoFullscreenActiveRef.current = false;
     }, [details, updateWatchProgress, setResumeTime, setSelectedEpisode]);
 
     // 监听播放进度并定期更新
@@ -181,20 +175,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     }, [isFullscreen]);
 
     useEffect(() => {
-        if (playbackState.isPlaying) {
-            if (autoFullscreenEnabledRef.current && !isFullscreen) {
-                setIsFullscreen(true);
-                autoFullscreenActiveRef.current = true;
-            }
-            return;
-        }
-        if (autoFullscreenActiveRef.current && isFullscreen) {
-            setIsFullscreen(false);
-            autoFullscreenActiveRef.current = false;
-        }
-    }, [playbackState.isPlaying, isFullscreen]);
-
-    useEffect(() => {
         return () => {
             ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
             if (Platform.OS === 'android') {
@@ -204,8 +184,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     }, []);
 
     const handleToggleFullscreen = useCallback(() => {
-        autoFullscreenEnabledRef.current = false;
-        autoFullscreenActiveRef.current = false;
         setIsFullscreen((prev) => !prev);
     }, []);
 
