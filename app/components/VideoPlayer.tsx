@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Pressable, PanResponder, Animated } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -31,11 +31,17 @@ export default function VideoPlayer({
     const [duration, setDuration] = useState(0);
     const [progressBarWidth, setProgressBarWidth] = useState(0);
     const [showControls, setShowControls] = useState(true);
+    const [seekOffset, setSeekOffset] = useState(0);
+    const [showSeekIndicator, setShowSeekIndicator] = useState(false);
+    const [playerWidth, setPlayerWidth] = useState(0);
     const resumeAppliedRef = useRef(false);
     const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const lastClickTimeRef = useRef<number>(0);
     const autoHideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const isDraggingRef = useRef(false);
+    const seekIndicatorOpacity = useRef(new Animated.Value(0)).current;
     const AUTO_HIDE_DELAY_MS = 10000;
+    const SEEK_SECONDS_PER_FULL_SWIPE = 100; // 拖动整个播放器宽度对应的秒数
 
     const player = useVideoPlayer(videoUrl, (player) => {
         player.loop = false;
@@ -147,6 +153,11 @@ export default function VideoPlayer({
     }, [player, showControlsWithAutoHide]);
 
     const handleVideoPress = useCallback(() => {
+        // 如果正在拖动，不处理点击事件
+        if (isDraggingRef.current) {
+            return;
+        }
+
         const now = Date.now();
         const timeSinceLastClick = now - lastClickTimeRef.current;
 
@@ -178,6 +189,73 @@ export default function VideoPlayer({
             }, 300);
         }
     }, [togglePlay, scheduleAutoHide, clearAutoHide]);
+
+    // 拖动手势处理
+    const panResponderRef = useRef<any>(null);
+
+    useEffect(() => {
+        panResponderRef.current = PanResponder.create({
+            onStartShouldSetPanResponder: () => false,
+            onMoveShouldSetPanResponder: (_, gestureState) => {
+                // 只有水平滑动距离大于10像素才激活拖动
+                return Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+            },
+            onPanResponderGrant: () => {
+                isDraggingRef.current = true;
+                // 清除单击定时器，防止拖动时触发点击
+                if (clickTimeoutRef.current) {
+                    clearTimeout(clickTimeoutRef.current);
+                    clickTimeoutRef.current = null;
+                }
+                setShowSeekIndicator(true);
+                Animated.timing(seekIndicatorOpacity, {
+                    toValue: 1,
+                    duration: 200,
+                    useNativeDriver: true,
+                }).start();
+            },
+            onPanResponderMove: (_, gestureState) => {
+                if (playerWidth <= 0) return;
+                // 拖动整个播放器宽度对应 SEEK_SECONDS_PER_FULL_SWIPE 秒
+                // 保留小数精度，避免小的拖动距离被舍入为0
+                const offset = (gestureState.dx / playerWidth) * SEEK_SECONDS_PER_FULL_SWIPE;
+                setSeekOffset(offset);
+            },
+            onPanResponderRelease: (_, gestureState) => {
+                if (!player || playerWidth <= 0) {
+                    isDraggingRef.current = false;
+                    setShowSeekIndicator(false);
+                    setSeekOffset(0);
+                    return;
+                }
+
+                // 计算新的播放时间，保留小数精度以便更精确的跳转
+                const offset = (gestureState.dx / playerWidth) * SEEK_SECONDS_PER_FULL_SWIPE;
+                const currentTime = player.currentTime || 0;
+                const newTime = Math.max(0, Math.min(duration, currentTime + offset));
+
+                try {
+                    player.currentTime = newTime;
+                    setPlaybackTime(newTime);
+                } catch (err) {
+                    console.error('Error seeking video:', err);
+                }
+
+                setShowSeekIndicator(false);
+                setSeekOffset(0);
+
+                // 延迟重置拖动状态，避免触发点击
+                setTimeout(() => {
+                    isDraggingRef.current = false;
+                }, 100);
+            },
+            onPanResponderTerminate: () => {
+                isDraggingRef.current = false;
+                setShowSeekIndicator(false);
+                setSeekOffset(0);
+            },
+        });
+    }, [playerWidth, player, duration, seekIndicatorOpacity]);
 
     // 清理定时器
     useEffect(() => {
@@ -241,10 +319,50 @@ export default function VideoPlayer({
                 style={styles.videoPlayer}
                 contentFit="contain"
                 nativeControls={false}
+                onLayout={(event) => {
+                    const width = event.nativeEvent.layout.width;
+                    if (width > 0 && width !== playerWidth) {
+                        setPlayerWidth(width);
+                    }
+                }}
             />
-            <Pressable style={styles.touchOverlay} onPress={handleVideoPress}>
-                <View style={styles.touchArea} />
-            </Pressable>
+            <View
+                style={styles.touchOverlay}
+                {...(panResponderRef.current?.panHandlers || {})}
+                onLayout={(event) => {
+                    const width = event.nativeEvent.layout.width;
+                    if (width > 0 && width !== playerWidth) {
+                        setPlayerWidth(width);
+                    }
+                }}
+            >
+                <Pressable style={styles.touchArea} onPress={handleVideoPress}>
+                    <View style={{ flex: 1 }} />
+                </Pressable>
+            </View>
+            {showSeekIndicator && (() => {
+                const targetTime = Math.max(0, Math.min(duration, playbackTime + seekOffset));
+                return (
+                    <Animated.View
+                        style={[
+                            styles.seekIndicator,
+                            { opacity: seekIndicatorOpacity },
+                        ]}
+                    >
+                        <Ionicons
+                            name={seekOffset >= 0 ? 'play-forward' : 'play-back'}
+                            size={40}
+                            color="#fff"
+                        />
+                        <Text style={styles.seekText}>
+                            {seekOffset >= 0 ? '+' : ''}{Math.round(seekOffset)}秒
+                        </Text>
+                        <Text style={styles.seekTargetText}>
+                            {formatTime(targetTime)}
+                        </Text>
+                    </Animated.View>
+                );
+            })()}
             {showControls && (
                 <View style={styles.controlsOverlay} pointerEvents="box-none">
                     <View style={styles.controlsRow}>
@@ -297,6 +415,31 @@ const styles = StyleSheet.create({
     },
     touchArea: {
         flex: 1,
+    },
+    seekIndicator: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        transform: [{ translateX: -60 }, { translateY: -60 }],
+        width: 120,
+        height: 120,
+        backgroundColor: 'rgba(0, 0, 0, 0.75)',
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 3,
+    },
+    seekText: {
+        color: '#fff',
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginTop: 8,
+    },
+    seekTargetText: {
+        color: '#fff',
+        fontSize: 14,
+        marginTop: 4,
+        opacity: 0.8,
     },
     controlsOverlay: {
         position: 'absolute',
