@@ -1,0 +1,237 @@
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { Ionicons } from '@expo/vector-icons';
+
+type PlaybackState = {
+    currentTime: number;
+    duration: number;
+    isPlaying: boolean;
+};
+
+interface VideoPlayerProps {
+    videoUrl: string;
+    resumeTime?: number;
+    onPlaybackState?: (state: PlaybackState) => void;
+    onPlayToEnd?: () => void;
+}
+
+export default function VideoPlayer({
+    videoUrl,
+    resumeTime = 0,
+    onPlaybackState,
+    onPlayToEnd,
+}: VideoPlayerProps) {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [playbackTime, setPlaybackTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [progressBarWidth, setProgressBarWidth] = useState(0);
+    const resumeAppliedRef = useRef(false);
+
+    const player = useVideoPlayer(videoUrl, (player) => {
+        player.loop = false;
+        player.muted = false;
+    });
+
+    useEffect(() => {
+        resumeAppliedRef.current = false;
+    }, [videoUrl, resumeTime]);
+
+    useEffect(() => {
+        const updateVideoSource = async () => {
+            if (player && videoUrl) {
+                try {
+                    await player.replaceAsync(videoUrl);
+                } catch (err) {
+                    console.error('Error replacing video source:', err);
+                }
+            }
+        };
+        updateVideoSource();
+    }, [player, videoUrl]);
+
+    useEffect(() => {
+        if (!player || resumeAppliedRef.current || resumeTime <= 0) return;
+        const checkReady = setInterval(() => {
+            if (player.status === 'readyToPlay') {
+                player.currentTime = resumeTime;
+                resumeAppliedRef.current = true;
+                clearInterval(checkReady);
+            }
+        }, 100);
+        return () => clearInterval(checkReady);
+    }, [player, resumeTime]);
+
+    useEffect(() => {
+        if (!player) return;
+        const endSubscription = player.addListener('playToEnd', () => {
+            onPlayToEnd?.();
+        });
+        const playingChangeSubscription = player.addListener('playingChange', (payload: { isPlaying: boolean }) => {
+            setIsPlaying(payload.isPlaying);
+            onPlaybackState?.({
+                currentTime: player.currentTime || 0,
+                duration: player.duration || 0,
+                isPlaying: payload.isPlaying,
+            });
+        });
+        return () => {
+            endSubscription.remove();
+            playingChangeSubscription.remove();
+        };
+    }, [player, onPlayToEnd, onPlaybackState]);
+
+    useEffect(() => {
+        if (!player) return;
+        const syncInterval = setInterval(() => {
+            try {
+                const current = player.currentTime || 0;
+                const total = player.duration || 0;
+                const playing = player.playing;
+                setPlaybackTime(current);
+                setDuration(total);
+                setIsPlaying(playing);
+                onPlaybackState?.({
+                    currentTime: current,
+                    duration: total,
+                    isPlaying: playing,
+                });
+            } catch (err) {
+                console.error('Error syncing playback state:', err);
+            }
+        }, 500);
+        return () => clearInterval(syncInterval);
+    }, [player, onPlaybackState]);
+
+    const togglePlay = useCallback(() => {
+        if (!player) return;
+        try {
+            if (player.playing) {
+                player.pause();
+            } else {
+                player.play();
+            }
+        } catch (err) {
+            console.error('Error toggling play:', err);
+        }
+    }, [player]);
+
+    const handleSeek = useCallback(
+        (event: { nativeEvent: { locationX: number } }) => {
+            if (!player || duration <= 0 || progressBarWidth <= 0) return;
+            const ratio = Math.min(1, Math.max(0, event.nativeEvent.locationX / progressBarWidth));
+            const newTime = ratio * duration;
+            try {
+                player.currentTime = newTime;
+                setPlaybackTime(newTime);
+            } catch (err) {
+                console.error('Error seeking video:', err);
+            }
+        },
+        [player, duration, progressBarWidth],
+    );
+
+    const formatTime = (seconds: number | undefined | null): string => {
+        if (seconds === undefined || seconds === null || isNaN(seconds) || seconds < 0) {
+            return '0:00';
+        }
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        if (h > 0) {
+            return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        }
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
+    const progressPercent = duration > 0 ? Math.min(1, playbackTime / duration) * 100 : 0;
+
+    return (
+        <>
+            <VideoView
+                player={player}
+                style={styles.videoPlayer}
+                contentFit="contain"
+                nativeControls={false}
+            />
+            <View style={styles.controlsOverlay}>
+                <View style={styles.controlsRow}>
+                    <TouchableOpacity style={styles.controlButton} onPress={togglePlay}>
+                        <Ionicons name={isPlaying ? 'pause' : 'play'} size={18} color="#fff" />
+                    </TouchableOpacity>
+                    <View
+                        style={styles.progressBar}
+                        onLayout={(event) => setProgressBarWidth(event.nativeEvent.layout.width)}
+                        onStartShouldSetResponder={() => true}
+                        onResponderGrant={handleSeek}
+                    >
+                        <View style={styles.progressTrack} />
+                        <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+                        <View style={[styles.progressThumb, { left: `${progressPercent}%` }]} />
+                    </View>
+                    <Text style={styles.timeText}>
+                        {formatTime(playbackTime)} / {formatTime(duration)}
+                    </Text>
+                </View>
+            </View>
+        </>
+    );
+}
+
+const styles = StyleSheet.create({
+    videoPlayer: {
+        width: '100%',
+        height: '100%',
+    },
+    controlsOverlay: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    },
+    controlsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    controlButton: {
+        paddingHorizontal: 6,
+        paddingVertical: 4,
+        borderRadius: 0,
+        backgroundColor: 'transparent',
+    },
+    timeText: {
+        color: '#fff',
+        fontSize: 12,
+    },
+    progressBar: {
+        flex: 1,
+        height: 20,
+        justifyContent: 'center',
+    },
+    progressTrack: {
+        height: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        borderRadius: 2,
+    },
+    progressFill: {
+        position: 'absolute',
+        left: 0,
+        height: 4,
+        backgroundColor: '#fff',
+        borderRadius: 2,
+    },
+    progressThumb: {
+        position: 'absolute',
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.3)',
+        transform: [{ translateX: -6 }],
+    },
+});

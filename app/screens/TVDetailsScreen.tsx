@@ -9,7 +9,7 @@ import {
     BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { VideoView, useVideoPlayer } from 'expo-video';
+import VideoPlayer from '../components/VideoPlayer';
 import { getTVDetails, setWatchProgress } from '../api/client-proxy';
 import type { GetTVDetailsResponse } from '../api/types';
 
@@ -27,20 +27,19 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [selectedEpisode, setSelectedEpisode] = useState<number>(0);
-    const lastProgressUpdateRef = useRef<number>(0);
-    const progressUpdateIntervalRef = useRef<NodeJS.Timeout | null>(null);
-    const lastKnownTimeRef = useRef<number>(0);
-    const lastKnownEpisodeRef = useRef<number>(0);
+    const [resumeTime, setResumeTime] = useState<number>(0);
+    const [playbackState, setPlaybackState] = useState({
+        currentTime: 0,
+        duration: 0,
+        isPlaying: false,
+    });
+    const lastUpdateTimeRef = useRef<number>(-1);
+    const lastKnownTimeRef = useRef<number>(-1);
+    const lastKnownEpisodeRef = useRef<number>(-1);
 
     // 获取当前视频 URL
     const currentVideoUrl = details?.episodes[selectedEpisode] || null;
     const hasVideo = currentVideoUrl !== null;
-
-    // 创建视频播放器
-    const player = useVideoPlayer(currentVideoUrl || '', (player) => {
-        player.loop = false;
-        player.muted = false;
-    });
 
     // 监听 Android 后退按钮
     useEffect(() => {
@@ -62,45 +61,9 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         if (details) {
             const savedEpisode = details.info.user_data.watch_progress.episode_id;
             setSelectedEpisode(savedEpisode);
+            setResumeTime(details.info.user_data.watch_progress.time);
         }
     }, [details]);
-
-    // 恢复播放进度
-    useEffect(() => {
-        if (details && player && hasVideo && selectedEpisode === details.info.user_data.watch_progress.episode_id) {
-            const savedTime = details.info.user_data.watch_progress.time;
-            if (savedTime > 0) {
-                // 等待播放器准备好后设置进度
-                const checkReady = setInterval(() => {
-                    if (player.status === 'readyToPlay') {
-                        player.currentTime = savedTime;
-                        clearInterval(checkReady);
-                    }
-                }, 100);
-                return () => clearInterval(checkReady);
-            }
-        }
-    }, [details, player, selectedEpisode, hasVideo]);
-
-    // 更新视频源
-    useEffect(() => {
-        const updateVideoSource = async () => {
-            if (player && currentVideoUrl) {
-                try {
-                    await player.replaceAsync(currentVideoUrl);
-                } catch (err) {
-                    console.error('Error replacing video source:', err);
-                }
-            } else if (player && !currentVideoUrl) {
-                try {
-                    await player.replaceAsync('');
-                } catch (err) {
-                    console.error('Error clearing video source:', err);
-                }
-            }
-        };
-        updateVideoSource();
-    }, [player, currentVideoUrl]);
 
     const loadTVDetails = async () => {
         try {
@@ -136,106 +99,25 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         // 更新观看进度为当前集数的第0秒
         updateWatchProgress(episodeIndex, 0);
         setSelectedEpisode(episodeIndex);
-    }, [details, updateWatchProgress]);
-
-    // 立即更新播放进度（不检查时间间隔）
-    const updateProgressImmediately = useCallback(() => {
-        if (!player || !details || !hasVideo) return;
-        try {
-            const currentTime = player.currentTime;
-            if (currentTime !== undefined && currentTime > 0) {
-                lastKnownTimeRef.current = currentTime;
-                lastKnownEpisodeRef.current = selectedEpisode;
-                updateWatchProgress(selectedEpisode, currentTime);
-                lastProgressUpdateRef.current = Date.now();
-            }
-        } catch (err) {
-            console.error('Error updating progress immediately:', err);
-        }
-    }, [player, details, selectedEpisode, hasVideo, updateWatchProgress]);
+        setResumeTime(0);
+    }, [details, updateWatchProgress, setResumeTime, setSelectedEpisode]);
 
     // 监听播放进度并定期更新
     useEffect(() => {
-        if (!player || !details || !hasVideo) return;
+        if (!details) return;
 
-        const updateProgress = () => {
-            try {
-                const currentTime = player.currentTime;
-                if (currentTime !== undefined && currentTime > 0) {
-                    lastKnownTimeRef.current = currentTime;
-                    lastKnownEpisodeRef.current = selectedEpisode;
-                    const now = Date.now();
-                    // 每5秒更新一次播放进度
-                    if (now - lastProgressUpdateRef.current >= 5000) {
-                        updateWatchProgress(selectedEpisode, currentTime);
-                        lastProgressUpdateRef.current = now;
-                    }
-                }
-            } catch (err) {
-                console.error('Error updating progress:', err);
-            }
-        };
-
-        // 启动定期更新的函数
-        const startProgressUpdate = () => {
-            // 清除已有的定时器
-            if (progressUpdateIntervalRef.current) {
-                clearInterval(progressUpdateIntervalRef.current);
-            }
-            // 只在播放时设置定期更新
-            if (player.playing) {
-                progressUpdateIntervalRef.current = setInterval(() => {
-                    updateProgress();
-                }, 1000);
-            }
-        };
-
-        // 停止定期更新的函数
-        const stopProgressUpdate = () => {
-            if (progressUpdateIntervalRef.current) {
-                clearInterval(progressUpdateIntervalRef.current);
-                progressUpdateIntervalRef.current = null;
-            }
-        };
-
-        // 根据初始播放状态启动或停止定期更新
-        startProgressUpdate();
-
-        // 监听播放结束
-        const endSubscription = player.addListener('playToEnd', () => {
-            // 播放完成后，更新为下一集的第0秒
-            const nextEpisode = selectedEpisode + 1;
-            if (nextEpisode < details.tv.source.episodes.length) {
-                updateWatchProgress(nextEpisode, 0);
-                handleEpisodeSelect(nextEpisode);
-            }
-        });
-
-        // 监听播放状态变化（包括暂停）
-        const playingChangeSubscription = player.addListener('playingChange', (payload: { isPlaying: boolean }) => {
-            if (payload.isPlaying) {
-                // 开始播放时，启动定期更新
-                startProgressUpdate();
-            } else {
-                // 暂停时，停止定期更新并立即更新一次进度
-                stopProgressUpdate();
-                updateProgressImmediately();
-            }
-        });
-
-        return () => {
-            endSubscription.remove();
-            playingChangeSubscription.remove();
-            stopProgressUpdate();
-        };
-    }, [player, details, selectedEpisode, hasVideo, updateWatchProgress, handleEpisodeSelect, updateProgressImmediately]);
+        if (lastKnownEpisodeRef.current != selectedEpisode || Math.abs(lastUpdateTimeRef.current - playbackState.currentTime) > 5) {
+            updateWatchProgress(selectedEpisode, playbackState.currentTime);
+            lastUpdateTimeRef.current = playbackState.currentTime;
+        }
+        lastKnownEpisodeRef.current = selectedEpisode;
+        lastKnownTimeRef.current = playbackState.currentTime;
+    }, [details, selectedEpisode, playbackState.currentTime, updateWatchProgress]);
 
     // 组件卸载时更新播放进度
     useEffect(() => {
         return () => {
-            // 组件卸载时，使用保存的最后播放时间更新进度
-            // 不访问播放器对象，因为它可能已经被释放
-            if (details && lastKnownTimeRef.current > 0) {
+            if (details) {
                 try {
                     updateWatchProgress(lastKnownEpisodeRef.current, lastKnownTimeRef.current);
                 } catch (err) {
@@ -244,19 +126,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
             }
         };
     }, [details, updateWatchProgress]);
-
-    const formatTime = (seconds: number | undefined | null): string => {
-        if (seconds === undefined || seconds === null || isNaN(seconds) || seconds < 0) {
-            return '0:00';
-        }
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = Math.floor(seconds % 60);
-        if (h > 0) {
-            return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-        }
-        return `${m}:${s.toString().padStart(2, '0')}`;
-    };
 
     if (loading) {
         return (
@@ -294,6 +163,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         (details.info.user_data.watch_progress.episode_id === selectedEpisode &&
             details.info.user_data.watch_progress.time > 0);
 
+
     return (
         <SafeAreaView style={styles.container}>
             {/* 标题栏 */}
@@ -313,15 +183,17 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                 {/* 视频播放器 */}
                 <View style={styles.playerContainer}>
                     {hasVideo ? (
-                        <VideoView
-                            player={player}
-                            style={styles.videoPlayer}
-                            contentFit="contain"
-                            nativeControls
+                        <VideoPlayer
+                            videoUrl={currentVideoUrl}
+                            resumeTime={resumeTime}
+                            onPlaybackState={setPlaybackState}
+                            onPlayToEnd={() => handleEpisodeSelect(selectedEpisode + 1)}
                         />
                     ) : (
                         <View style={styles.noVideoContainer}>
-                            {storageEp?.status === 'running' ? (
+                            {selectedEpisode >= details.episodes.length ? (
+                                <Text style={styles.noVideoText}>已全部播放完毕</Text>
+                            ) : storageEp?.status === 'running' ? (
                                 <Text style={styles.noVideoText}>该集正在下载中...</Text>
                             ) : storageEp?.status === 'failed' ? (
                                 <Text style={styles.noVideoText}>该集下载失败</Text>
@@ -465,10 +337,6 @@ const styles = StyleSheet.create({
         aspectRatio: 16 / 9,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    videoPlayer: {
-        width: '100%',
-        height: '100%',
     },
     noVideoContainer: {
         flex: 1,

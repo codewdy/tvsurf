@@ -9,6 +9,7 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "^2.1.0",
     "bcryptjs": "^2.4.3",
     "expo": "~54.0.31",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/expo__vector-icons": "^9.0.1",
     "@types/react": "~19.1.0",
     "typescript": "~5.9.2"
   },
