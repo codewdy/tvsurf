@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { videoCache, CachedVideo, DownloadTask, DownloadStatus } from '../utils/videoCache';
 import { getTVInfos, getTVDetails } from '../api/client-proxy';
+import { offlineModeManager } from '../utils/offlineModeManager';
 import type { TVInfo, GetTVDetailsResponse } from '../api/types';
 
 interface VideoCacheScreenProps {
@@ -29,12 +30,18 @@ export default function VideoCacheScreen({ onBack }: VideoCacheScreenProps) {
     const [loadingDetails, setLoadingDetails] = useState<Set<number>>(new Set());
     const [downloadTasksCollapsed, setDownloadTasksCollapsed] = useState(false);
 
+    // 离线模式状态
+    const [isOffline, setIsOffline] = useState(false);
+    const [pendingChangesCount, setPendingChangesCount] = useState({ watchProgress: 0, tags: 0, total: 0 });
+
     useEffect(() => {
         loadData(true); // 初始化时加载信息
+        loadOfflineStatus(); // 初始化时加载离线状态
 
-        // 设置定时器更新下载任务状态
+        // 设置定时器更新下载任务状态和离线状态
         const interval = setInterval(() => {
             updateDownloadTasks();
+            loadOfflineStatus();
         }, 1000);
 
         // 监听下载完成事件，自动刷新数据
@@ -62,6 +69,19 @@ export default function VideoCacheScreen({ onBack }: VideoCacheScreenProps) {
             backHandler.remove();
         };
     }, [onBack]);
+
+    // 加载离线模式状态
+    const loadOfflineStatus = async () => {
+        try {
+            const offline = await offlineModeManager.getOfflineMode();
+            setIsOffline(offline);
+
+            const count = await offlineModeManager.getPendingChangesCount();
+            setPendingChangesCount(count);
+        } catch (error) {
+            console.error('加载离线模式状态失败:', error);
+        }
+    };
 
     const loadData = async (loadInfo: boolean = true) => {
         try {
@@ -351,6 +371,25 @@ export default function VideoCacheScreen({ onBack }: VideoCacheScreenProps) {
                     </View>
                 </View>
 
+                {/* 离线模式状态 */}
+                {isOffline && (
+                    <View style={styles.offlineStatusContainer}>
+                        <View style={styles.offlineStatusHeader}>
+                            <Text style={styles.offlineStatusIcon}>✈️</Text>
+                            <Text style={styles.offlineStatusTitle}>离线模式</Text>
+                        </View>
+                        <Text style={styles.offlineStatusText}>
+                            当前处于离线模式
+                            {pendingChangesCount.total > 0 && (
+                                `，有${pendingChangesCount.total}项待同步数据`
+                            )}
+                        </Text>
+                        <Text style={styles.offlineStatusHint}>
+                            可在主菜单中切换离线模式
+                        </Text>
+                    </View>
+                )}
+
                 {/* 下载任务 */}
                 {downloadTasks.length > 0 && (
                     <View style={styles.section}>
@@ -603,6 +642,39 @@ const styles = StyleSheet.create({
         width: 1,
         height: 30,
         backgroundColor: '#e0e0e0',
+    },
+    // 离线模式状态
+    offlineStatusContainer: {
+        backgroundColor: '#FFF3CD',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#FFE69C',
+    },
+    offlineStatusHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    offlineStatusIcon: {
+        fontSize: 20,
+        marginRight: 8,
+    },
+    offlineStatusTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#856404',
+    },
+    offlineStatusText: {
+        fontSize: 14,
+        color: '#856404',
+        marginBottom: 4,
+    },
+    offlineStatusHint: {
+        fontSize: 12,
+        color: '#856404',
+        opacity: 0.7,
     },
     section: {
         marginBottom: 20,

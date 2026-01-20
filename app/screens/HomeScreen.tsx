@@ -12,10 +12,12 @@ import {
     Animated,
     TouchableWithoutFeedback,
     Dimensions,
+    Alert,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getTVInfos, getApiBaseUrl, getApiToken } from '../api/client-proxy';
+import { offlineModeManager } from '../utils/offlineModeManager';
 import type { TVInfo, Tag } from '../api/types';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -44,13 +46,34 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: H
         not_tagged: true,
     });
 
+    // 离线模式状态
+    const [isOffline, setIsOffline] = useState(false);
+    const [pendingChangesCount, setPendingChangesCount] = useState({ watchProgress: 0, tags: 0, total: 0 });
+    const [offlineModeDialogVisible, setOfflineModeDialogVisible] = useState(false);
+    const [offlineOperationProgress, setOfflineOperationProgress] = useState({ current: 0, total: 0, message: '' });
+    const [offlineOperationInProgress, setOfflineOperationInProgress] = useState(false);
+
     // 菜单动画
     const slideAnim = useRef(new Animated.Value(-MENU_WIDTH)).current;
     const overlayOpacity = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         loadData();
+        loadOfflineStatus();
     }, []);
+
+    // 加载离线模式状态
+    const loadOfflineStatus = async () => {
+        try {
+            const offline = await offlineModeManager.getOfflineMode();
+            setIsOffline(offline);
+
+            const count = await offlineModeManager.getPendingChangesCount();
+            setPendingChangesCount(count);
+        } catch (error) {
+            console.error('加载离线模式状态失败:', error);
+        }
+    };
 
     const loadData = async () => {
         try {
@@ -194,6 +217,83 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: H
         setTimeout(action, 300);
     };
 
+    // 切换离线模式
+    const handleToggleOfflineMode = () => {
+        if (isOffline) {
+            // 退出离线模式
+            handleExitOfflineMode();
+        } else {
+            // 进入离线模式
+            handleEnterOfflineMode();
+        }
+    };
+
+    // 进入离线模式
+    const handleEnterOfflineMode = async () => {
+        setOfflineModeDialogVisible(true);
+        setOfflineOperationInProgress(true);
+        setOfflineOperationProgress({ current: 0, total: 3, message: '准备下载数据...' });
+
+        try {
+            await offlineModeManager.enterOfflineMode((current, total, message) => {
+                setOfflineOperationProgress({ current, total, message });
+            });
+
+            await loadOfflineStatus();
+            setOfflineModeDialogVisible(false);
+
+            // 刷新页面数据
+            await onRefresh();
+        } catch (error) {
+            setOfflineModeDialogVisible(false);
+            const errorMsg = error instanceof Error ? error.message : '进入离线模式失败';
+            Alert.alert('错误', errorMsg);
+        } finally {
+            setOfflineOperationInProgress(false);
+        }
+    };
+
+    // 退出离线模式
+    const handleExitOfflineMode = async () => {
+        setOfflineModeDialogVisible(true);
+        setOfflineOperationInProgress(true);
+        setOfflineOperationProgress({ current: 0, total: pendingChangesCount.total || 1, message: '准备上传数据...' });
+
+        try {
+            const result = await offlineModeManager.exitOfflineMode((current, total, message) => {
+                setOfflineOperationProgress({ current, total, message });
+            });
+
+            if (result.success) {
+                await loadOfflineStatus();
+                setOfflineModeDialogVisible(false);
+
+                // 刷新页面数据
+                await onRefresh();
+            } else {
+                setOfflineModeDialogVisible(false);
+                const errorMessages = result.errors.map((e) => {
+                    if (e.type === 'watch_progress') {
+                        return `TV ${e.tvId} 第${e.episodeId}集观看进度: ${e.error}`;
+                    } else {
+                        return `TV ${e.tvId} 标签: ${e.error}`;
+                    }
+                }).join('\n');
+                Alert.alert(
+                    '上传失败',
+                    `无法退出离线模式，以下数据上传失败：\n\n${errorMessages}\n\n请检查网络连接后重试。`,
+                    [{ text: '确定' }]
+                );
+            }
+        } catch (error) {
+            setOfflineModeDialogVisible(false);
+            const errorMsg = error instanceof Error ? error.message : '退出离线模式失败';
+            Alert.alert('错误', errorMsg);
+        } finally {
+            setOfflineOperationInProgress(false);
+        }
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -217,7 +317,14 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: H
                         <View style={styles.hamburgerLine} />
                     </View>
                 </TouchableOpacity>
-                <Text style={styles.titleBarText}>追番小助手</Text>
+                <View style={styles.titleBarCenter}>
+                    {!isOffline && (
+                        <Text style={styles.titleBarText}>追番小助手</Text>
+                    )}
+                    {isOffline && (
+                        <Text style={styles.titleBarText}>追番小助手（离线模式）</Text>
+                    )}
+                </View>
                 <View style={styles.titleBarPlaceholder} />
             </View>
             <ScrollView
@@ -353,9 +460,43 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: H
                                     <Text style={styles.menuItemText}>缓存管理</Text>
                                     <Text style={styles.menuItemArrow}>›</Text>
                                 </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => handleMenuItemPress(handleToggleOfflineMode)}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.menuItemIcon}>✈️</Text>
+                                    <View style={styles.menuItemContent}>
+                                        <Text style={styles.menuItemText}>
+                                            {isOffline ? '退出离线模式' : '进入离线模式'}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.menuItemArrow}>›</Text>
+                                </TouchableOpacity>
                             </View>
                         </SafeAreaView>
                     </Animated.View>
+                </View>
+            </Modal>
+
+            {/* 离线模式操作进度对话框 */}
+            <Modal
+                visible={offlineModeDialogVisible}
+                transparent
+                animationType="fade"
+            >
+                <View style={styles.progressDialogOverlay}>
+                    <View style={styles.progressDialogContainer}>
+                        <Text style={styles.progressDialogTitle}>
+                            {isOffline ? '退出离线模式' : '进入离线模式'}
+                        </Text>
+                        <ActivityIndicator size="large" color="#007AFF" style={styles.progressIndicator} />
+                        <Text style={styles.progressMessage}>{offlineOperationProgress.message}</Text>
+                        <Text style={styles.progressText}>
+                            {offlineOperationProgress.current} / {offlineOperationProgress.total}
+                        </Text>
+                    </View>
                 </View>
             </Modal>
         </SafeAreaView>
@@ -426,15 +567,38 @@ const styles = StyleSheet.create({
         backgroundColor: '#333',
         borderRadius: 1,
     },
+    titleBarCenter: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     titleBarText: {
         fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
         textAlign: 'center',
-        flex: 1,
     },
     titleBarPlaceholder: {
         width: 40,
+    },
+    offlineIndicator: {
+        marginLeft: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    offlineIcon: {
+        fontSize: 16,
+    },
+    pendingBadge: {
+        marginLeft: 4,
+        backgroundColor: '#FF3B30',
+        borderRadius: 10,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        fontSize: 11,
+        color: '#fff',
+        fontWeight: '600',
     },
     scrollView: {
         flex: 1,
@@ -635,5 +799,47 @@ const styles = StyleSheet.create({
     menuItemArrow: {
         fontSize: 20,
         color: '#999',
+    },
+    menuItemContent: {
+        flex: 1,
+    },
+    menuItemSubtext: {
+        fontSize: 12,
+        color: '#999',
+        marginTop: 2,
+    },
+    // 进度对话框样式
+    progressDialogOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    progressDialogContainer: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 24,
+        minWidth: 280,
+        alignItems: 'center',
+    },
+    progressDialogTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 20,
+    },
+    progressIndicator: {
+        marginVertical: 16,
+    },
+    progressMessage: {
+        fontSize: 14,
+        color: '#666',
+        textAlign: 'center',
+        marginTop: 12,
+    },
+    progressText: {
+        fontSize: 13,
+        color: '#999',
+        marginTop: 8,
     },
 });
