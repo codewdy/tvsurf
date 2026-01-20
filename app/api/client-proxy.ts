@@ -1,9 +1,27 @@
 // API 客户端代理，用于处理返回数据中的 URL 前缀和离线模式支持
-import { getApiBaseUrl, getTVInfos as getTVInfosBase, getTVDetails as getTVDetailsBase } from './client';
-import { setWatchProgress as setWatchProgressBase, setTVTag as setTVTagBase } from './client';
+import {
+    getApiBaseUrl as getApiBaseUrlBase,
+    setApiBaseUrl as setApiBaseUrlBase,
+    getApiToken as getApiTokenBase,
+    setApiToken as setApiTokenBase,
+    clearApiToken as clearApiTokenBase,
+    login as loginBase,
+    getTVInfos as getTVInfosBase,
+    getTVDetails as getTVDetailsBase,
+    setWatchProgress as setWatchProgressBase,
+    setTVTag as setTVTagBase
+} from './client';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { offlineDataCache } from '../utils/offlineDataCache';
-import type { GetTVInfosRequest, GetTVInfosResponse, GetTVDetailsRequest, GetTVDetailsResponse, TVInfo, TV, StorageEpisode, SetWatchProgressRequest, SetTVTagRequest, Tag } from './types';
+import type { GetTVInfosRequest, GetTVInfosResponse, GetTVDetailsRequest, GetTVDetailsResponse, TVInfo, TV, StorageEpisode, SetWatchProgressRequest, SetTVTagRequest, Tag, LoginRequest, LoginResponse } from './types';
+
+// 离线模式错误
+class OfflineModeError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'OfflineModeError';
+    }
+}
 
 // 添加 URL 前缀的辅助函数
 function addUrlPrefix(url: string | null | undefined, baseUrl: string | null): string | null {
@@ -69,7 +87,7 @@ export async function getTVDetails(
         // 从离线缓存读取（缓存数据已经包含处理过的 URL）
         const details = await offlineDataCache.getTVDetails(request.id);
         if (!details) {
-            throw new Error(`TV ${request.id} 的详情未缓存`);
+            throw new OfflineModeError(`离线模式下无法获取 TV ${request.id} 的详情，该内容未缓存`);
         }
         return details;
     }
@@ -117,12 +135,59 @@ export async function setTVTag(
     await setTVTagBase(request);
 }
 
-// 重新导出其他不需要处理 URL 或离线模式的函数
-export {
-    getApiBaseUrl,
-    setApiBaseUrl,
-    getApiToken,
-    setApiToken,
-    clearApiToken,
-    login,
-} from './client';
+// 登录 API（离线模式下不可用）
+export async function login(
+    baseUrl: string,
+    request: LoginRequest
+): Promise<LoginResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法登录，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await loginBase(baseUrl, request);
+}
+
+// API 配置相关函数（这些函数不需要离线模式检查，因为它们只是读写本地配置）
+export async function getApiBaseUrl(): Promise<string | null> {
+    return await getApiBaseUrlBase();
+}
+
+export async function setApiBaseUrl(url: string): Promise<void> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法修改 API 地址，请先退出离线模式');
+    }
+
+    await setApiBaseUrlBase(url);
+}
+
+export async function getApiToken(): Promise<string | null> {
+    return await getApiTokenBase();
+}
+
+export async function setApiToken(token: string): Promise<void> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法修改 API Token，请先退出离线模式');
+    }
+
+    await setApiTokenBase(token);
+}
+
+export async function clearApiToken(): Promise<void> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法清除 API Token，请先退出离线模式');
+    }
+
+    await clearApiTokenBase();
+}
+
+// 导出离线模式错误类，供外部使用
+export { OfflineModeError };

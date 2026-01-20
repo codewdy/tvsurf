@@ -11,7 +11,7 @@ import {
     Platform,
     ScrollView,
 } from 'react-native';
-import { login, setApiBaseUrl, setApiToken } from '../api/client';
+import { login, setApiBaseUrl, setApiToken } from '../api/client-proxy';
 import { hashPassword } from '../utils/password';
 
 interface LoginScreenProps {

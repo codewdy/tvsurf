@@ -5,6 +5,9 @@ import { getTVInfos as getTVInfosApi, getTVDetails as getTVDetailsApi } from '..
 import { setWatchProgress as setWatchProgressApi, setTVTag as setTVTagApi } from '../api/client';
 import type { Tag } from '../api/types';
 
+// 注意：这里导入的是 client 而不是 client-proxy，因为 offlineModeManager 
+// 在进入/退出离线模式时需要直接调用底层 API，不需要经过 proxy 的离线检查
+
 // 离线模式状态存储键
 const OFFLINE_MODE_KEY = '@tvsurf_offline_mode';
 

@@ -5,7 +5,7 @@ import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import TVDetailsScreen from './screens/TVDetailsScreen';
 import VideoCacheScreen from './screens/VideoCacheScreen';
-import { getApiToken, clearApiToken } from './api/client';
+import { getApiToken, clearApiToken } from './api/client-proxy';
 import type { TVInfo } from './api/types';
 
 type Screen = 'home' | 'tv-details' | 'cache';
