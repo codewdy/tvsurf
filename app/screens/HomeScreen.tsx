@@ -281,13 +281,52 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: H
                 }).join('\n');
                 Alert.alert(
                     '上传失败',
-                    `无法退出离线模式，以下数据上传失败：\n\n${errorMessages}\n\n请检查网络连接后重试。`,
-                    [{ text: '确定' }]
+                    `无法退出离线模式，以下数据上传失败：\n\n${errorMessages}\n\n请检查网络连接后重试，或选择强制退出（将丢失未同步的数据）。`,
+                    [
+                        { text: '取消', style: 'cancel' },
+                        {
+                            text: '强制退出',
+                            style: 'destructive',
+                            onPress: () => handleForceExitOfflineMode(),
+                        },
+                    ]
                 );
             }
         } catch (error) {
             setOfflineModeDialogVisible(false);
             const errorMsg = error instanceof Error ? error.message : '退出离线模式失败';
+            Alert.alert('错误', errorMsg);
+        } finally {
+            setOfflineOperationInProgress(false);
+        }
+    };
+
+    // 强制退出离线模式（删除未同步数据）
+    const handleForceExitOfflineMode = async () => {
+        setOfflineModeDialogVisible(true);
+        setOfflineOperationInProgress(true);
+        setOfflineOperationProgress({ current: 0, total: 1, message: '强制退出离线模式...' });
+
+        try {
+            const result = await offlineModeManager.exitOfflineMode((current, total, message) => {
+                setOfflineOperationProgress({ current, total, message });
+            }, true); // force = true
+
+            // 无论成功或失败，强制模式下都已经退出了离线模式
+            await loadOfflineStatus();
+            setOfflineModeDialogVisible(false);
+
+            if (result.success) {
+                Alert.alert('成功', '已退出离线模式');
+            } else {
+                Alert.alert('警告', '已强制退出离线模式，未同步的数据已被删除');
+            }
+
+            // 刷新页面数据
+            await onRefresh();
+        } catch (error) {
+            setOfflineModeDialogVisible(false);
+            const errorMsg = error instanceof Error ? error.message : '强制退出失败';
             Alert.alert('错误', errorMsg);
         } finally {
             setOfflineOperationInProgress(false);

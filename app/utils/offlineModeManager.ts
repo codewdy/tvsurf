@@ -117,7 +117,8 @@ class OfflineModeManager {
     }
 
     // 退出离线模式
-    async exitOfflineMode(onProgress?: UploadProgressCallback): Promise<SyncResult> {
+    // force: 如果为 true，即使同步失败也会强制退出，并删除所有未同步的数据
+    async exitOfflineMode(onProgress?: UploadProgressCallback, force: boolean = false): Promise<SyncResult> {
         await this.initialize();
 
         if (!this.offlineMode) {
@@ -169,9 +170,18 @@ class OfflineModeManager {
                 }
             }
 
-            // 如果观看进度上传失败，立即返回
+            // 如果观看进度上传失败
             if (errors.length > 0) {
-                return { success: false, errors };
+                if (force) {
+                    // 强制退出：删除所有未同步的数据
+                    onProgress?.(current, totalChanges, '强制退出：清除未同步数据...');
+                    await offlineDataCache.clearPendingChanges();
+                    await this.setOfflineMode(false);
+                    return { success: false, errors };
+                } else {
+                    // 正常模式：保留数据，保持离线状态
+                    return { success: false, errors };
+                }
             }
 
             // 3. 上传 tag 变更
@@ -200,9 +210,18 @@ class OfflineModeManager {
                 }
             }
 
-            // 如果有任何上传失败，返回错误
+            // 如果有任何上传失败
             if (errors.length > 0) {
-                return { success: false, errors };
+                if (force) {
+                    // 强制退出：删除所有未同步的数据
+                    onProgress?.(current, totalChanges, '强制退出：清除未同步数据...');
+                    await offlineDataCache.clearPendingChanges();
+                    await this.setOfflineMode(false);
+                    return { success: false, errors };
+                } else {
+                    // 正常模式：保留数据，保持离线状态
+                    return { success: false, errors };
+                }
             }
 
             // 4. 全部上传成功，退出离线模式
@@ -212,6 +231,17 @@ class OfflineModeManager {
             return { success: true, errors: [] };
         } catch (error) {
             console.error('退出离线模式失败:', error);
+            if (force) {
+                // 即使出现异常，强制模式下也要尝试清除数据并退出
+                try {
+                    onProgress?.(0, 0, '强制退出：清除未同步数据...');
+                    await offlineDataCache.clearPendingChanges();
+                    await this.setOfflineMode(false);
+                } catch (cleanupError) {
+                    console.error('强制退出时清理数据失败:', cleanupError);
+                }
+                return { success: false, errors };
+            }
             throw error;
         }
     }
