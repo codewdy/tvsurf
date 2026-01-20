@@ -19,6 +19,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getTVInfos, getApiBaseUrl, getApiToken } from '../api/client-proxy';
 import { offlineModeManager } from '../utils/offlineModeManager';
+import { videoCache } from '../utils/videoCache';
 import type { TVInfo, Tag } from '../api/types';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -54,6 +55,8 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache, onN
     const [offlineModeDialogVisible, setOfflineModeDialogVisible] = useState(false);
     const [offlineOperationProgress, setOfflineOperationProgress] = useState({ current: 0, total: 0, message: '' });
     const [offlineOperationInProgress, setOfflineOperationInProgress] = useState(false);
+    // 存储有缓存视频的 TV ID 集合
+    const [cachedTVIds, setCachedTVIds] = useState<Set<number>>(new Set());
 
     // 菜单动画
     const slideAnim = useRef(new Animated.Value(-MENU_WIDTH)).current;
@@ -62,6 +65,7 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache, onN
     useEffect(() => {
         loadData();
         loadOfflineStatus();
+        loadCachedVideos();
     }, []);
 
     // 加载离线模式状态
@@ -74,6 +78,20 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache, onN
             setPendingChangesCount(count);
         } catch (error) {
             console.error('加载离线模式状态失败:', error);
+        }
+    };
+
+    // 加载缓存的视频信息
+    const loadCachedVideos = async () => {
+        try {
+            const cachedVideos = await videoCache.getAllCachedVideos();
+            const tvIdsSet = new Set<number>();
+            cachedVideos.forEach(video => {
+                tvIdsSet.add(video.tvId);
+            });
+            setCachedTVIds(tvIdsSet);
+        } catch (error) {
+            console.error('加载缓存视频信息失败:', error);
         }
     };
 
@@ -111,6 +129,9 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache, onN
             setError(null);
             const response = await getTVInfos({ ids: null });
             setTvs(response.tvs);
+
+            // 刷新缓存信息
+            await loadCachedVideos();
         } catch (error) {
             console.error('Error refreshing TV list:', error);
             // 检查是否是401错误
@@ -440,6 +461,7 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache, onN
                                     </TouchableOpacity>
                                     {!collapsedTags[tag] && tvsInGroup.map((tv) => {
                                         const unwatchedEpisodes = tv.total_episodes - tv.user_data.watch_progress.episode_id;
+                                        const hasCachedVideo = cachedTVIds.has(tv.id);
                                         return (
                                             <TouchableOpacity
                                                 key={tv.id}
@@ -460,9 +482,17 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache, onN
                                                     <Text style={styles.tvName} numberOfLines={2}>
                                                         {tv.name}
                                                     </Text>
-                                                    <Text style={styles.tvMeta}>
-                                                        {tv.user_data.watch_progress.episode_id} / {tv.total_episodes} 集
-                                                    </Text>
+                                                    <View style={styles.tvMetaRow}>
+                                                        <Text style={styles.tvMeta}>
+                                                            {tv.user_data.watch_progress.episode_id} / {tv.total_episodes} 集
+                                                        </Text>
+                                                        {hasCachedVideo && (
+                                                            <View style={styles.cacheIndicator}>
+                                                                <Ionicons name="download" size={12} color="#34C759" />
+                                                                <Text style={styles.cacheIndicatorText}>已缓存</Text>
+                                                            </View>
+                                                        )}
+                                                    </View>
                                                 </View>
                                                 {tag === 'watching' && unwatchedEpisodes > 0 && (
                                                     <View style={styles.badge}>
@@ -802,9 +832,29 @@ const styles = StyleSheet.create({
         color: '#333',
         marginBottom: 6,
     },
+    tvMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 2,
+    },
     tvMeta: {
         fontSize: 13,
         color: '#666',
+    },
+    cacheIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginLeft: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        backgroundColor: '#E8F5E9',
+        borderRadius: 4,
+    },
+    cacheIndicatorText: {
+        fontSize: 11,
+        color: '#34C759',
+        marginLeft: 4,
+        fontWeight: '500',
     },
     badge: {
         backgroundColor: '#FF3B30',

@@ -83,17 +83,16 @@ class OfflineModeManager {
         try {
             onProgress?.(0, 3, '准备下载数据...');
 
-            // 1. 获取所有已缓存视频对应的 TV ID
-            const cachedVideos = await videoCache.getAllCachedVideos();
-            const tvIds = Array.from(new Set(cachedVideos.map(v => v.tvId)));
-
             await offlineDataCache.clearOfflineData();
 
-            onProgress?.(1, 3, `下载 ${tvIds.length} 个TV的信息...`);
+            // 1. 获取所有 TV 的 TVInfo
+            onProgress?.(1, 3, '下载所有TV信息...');
+            const tvInfosResponse = await getTVInfosApi({ ids: null });
+            const tvInfos = tvInfosResponse.tvs;
+            await offlineDataCache.saveTVInfos(tvInfos);
 
-            // 2. 下载这些 TV 的 TVInfo
-            const tvInfosResponse = await getTVInfosApi({ ids: tvIds });
-            await offlineDataCache.saveTVInfos(tvInfosResponse.tvs);
+            // 2. 提取所有 TV ID
+            const tvIds = tvInfos.map(tv => tv.id);
 
             // 3. 顺序下载这些 TV 的 TVDetails（任何一个失败都会导致整个操作失败）
             const tvDetailsResults = [];
