@@ -5,10 +5,11 @@ import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import TVDetailsScreen from './screens/TVDetailsScreen';
 import VideoCacheScreen from './screens/VideoCacheScreen';
+import SeriesListScreen from './screens/SeriesListScreen';
 import { getApiToken, clearApiToken } from './api/client-proxy';
 import type { TVInfo } from './api/types';
 
-type Screen = 'home' | 'tv-details' | 'cache';
+type Screen = 'home' | 'tv-details' | 'cache' | 'series-list';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
@@ -59,6 +60,10 @@ export default function App() {
     setCurrentScreen('cache');
   };
 
+  const handleNavigateToSeriesList = () => {
+    setCurrentScreen('series-list');
+  };
+
   // 显示加载状态
   if (isLoggedIn === null) {
     return (
@@ -78,9 +83,15 @@ export default function App() {
             onLogout={handleLogout}
             onTVPress={handleTVPress}
             onNavigateToCache={handleNavigateToCache}
+            onNavigateToSeriesList={handleNavigateToSeriesList}
           />
         ) : currentScreen === 'cache' ? (
           <VideoCacheScreen onBack={handleBackToHome} />
+        ) : currentScreen === 'series-list' ? (
+          <SeriesListScreen
+            onBack={handleBackToHome}
+            onTVPress={handleTVPress}
+          />
         ) : selectedTV ? (
           <TVDetailsScreen
             tv={selectedTV}
@@ -91,6 +102,7 @@ export default function App() {
             onLogout={handleLogout}
             onTVPress={handleTVPress}
             onNavigateToCache={handleNavigateToCache}
+            onNavigateToSeriesList={handleNavigateToSeriesList}
           />
         )
       ) : (

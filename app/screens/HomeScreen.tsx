@@ -28,9 +28,10 @@ interface HomeScreenProps {
     onLogout: () => void;
     onTVPress?: (tv: TVInfo) => void;
     onNavigateToCache?: () => void;
+    onNavigateToSeriesList?: () => void;
 }
 
-export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: HomeScreenProps) {
+export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache, onNavigateToSeriesList }: HomeScreenProps) {
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -521,6 +522,16 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: H
 
                             {/* 菜单项 */}
                             <View style={styles.menuItems}>
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => handleMenuItemPress(() => onNavigateToSeriesList?.())}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.menuItemIcon}>📋</Text>
+                                    <Text style={styles.menuItemText}>播放列表</Text>
+                                    <Text style={styles.menuItemArrow}>›</Text>
+                                </TouchableOpacity>
+
                                 <TouchableOpacity
                                     style={styles.menuItem}
                                     onPress={() => handleMenuItemPress(() => onNavigateToCache?.())}

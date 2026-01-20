@@ -1,6 +1,6 @@
 // API 客户端
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { LoginRequest, LoginResponse, GetTVInfosRequest, GetTVInfosResponse, GetTVDetailsRequest, GetTVDetailsResponse, SetTVTagRequest, SetWatchProgressRequest } from './types';
+import type { LoginRequest, LoginResponse, GetTVInfosRequest, GetTVInfosResponse, GetTVDetailsRequest, GetTVDetailsResponse, SetTVTagRequest, SetWatchProgressRequest, GetSeriesRequest, GetSeriesResponse } from './types';
 
 // API 基础 URL 存储键
 export const API_BASE_URL_KEY = '@tvsurf_api_base_url';
@@ -169,6 +169,24 @@ export async function setWatchProgress(
     await apiCall<SetWatchProgressRequest, void>(
         baseUrl,
         '/api/set_watch_progress',
+        request,
+        token
+    );
+}
+
+// 获取播放列表列表 API
+export async function getSeries(
+    request: GetSeriesRequest = { ids: null }
+): Promise<GetSeriesResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<GetSeriesRequest, GetSeriesResponse>(
+        baseUrl,
+        '/api/get_series',
         request,
         token
     );

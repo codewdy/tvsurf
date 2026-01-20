@@ -9,11 +9,12 @@ import {
     getTVInfos as getTVInfosBase,
     getTVDetails as getTVDetailsBase,
     setWatchProgress as setWatchProgressBase,
-    setTVTag as setTVTagBase
+    setTVTag as setTVTagBase,
+    getSeries as getSeriesBase
 } from './client';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { offlineDataCache } from '../utils/offlineDataCache';
-import type { GetTVInfosRequest, GetTVInfosResponse, GetTVDetailsRequest, GetTVDetailsResponse, TVInfo, TV, StorageEpisode, SetWatchProgressRequest, SetTVTagRequest, Tag, LoginRequest, LoginResponse } from './types';
+import type { GetTVInfosRequest, GetTVInfosResponse, GetTVDetailsRequest, GetTVDetailsResponse, TVInfo, TV, StorageEpisode, SetWatchProgressRequest, SetTVTagRequest, Tag, LoginRequest, LoginResponse, GetSeriesRequest, GetSeriesResponse } from './types';
 
 // 离线模式错误
 class OfflineModeError extends Error {
@@ -187,6 +188,22 @@ export async function clearApiToken(): Promise<void> {
     }
 
     await clearApiTokenBase();
+}
+
+// 获取播放列表列表 API（支持离线模式）
+export async function getSeries(
+    request: GetSeriesRequest = { ids: null }
+): Promise<GetSeriesResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        // 离线模式：从离线缓存读取（如果支持）
+        // 目前播放列表不支持离线模式，抛出错误
+        throw new OfflineModeError('离线模式下无法获取播放列表');
+    }
+
+    // 在线模式：从 API 获取
+    return await getSeriesBase(request);
 }
 
 // 导出离线模式错误类，供外部使用

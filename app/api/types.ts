@@ -132,3 +132,23 @@ export interface SetWatchProgressRequest {
     episode_id: number;
     time: number;
 }
+
+// Series API 类型定义
+
+// 播放列表
+export interface Series {
+    id: number;
+    name: string;
+    tvs: number[];
+    last_update: string; // ISO datetime string
+}
+
+// 获取播放列表请求
+export interface GetSeriesRequest {
+    ids: number[] | null;
+}
+
+// 获取播放列表响应
+export interface GetSeriesResponse {
+    series: Series[];
+}
