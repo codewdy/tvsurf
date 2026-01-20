@@ -18,6 +18,7 @@ interface VideoPlayerProps {
     onPlayToEnd?: () => void;
     isFullscreen?: boolean;
     onToggleFullscreen?: () => void;
+    localUri?: string | null; // 本地缓存的视频URI
 }
 
 export default function VideoPlayer({
@@ -29,6 +30,7 @@ export default function VideoPlayer({
     onPlayToEnd,
     isFullscreen = false,
     onToggleFullscreen,
+    localUri = null,
 }: VideoPlayerProps) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [playbackTime, setPlaybackTime] = useState(0);
@@ -47,8 +49,14 @@ export default function VideoPlayer({
     const AUTO_HIDE_DELAY_MS = 10000;
     const SEEK_SECONDS_PER_FULL_SWIPE = 100; // 拖动整个播放器宽度对应的秒数
 
-    // 构建视频源，包含headers
+    // 构建视频源，优先使用本地缓存，否则使用网络URL
     const videoSource = React.useMemo(() => {
+        // 如果有本地缓存，使用本地URI
+        if (localUri) {
+            return localUri;
+        }
+
+        // 否则使用网络URL，包含headers
         if (headers) {
             return {
                 uri: videoUrl,
@@ -56,7 +64,7 @@ export default function VideoPlayer({
             };
         }
         return videoUrl;
-    }, [videoUrl, headers]);
+    }, [videoUrl, headers, localUri]);
 
     const player = useVideoPlayer(videoSource, (player) => {
         player.loop = false;
@@ -65,7 +73,7 @@ export default function VideoPlayer({
 
     useEffect(() => {
         resumeAppliedRef.current = false;
-    }, [videoUrl, resumeTime]);
+    }, [videoUrl, resumeTime, localUri]);
 
     useEffect(() => {
         const updateVideoSource = async () => {
