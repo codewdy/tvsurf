@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -11,8 +11,13 @@ import {
     Platform,
     ScrollView,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { login, setApiBaseUrl, setApiToken } from '../api/client-proxy';
 import { hashPassword } from '../utils/password';
+
+// 存储键
+const LAST_BASE_URL_KEY = '@tvsurf_last_base_url';
+const LAST_USERNAME_KEY = '@tvsurf_last_username';
 
 interface LoginScreenProps {
     onLoginSuccess: () => void;
@@ -24,6 +29,36 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // 加载上次登录的信息
+    useEffect(() => {
+        loadLastLoginInfo();
+    }, []);
+
+    const loadLastLoginInfo = async () => {
+        try {
+            const lastBaseUrl = await AsyncStorage.getItem(LAST_BASE_URL_KEY);
+            const lastUsername = await AsyncStorage.getItem(LAST_USERNAME_KEY);
+
+            if (lastBaseUrl) {
+                setBaseUrl(lastBaseUrl);
+            }
+            if (lastUsername) {
+                setUsername(lastUsername);
+            }
+        } catch (error) {
+            console.error('加载上次登录信息失败:', error);
+        }
+    };
+
+    const saveLastLoginInfo = async (url: string, user: string) => {
+        try {
+            await AsyncStorage.setItem(LAST_BASE_URL_KEY, url);
+            await AsyncStorage.setItem(LAST_USERNAME_KEY, user);
+        } catch (error) {
+            console.error('保存登录信息失败:', error);
+        }
+    };
 
     // 验证用户名格式：只允许字母、数字、下划线和减号
     const isValidUsername = (username: string): boolean => {
@@ -102,6 +137,9 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
             // 保存 API 基础 URL 和 token
             await setApiBaseUrl(normalizedUrl);
             await setApiToken(response.token);
+
+            // 保存上次登录的信息（用于下次登录时自动填充）
+            await saveLastLoginInfo(normalizedUrl, username.trim());
 
             // 登录成功，跳转到主页面
             onLoginSuccess();

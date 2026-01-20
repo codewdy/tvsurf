@@ -334,6 +334,32 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: H
         }
     };
 
+    // 处理退出登录
+    const handleLogout = () => {
+        if (isOffline) {
+            Alert.alert('提示', '离线模式下无法退出登录，请先退出离线模式');
+            return;
+        }
+
+        Alert.alert(
+            '退出登录',
+            '确定要退出登录吗？',
+            [
+                { text: '取消', style: 'cancel' },
+                {
+                    text: '退出',
+                    style: 'destructive',
+                    onPress: () => {
+                        closeMenu();
+                        setTimeout(() => {
+                            onLogout();
+                        }, 300);
+                    },
+                },
+            ]
+        );
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -517,6 +543,22 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: H
                                         </Text>
                                     </View>
                                     <Text style={styles.menuItemArrow}>›</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={[
+                                        styles.menuItem,
+                                        isOffline && styles.menuItemDisabled
+                                    ]}
+                                    onPress={handleLogout}
+                                    activeOpacity={0.7}
+                                    disabled={isOffline}
+                                >
+                                    <Ionicons name="log-out-outline" size={22} color={isOffline ? "#999" : "#FF3B30"} style={styles.menuItemIconComponent} />
+                                    <Text style={[
+                                        styles.menuItemText,
+                                        isOffline ? styles.menuItemTextDisabled : styles.menuItemTextDanger
+                                    ]}>退出登录</Text>
                                 </TouchableOpacity>
                             </View>
                         </SafeAreaView>
@@ -839,14 +881,26 @@ const styles = StyleSheet.create({
         borderBottomWidth: StyleSheet.hairlineWidth,
         borderBottomColor: '#f0f0f0',
     },
+    menuItemDisabled: {
+        opacity: 0.5,
+    },
     menuItemIcon: {
         fontSize: 22,
+        marginRight: 12,
+    },
+    menuItemIconComponent: {
         marginRight: 12,
     },
     menuItemText: {
         flex: 1,
         fontSize: 16,
         color: '#333',
+    },
+    menuItemTextDisabled: {
+        color: '#999',
+    },
+    menuItemTextDanger: {
+        color: '#FF3B30',
     },
     menuItemArrow: {
         fontSize: 20,
@@ -859,6 +913,10 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#999',
         marginTop: 2,
+    },
+    menuItemHint: {
+        fontSize: 12,
+        color: '#999',
     },
     // 进度对话框样式
     progressDialogOverlay: {
