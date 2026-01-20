@@ -20,6 +20,7 @@ import VideoPlayer from '../components/VideoPlayer';
 import { getTVDetails, setWatchProgress, setTVTag, getApiToken, getApiBaseUrl } from '../api/client-proxy';
 import type { GetTVDetailsResponse, Tag } from '../api/types';
 import { videoCache } from '../utils/videoCache';
+import { offlineModeManager } from '../utils/offlineModeManager';
 
 interface TVDetailsScreenProps {
     tv: {
@@ -59,6 +60,9 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     const [pendingEpisodes, setPendingEpisodes] = useState<Set<number>>(new Set()); // 排队中的剧集
     const [failedDownloads, setFailedDownloads] = useState<Map<number, string>>(new Map()); // 存储下载失败的剧集和错误信息
     const [currentEpisodeLocalUri, setCurrentEpisodeLocalUri] = useState<string | null>(null);
+
+    // 离线模式状态
+    const [isOffline, setIsOffline] = useState(false);
 
     // 存储取消订阅函数
     const unsubscribersRef = useRef<Array<() => void>>([]);
@@ -105,6 +109,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         loadTVDetails();
         loadCacheStatus();
         loadDownloadingTasks();
+        loadOfflineStatus();
 
         // 清理函数：组件卸载时清除所有监听器
         return () => {
@@ -112,6 +117,16 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
             unsubscribersRef.current = [];
         };
     }, [tv.id]);
+
+    // 加载离线模式状态
+    const loadOfflineStatus = async () => {
+        try {
+            const offline = await offlineModeManager.getOfflineMode();
+            setIsOffline(offline);
+        } catch (error) {
+            console.error('加载离线模式状态失败:', error);
+        }
+    };
 
     // 加载缓存状态
     const loadCacheStatus = async () => {
@@ -603,9 +618,16 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         <SafeAreaView style={styles.container}>
             {!isFullscreen && (
                 <View style={styles.titleBar}>
-                    <Text style={styles.titleBarText} numberOfLines={1}>
-                        {details.tv.name || ''}
-                    </Text>
+                    <View style={styles.titleBarCenter}>
+                        <Text style={styles.titleBarText} numberOfLines={1}>
+                            {details.tv.name || ''}
+                        </Text>
+                        {isOffline && (
+                            <View style={styles.offlineBadge}>
+                                <Ionicons name="airplane" size={14} color="#FF9500" />
+                            </View>
+                        )}
+                    </View>
                     <TouchableOpacity
                         style={styles.menuButton}
                         onPress={() => setShowMenu(true)}
@@ -781,15 +803,26 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                             <Text style={styles.menuItemText}>修改标签</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={styles.menuItem}
+                            style={[
+                                styles.menuItem,
+                                isOffline && styles.menuItemDisabled
+                            ]}
                             onPress={() => {
+                                if (isOffline) {
+                                    Alert.alert('提示', '离线模式下无法添加新的缓存');
+                                    return;
+                                }
                                 setShowMenu(false);
                                 setShowCacheSelector(true);
                                 setSelectedEpisodesForCache(new Set());
                             }}
+                            disabled={isOffline}
                         >
-                            <Ionicons name="download-outline" size={20} color="#333" />
-                            <Text style={styles.menuItemText}>添加缓存</Text>
+                            <Ionicons name="download-outline" size={20} color={isOffline ? "#999" : "#333"} />
+                            <Text style={[
+                                styles.menuItemText,
+                                isOffline && styles.menuItemTextDisabled
+                            ]}>添加缓存</Text>
                         </TouchableOpacity>
                     </View>
                 </TouchableOpacity>
@@ -1021,12 +1054,25 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         position: 'relative',
     },
+    titleBarCenter: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     titleBarText: {
         fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
         textAlign: 'center',
-        flex: 1,
+    },
+    offlineBadge: {
+        marginLeft: 8,
+        padding: 4,
+        backgroundColor: '#FFF3CD',
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     menuButton: {
         position: 'absolute',
@@ -1201,9 +1247,20 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         gap: 12,
     },
+    menuItemDisabled: {
+        opacity: 0.5,
+    },
     menuItemText: {
         fontSize: 16,
         color: '#333',
+        flex: 1,
+    },
+    menuItemTextDisabled: {
+        color: '#999',
+    },
+    menuItemHint: {
+        fontSize: 12,
+        color: '#999',
     },
     tagSelectorContainer: {
         backgroundColor: '#fff',

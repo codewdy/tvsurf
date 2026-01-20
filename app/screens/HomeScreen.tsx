@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { getTVInfos, getApiBaseUrl, getApiToken } from '../api/client-proxy';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import type { TVInfo, Tag } from '../api/types';
@@ -357,11 +358,11 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: H
                     </View>
                 </TouchableOpacity>
                 <View style={styles.titleBarCenter}>
-                    {!isOffline && (
-                        <Text style={styles.titleBarText}>追番小助手</Text>
-                    )}
+                    <Text style={styles.titleBarText}>追番小助手</Text>
                     {isOffline && (
-                        <Text style={styles.titleBarText}>追番小助手（离线模式）</Text>
+                        <View style={styles.offlineBadge}>
+                            <Ionicons name="airplane" size={14} color="#FF9500" />
+                        </View>
                     )}
                 </View>
                 <View style={styles.titleBarPlaceholder} />
@@ -370,7 +371,11 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: H
                 style={styles.scrollView}
                 contentContainerStyle={styles.content}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    <RefreshControl 
+                        refreshing={refreshing} 
+                        onRefresh={onRefresh}
+                        enabled={!isOffline}
+                    />
                 }
             >
                 {error && (
@@ -617,6 +622,14 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#333',
         textAlign: 'center',
+    },
+    offlineBadge: {
+        marginLeft: 8,
+        padding: 4,
+        backgroundColor: '#FFF3CD',
+        borderRadius: 12,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     titleBarPlaceholder: {
         width: 40,
