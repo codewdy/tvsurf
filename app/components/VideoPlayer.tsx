@@ -69,6 +69,7 @@ export default function VideoPlayer({
     const player = useVideoPlayer(videoSource, (player) => {
         player.loop = false;
         player.muted = false;
+        player.timeUpdateEventInterval = 1;
     });
 
     useEffect(() => {
@@ -123,9 +124,12 @@ export default function VideoPlayer({
         };
     }, [player, onPlayToEnd, onPlaybackState]);
 
+    // 订阅播放状态和时间更新事件
     useEffect(() => {
         if (!player) return;
-        const syncInterval = setInterval(() => {
+
+        // 订阅 statusChange 事件，监听播放器状态变化
+        const statusChangeSubscription = player.addListener('statusChange', (status) => {
             try {
                 const current = player.currentTime || 0;
                 const total = player.duration || 0;
@@ -139,10 +143,33 @@ export default function VideoPlayer({
                     isPlaying: playing,
                 });
             } catch (err) {
-                console.error('Error syncing playback state:', err);
+                console.error('Error syncing playback state (statusChange):', err);
             }
-        }, 500);
-        return () => clearInterval(syncInterval);
+        });
+
+        // 订阅 timeUpdate 事件，在播放时定期触发
+        const timeUpdateSubscription = player.addListener('timeUpdate', (payload: { currentTime: number; currentLiveTimestamp: number | null }) => {
+            try {
+                const current = payload.currentTime || 0;
+                const total = player.duration || 0;
+                const playing = player.playing;
+                setPlaybackTime(current);
+                setDuration(total);
+                setIsPlaying(playing);
+                onPlaybackState?.({
+                    currentTime: current,
+                    duration: total,
+                    isPlaying: playing,
+                });
+            } catch (err) {
+                console.error('Error syncing playback state (timeUpdate):', err);
+            }
+        });
+
+        return () => {
+            statusChangeSubscription.remove();
+            timeUpdateSubscription.remove();
+        };
     }, [player, onPlaybackState]);
 
     const clearAutoHide = useCallback(() => {
