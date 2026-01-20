@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Alert,
+    BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { videoCache, CachedVideo, DownloadTask, DownloadStatus } from '../utils/videoCache';
@@ -48,12 +49,19 @@ export default function VideoCacheScreen({ onBack }: VideoCacheScreenProps) {
             loadData(false);
         });
 
+        // 监听安卓返回按钮
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            onBack();
+            return true; // 返回true表示已处理返回事件
+        });
+
         return () => {
             clearInterval(interval);
             unsubscribeComplete();
             unsubscribeError();
+            backHandler.remove();
         };
-    }, []);
+    }, [onBack]);
 
     const loadData = async (loadInfo: boolean = true) => {
         try {
@@ -285,9 +293,7 @@ export default function VideoCacheScreen({ onBack }: VideoCacheScreenProps) {
         return (
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                        <Text style={styles.backButtonText}>← 返回</Text>
-                    </TouchableOpacity>
+                    <View style={styles.placeholder} />
                     <Text style={styles.title}>缓存管理</Text>
                     <View style={styles.placeholder} />
                 </View>
@@ -302,9 +308,7 @@ export default function VideoCacheScreen({ onBack }: VideoCacheScreenProps) {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={onBack} style={styles.backButton}>
-                    <Text style={styles.backButtonText}>← 返回</Text>
-                </TouchableOpacity>
+                <View style={styles.placeholder} />
                 <Text style={styles.title}>缓存管理</Text>
                 <View style={styles.placeholder} />
             </View>
@@ -503,26 +507,27 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         borderBottomWidth: 1,
         borderBottomColor: '#e0e0e0',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
-    backButton: {
-        paddingVertical: 4,
-        paddingHorizontal: 8,
-        minWidth: 60,
-    },
-    backButtonText: {
-        fontSize: 16,
-        color: '#007AFF',
-    },
     title: {
-        fontSize: 18,
-        fontWeight: '600',
+        fontSize: 20,
+        fontWeight: 'bold',
         color: '#333',
+        textAlign: 'center',
+        flex: 1,
     },
     placeholder: {
-        width: 60,
+        width: 40,
     },
     loadingContainer: {
         flex: 1,
