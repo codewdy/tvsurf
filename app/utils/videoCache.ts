@@ -290,6 +290,24 @@ class VideoCache {
         return totalSize;
     }
 
+    // 删除某个TV的所有缓存
+    async deleteTvCache(tvId: number): Promise<void> {
+        await this.initialize();
+
+        // 找到该TV的所有缓存视频
+        const tvCachedVideos: CachedVideo[] = [];
+        for (const cached of this.metadata.values()) {
+            if (cached.tvId === tvId) {
+                tvCachedVideos.push(cached);
+            }
+        }
+
+        // 删除所有找到的缓存
+        for (const cached of tvCachedVideos) {
+            await this.deleteCache(cached.tvId, cached.episodeId);
+        }
+    }
+
     // 清除已观看的缓存
     async clearWatchedCache(watchedVideos: Array<{ tvId: number; episodeId: number }>): Promise<void> {
         await this.initialize();

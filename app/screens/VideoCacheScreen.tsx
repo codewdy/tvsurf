@@ -249,6 +249,20 @@ export default function VideoCacheScreen({ onBack }: VideoCacheScreenProps) {
         await loadData(false);
     };
 
+    const handleDeleteTvCache = async (tvId: number) => {
+        const tvInfo = tvInfoMap.get(tvId);
+        const tvSize = getTvCacheSize(tvId);
+        const episodeCount = groupedCachedVideos[tvId]?.length || 0;
+
+        try {
+            await videoCache.deleteTvCache(tvId);
+            await loadData(false);
+        } catch (error) {
+            console.error('删除TV缓存失败:', error);
+            Alert.alert('错误', '删除TV缓存失败');
+        }
+    };
+
     const handleCancelDownload = async (tvId: number, episodeId: number) => {
         try {
             await videoCache.cancelDownloadTask(tvId, episodeId);
@@ -439,21 +453,30 @@ export default function VideoCacheScreen({ onBack }: VideoCacheScreenProps) {
                             return (
                                 <View key={tvId} style={styles.tvGroup}>
                                     {/* TV组头部 */}
-                                    <TouchableOpacity
-                                        style={styles.tvGroupHeader}
-                                        onPress={() => toggleTvCollapse(tvId)}
-                                        activeOpacity={0.7}
-                                    >
-                                        <Text style={styles.tvGroupTitle}>
-                                            {tvInfo?.name || `TV ${tvId}`}
-                                        </Text>
-                                        <Text style={styles.tvGroupInfo}>
-                                            {videos.length}集 • {formatFileSize(tvSize)}
-                                        </Text>
-                                        <Text style={styles.collapseIcon}>
-                                            {isCollapsed ? '▶' : '▼'}
-                                        </Text>
-                                    </TouchableOpacity>
+                                    <View style={styles.tvGroupHeader}>
+                                        <TouchableOpacity
+                                            style={styles.tvGroupHeaderLeft}
+                                            onPress={() => toggleTvCollapse(tvId)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text style={styles.tvGroupTitle}>
+                                                {tvInfo?.name || `TV ${tvId}`}
+                                            </Text>
+                                            <Text style={styles.tvGroupInfo}>
+                                                {videos.length}集 • {formatFileSize(tvSize)}
+                                            </Text>
+                                            <Text style={styles.collapseIcon}>
+                                                {isCollapsed ? '▶' : '▼'}
+                                            </Text>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={styles.deleteTvButton}
+                                            onPress={() => handleDeleteTvCache(tvId)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Text style={styles.deleteTvButtonText}>删除</Text>
+                                        </TouchableOpacity>
+                                    </View>
 
                                     {/* TV组内容 */}
                                     {!isCollapsed && (
@@ -761,7 +784,6 @@ const styles = StyleSheet.create({
     tvGroupHeader: {
         backgroundColor: '#fff',
         borderRadius: 8,
-        padding: 12,
         marginBottom: 4,
         flexDirection: 'row',
         alignItems: 'center',
@@ -774,11 +796,28 @@ const styles = StyleSheet.create({
         shadowRadius: 2,
         elevation: 2,
     },
+    tvGroupHeaderLeft: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+    },
     tvGroupTitle: {
         fontSize: 16,
         fontWeight: '600',
         color: '#333',
         flex: 1,
+    },
+    deleteTvButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+        borderLeftWidth: 1,
+        borderLeftColor: '#f0f0f0',
+    },
+    deleteTvButtonText: {
+        fontSize: 14,
+        color: '#FF3B30',
+        fontWeight: '500',
     },
     tvGroupInfo: {
         fontSize: 12,
