@@ -61,6 +61,10 @@ class VideoCache {
     private completeListeners: Map<string, Set<DownloadEventListener>> = new Map();
     private errorListeners: Map<string, Set<DownloadEventListener>> = new Map();
 
+    // 全局监听器
+    private globalCompleteListeners: Set<DownloadEventListener> = new Set();
+    private globalErrorListeners: Set<DownloadEventListener> = new Set();
+
     // 并发控制
     private readonly MAX_CONCURRENT_DOWNLOADS = 3;
     private downloadQueue: string[] = []; // 等待下载的任务队列（存储key）
@@ -286,6 +290,15 @@ class VideoCache {
         return totalSize;
     }
 
+    // 清除已观看的缓存
+    async clearWatchedCache(watchedVideos: Array<{ tvId: number; episodeId: number }>): Promise<void> {
+        await this.initialize();
+
+        for (const { tvId, episodeId } of watchedVideos) {
+            await this.deleteCache(tvId, episodeId);
+        }
+    }
+
     // 清除所有缓存
     async clearAllCache(): Promise<void> {
         await this.initialize();
@@ -462,7 +475,7 @@ class VideoCache {
             // 清理任务（延迟清理，让监听器有时间处理）
             setTimeout(() => {
                 this.downloadTasks.delete(key);
-            }, 5000);
+            }, 2000);
         } catch (error) {
             // 下载失败
             task.status = DownloadStatus.FAILED;
@@ -590,6 +603,9 @@ class VideoCache {
         if (listeners) {
             listeners.forEach((listener) => listener({ ...task }));
         }
+
+        // 通知全局监听器
+        this.globalCompleteListeners.forEach((listener) => listener({ ...task }));
     }
 
     // 通知下载错误
@@ -599,6 +615,9 @@ class VideoCache {
         if (listeners) {
             listeners.forEach((listener) => listener({ ...task }));
         }
+
+        // 通知全局监听器
+        this.globalErrorListeners.forEach((listener) => listener({ ...task }));
     }
 
     // 清除所有监听器
@@ -609,11 +628,31 @@ class VideoCache {
         this.errorListeners.delete(key);
     }
 
+    // 注册全局完成监听器（监听所有任务的完成事件）
+    onAnyComplete(listener: DownloadEventListener): () => void {
+        this.globalCompleteListeners.add(listener);
+        return () => {
+            this.globalCompleteListeners.delete(listener);
+        };
+    }
+
+    // 注册全局错误监听器（监听所有任务的错误事件）
+    onAnyError(listener: DownloadEventListener): () => void {
+        this.globalErrorListeners.add(listener);
+        return () => {
+            this.globalErrorListeners.delete(listener);
+        };
+    }
+
     // ==================== 队列状态查询 ====================
 
     // 获取当前正在下载的任务数量
     getRunningDownloadsCount(): number {
         return this.runningDownloads;
+    }
+
+    getTotalDownloadTasksCount(): number {
+        return this.downloadQueue.length + this.runningDownloads;
     }
 
     // 获取等待中的任务数量

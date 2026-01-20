@@ -4,10 +4,11 @@ import { ActivityIndicator, View, Text, StyleSheet } from 'react-native';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import TVDetailsScreen from './screens/TVDetailsScreen';
+import VideoCacheScreen from './screens/VideoCacheScreen';
 import { getApiToken, clearApiToken } from './api/client';
 import type { TVInfo } from './api/types';
 
-type Screen = 'home' | 'tv-details';
+type Screen = 'home' | 'tv-details' | 'cache';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
@@ -54,6 +55,10 @@ export default function App() {
     setSelectedTV(null);
   };
 
+  const handleNavigateToCache = () => {
+    setCurrentScreen('cache');
+  };
+
   // 显示加载状态
   if (isLoggedIn === null) {
     return (
@@ -69,14 +74,24 @@ export default function App() {
     <>
       {isLoggedIn ? (
         currentScreen === 'home' ? (
-          <HomeScreen onLogout={handleLogout} onTVPress={handleTVPress} />
+          <HomeScreen
+            onLogout={handleLogout}
+            onTVPress={handleTVPress}
+            onNavigateToCache={handleNavigateToCache}
+          />
+        ) : currentScreen === 'cache' ? (
+          <VideoCacheScreen onBack={handleBackToHome} />
         ) : selectedTV ? (
           <TVDetailsScreen
             tv={selectedTV}
             onBack={handleBackToHome}
           />
         ) : (
-          <HomeScreen onLogout={handleLogout} onTVPress={handleTVPress} />
+          <HomeScreen
+            onLogout={handleLogout}
+            onTVPress={handleTVPress}
+            onNavigateToCache={handleNavigateToCache}
+          />
         )
       ) : (
         <LoginScreen onLoginSuccess={handleLoginSuccess} />

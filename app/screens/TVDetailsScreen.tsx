@@ -135,8 +135,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         // 过滤出属于当前 TV 的任务
         const currentTvTasks = allTasks.filter(task => task.tvId === tv.id);
 
-        console.log(`发现 ${currentTvTasks.length} 个正在下载的任务`, currentTvTasks);
-
         // 为每个任务注册监听器
         currentTvTasks.forEach(task => {
             const { episodeId } = task;

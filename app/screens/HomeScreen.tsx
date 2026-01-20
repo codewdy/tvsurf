@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -8,24 +8,33 @@ import {
     ActivityIndicator,
     Platform,
     RefreshControl,
+    Modal,
+    Animated,
+    TouchableWithoutFeedback,
+    Dimensions,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getTVInfos, getApiBaseUrl, getApiToken } from '../api/client-proxy';
 import type { TVInfo, Tag } from '../api/types';
 
+const SCREEN_WIDTH = Dimensions.get('window').width;
+const MENU_WIDTH = Math.min(280, SCREEN_WIDTH * 0.75);
+
 interface HomeScreenProps {
     onLogout: () => void;
     onTVPress?: (tv: TVInfo) => void;
+    onNavigateToCache?: () => void;
 }
 
-export default function HomeScreen({ onLogout, onTVPress }: HomeScreenProps) {
+export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: HomeScreenProps) {
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [tvs, setTvs] = useState<TVInfo[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [menuVisible, setMenuVisible] = useState(false);
     // 折叠状态：默认只有watching展开
     const [collapsedTags, setCollapsedTags] = useState<Record<Tag, boolean>>({
         watching: false,
@@ -34,6 +43,10 @@ export default function HomeScreen({ onLogout, onTVPress }: HomeScreenProps) {
         on_hold: true,
         not_tagged: true,
     });
+
+    // 菜单动画
+    const slideAnim = useRef(new Animated.Value(-MENU_WIDTH)).current;
+    const overlayOpacity = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         loadData();
@@ -139,6 +152,48 @@ export default function HomeScreen({ onLogout, onTVPress }: HomeScreenProps) {
         }));
     };
 
+    // 打开菜单
+    const openMenu = () => {
+        setMenuVisible(true);
+        Animated.parallel([
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+            Animated.timing(overlayOpacity, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    };
+
+    // 关闭菜单
+    const closeMenu = () => {
+        Animated.parallel([
+            Animated.timing(slideAnim, {
+                toValue: -MENU_WIDTH,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+            Animated.timing(overlayOpacity, {
+                toValue: 0,
+                duration: 250,
+                useNativeDriver: true,
+            }),
+        ]).start(() => {
+            setMenuVisible(false);
+        });
+    };
+
+    // 处理菜单项点击
+    const handleMenuItemPress = (action: () => void) => {
+        closeMenu();
+        // 延迟执行动作，等待菜单关闭动画完成
+        setTimeout(action, 300);
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -151,7 +206,19 @@ export default function HomeScreen({ onLogout, onTVPress }: HomeScreenProps) {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.titleBar}>
+                <TouchableOpacity
+                    style={styles.menuButton}
+                    onPress={openMenu}
+                    activeOpacity={0.7}
+                >
+                    <View style={styles.hamburgerIcon}>
+                        <View style={styles.hamburgerLine} />
+                        <View style={styles.hamburgerLine} />
+                        <View style={styles.hamburgerLine} />
+                    </View>
+                </TouchableOpacity>
                 <Text style={styles.titleBarText}>追番小助手</Text>
+                <View style={styles.titleBarPlaceholder} />
             </View>
             <ScrollView
                 style={styles.scrollView}
@@ -235,6 +302,62 @@ export default function HomeScreen({ onLogout, onTVPress }: HomeScreenProps) {
                     </View>
                 )}
             </ScrollView>
+
+            {/* 侧边菜单 */}
+            <Modal
+                visible={menuVisible}
+                transparent
+                animationType="none"
+                onRequestClose={closeMenu}
+            >
+                <View style={styles.menuContainer}>
+                    {/* 半透明遮罩 */}
+                    <TouchableWithoutFeedback onPress={closeMenu}>
+                        <Animated.View
+                            style={[
+                                styles.menuOverlay,
+                                { opacity: overlayOpacity }
+                            ]}
+                        />
+                    </TouchableWithoutFeedback>
+
+                    {/* 菜单内容 */}
+                    <Animated.View
+                        style={[
+                            styles.menuContent,
+                            { transform: [{ translateX: slideAnim }] }
+                        ]}
+                    >
+                        <SafeAreaView style={styles.menuSafeArea}>
+                            {/* 菜单头部 */}
+                            <View style={styles.menuHeader}>
+                                <TouchableOpacity
+                                    style={styles.menuButton}
+                                    onPress={closeMenu}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.closeIcon}>✕</Text>
+                                </TouchableOpacity>
+                                <Text style={styles.menuTitle}>菜单</Text>
+                                <View style={styles.titleBarPlaceholder} />
+                            </View>
+
+                            {/* 菜单项 */}
+                            <View style={styles.menuItems}>
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => handleMenuItemPress(() => onNavigateToCache?.())}
+                                    activeOpacity={0.7}
+                                >
+                                    <Text style={styles.menuItemIcon}>📦</Text>
+                                    <Text style={styles.menuItemText}>缓存管理</Text>
+                                    <Text style={styles.menuItemArrow}>›</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </SafeAreaView>
+                    </Animated.View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -282,13 +405,36 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 2,
         elevation: 2,
+        flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    menuButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    hamburgerIcon: {
+        width: 20,
+        height: 14,
+        justifyContent: 'space-between',
+    },
+    hamburgerLine: {
+        width: '100%',
+        height: 2,
+        backgroundColor: '#333',
+        borderRadius: 1,
     },
     titleBarText: {
         fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
         textAlign: 'center',
+        flex: 1,
+    },
+    titleBarPlaceholder: {
+        width: 40,
     },
     scrollView: {
         flex: 1,
@@ -405,5 +551,89 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 12,
         fontWeight: '600',
+    },
+    // 菜单样式
+    menuContainer: {
+        flex: 1,
+        flexDirection: 'row',
+    },
+    menuOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    },
+    menuContent: {
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: MENU_WIDTH,
+        backgroundColor: '#fff',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 2,
+            height: 0,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    menuSafeArea: {
+        flex: 1,
+    },
+    menuHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    menuTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: '#333',
+        textAlign: 'center',
+        flex: 1,
+    },
+    menuCloseButton: {
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    menuCloseText: {
+        fontSize: 24,
+        color: '#666',
+        lineHeight: 24,
+    },
+    closeIcon: {
+        fontSize: 24,
+        color: '#333',
+        fontWeight: '300',
+    },
+    menuItems: {
+        paddingTop: 8,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: StyleSheet.hairlineWidth,
+        borderBottomColor: '#f0f0f0',
+    },
+    menuItemIcon: {
+        fontSize: 22,
+        marginRight: 12,
+    },
+    menuItemText: {
+        flex: 1,
+        fontSize: 16,
+        color: '#333',
+    },
+    menuItemArrow: {
+        fontSize: 20,
+        color: '#999',
     },
 });
