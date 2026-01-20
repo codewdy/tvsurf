@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     RefreshControl,
+    BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image as ExpoImage } from 'expo-image';
@@ -34,6 +35,16 @@ export default function SeriesListScreen({ onBack, onTVPress }: SeriesListScreen
     useEffect(() => {
         loadData();
     }, []);
+
+    // 监听 Android 后退按钮
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            onBack();
+            return true; // 返回true表示已处理返回事件
+        });
+
+        return () => backHandler.remove();
+    }, [onBack]);
 
     const loadData = async () => {
         try {

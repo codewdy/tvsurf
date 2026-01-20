@@ -618,6 +618,13 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
         <SafeAreaView style={styles.container}>
             {!isFullscreen && (
                 <View style={styles.titleBar}>
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={onBack}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="arrow-back" size={24} color="#333" />
+                    </TouchableOpacity>
                     <View style={styles.titleBarCenter}>
                         <Text style={styles.titleBarText} numberOfLines={1}>
                             {details.tv.name || ''}
@@ -1051,8 +1058,13 @@ const styles = StyleSheet.create({
         elevation: 2,
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
         justifyContent: 'center',
-        position: 'relative',
     },
     titleBarCenter: {
         flex: 1,
@@ -1075,9 +1087,10 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     menuButton: {
-        position: 'absolute',
-        right: 16,
-        padding: 4,
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     scrollView: {
         flex: 1,

@@ -10,6 +10,7 @@ import {
     BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { videoCache, CachedVideo, DownloadTask, DownloadStatus } from '../utils/videoCache';
 import { getTVInfos, getTVDetails } from '../api/client-proxy';
 import { offlineModeManager } from '../utils/offlineModeManager';
@@ -327,9 +328,17 @@ export default function VideoCacheScreen({ onBack }: VideoCacheScreenProps) {
         return (
             <SafeAreaView style={styles.container}>
                 <View style={styles.header}>
-                    <View style={styles.placeholder} />
-                    <Text style={styles.title}>缓存管理</Text>
-                    <View style={styles.placeholder} />
+                    <TouchableOpacity
+                        style={styles.backButton}
+                        onPress={onBack}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons name="arrow-back" size={24} color="#333" />
+                    </TouchableOpacity>
+                    <View style={styles.titleBarCenter}>
+                        <Text style={styles.title}>缓存管理</Text>
+                    </View>
+                    <View style={styles.titleBarPlaceholder} />
                 </View>
                 <View style={styles.loadingContainer}>
                     <ActivityIndicator size="large" color="#007AFF" />
@@ -342,9 +351,17 @@ export default function VideoCacheScreen({ onBack }: VideoCacheScreenProps) {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <View style={styles.placeholder} />
-                <Text style={styles.title}>缓存管理</Text>
-                <View style={styles.placeholder} />
+                <TouchableOpacity
+                    style={styles.backButton}
+                    onPress={onBack}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons name="arrow-back" size={24} color="#333" />
+                </TouchableOpacity>
+                <View style={styles.titleBarCenter}>
+                    <Text style={styles.title}>缓存管理</Text>
+                </View>
+                <View style={styles.titleBarPlaceholder} />
             </View>
 
             <ScrollView
@@ -581,14 +598,24 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
     },
+    backButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    titleBarCenter: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     title: {
         fontSize: 20,
         fontWeight: 'bold',
         color: '#333',
         textAlign: 'center',
-        flex: 1,
     },
-    placeholder: {
+    titleBarPlaceholder: {
         width: 40,
     },
     loadingContainer: {
