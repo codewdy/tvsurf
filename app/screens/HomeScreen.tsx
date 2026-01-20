@@ -371,8 +371,8 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache }: H
                 style={styles.scrollView}
                 contentContainerStyle={styles.content}
                 refreshControl={
-                    <RefreshControl 
-                        refreshing={refreshing} 
+                    <RefreshControl
+                        refreshing={refreshing}
                         onRefresh={onRefresh}
                         enabled={!isOffline}
                     />
