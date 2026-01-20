@@ -197,9 +197,9 @@ export async function getSeries(
     // 检查是否处于离线模式
     const isOffline = await offlineModeManager.getOfflineMode();
     if (isOffline) {
-        // 离线模式：从离线缓存读取（如果支持）
-        // 目前播放列表不支持离线模式，抛出错误
-        throw new OfflineModeError('离线模式下无法获取播放列表');
+        // 离线模式：从离线缓存读取
+        const series = await offlineDataCache.getSeries(request.ids);
+        return { series };
     }
 
     // 在线模式：从 API 获取

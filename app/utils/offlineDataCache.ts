@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { TVInfo, GetTVDetailsResponse, Tag } from '../api/types';
+import type { TVInfo, GetTVDetailsResponse, Tag, Series } from '../api/types';
 
 // 存储键
 const OFFLINE_DATA_KEY = '@tvsurf_offline_data';
@@ -9,6 +9,7 @@ const PENDING_CHANGES_KEY = '@tvsurf_pending_changes';
 interface OfflineData {
     tvInfos: Record<number, TVInfo>; // tvId -> TVInfo
     tvDetails: Record<number, GetTVDetailsResponse>; // tvId -> TVDetails
+    series: Record<number, Series>; // seriesId -> Series
     lastSync: string; // ISO datetime string
 }
 
@@ -39,6 +40,7 @@ class OfflineDataCache {
     private offlineData: OfflineData = {
         tvInfos: {},
         tvDetails: {},
+        series: {},
         lastSync: '',
     };
     // 使用 Map 存储待上传数据，自动合并重复记录
@@ -69,6 +71,7 @@ class OfflineDataCache {
             this.offlineData = {
                 tvInfos: {},
                 tvDetails: {},
+                series: {},
                 lastSync: '',
             };
         }
@@ -104,6 +107,16 @@ class OfflineDataCache {
         await this.saveOfflineData();
     }
 
+    // 批量保存 Series
+    async saveSeries(seriesList: Series[]): Promise<void> {
+        await this.initialize();
+        seriesList.forEach((series) => {
+            this.offlineData.series[series.id] = series;
+        });
+        this.offlineData.lastSync = new Date().toISOString();
+        await this.saveOfflineData();
+    }
+
     // 获取缓存的 TVInfos（支持按 ID 筛选）
     async getTVInfos(ids: number[] | null): Promise<TVInfo[]> {
         await this.initialize();
@@ -122,12 +135,25 @@ class OfflineDataCache {
         return this.offlineData.tvDetails[tvId] || null;
     }
 
+    // 获取缓存的 Series（支持按 ID 筛选）
+    async getSeries(ids: number[] | null): Promise<Series[]> {
+        await this.initialize();
+        const allSeries = Object.values(this.offlineData.series);
+
+        if (ids === null) {
+            return allSeries;
+        }
+
+        return allSeries.filter((series) => ids.includes(series.id));
+    }
+
     // 清除所有离线数据
     async clearOfflineData(): Promise<void> {
         await this.initialize();
         this.offlineData = {
             tvInfos: {},
             tvDetails: {},
+            series: {},
             lastSync: '',
         };
         await this.saveOfflineData();

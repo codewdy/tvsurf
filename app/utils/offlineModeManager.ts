@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { offlineDataCache } from './offlineDataCache';
 import { videoCache } from './videoCache';
-import { getTVInfos as getTVInfosApi, getTVDetails as getTVDetailsApi } from '../api/client';
+import { getTVInfos as getTVInfosApi, getTVDetails as getTVDetailsApi, getSeries as getSeriesApi } from '../api/client';
 import { setWatchProgress as setWatchProgressApi, setTVTag as setTVTagApi } from '../api/client';
 import type { Tag } from '../api/types';
 
@@ -81,33 +81,39 @@ class OfflineModeManager {
         }
 
         try {
-            onProgress?.(0, 3, '准备下载数据...');
+            onProgress?.(0, 4, '准备下载数据...');
 
             await offlineDataCache.clearOfflineData();
 
             // 1. 获取所有 TV 的 TVInfo
-            onProgress?.(1, 3, '下载所有TV信息...');
+            onProgress?.(1, 4, '下载所有TV信息...');
             const tvInfosResponse = await getTVInfosApi({ ids: null });
             const tvInfos = tvInfosResponse.tvs;
             await offlineDataCache.saveTVInfos(tvInfos);
 
-            // 2. 提取所有 TV ID
+            // 2. 获取所有 Series
+            onProgress?.(2, 4, '下载所有播放列表...');
+            const seriesResponse = await getSeriesApi({ ids: null });
+            const seriesList = seriesResponse.series;
+            await offlineDataCache.saveSeries(seriesList);
+
+            // 3. 提取所有 TV ID
             const tvIds = tvInfos.map(tv => tv.id);
 
-            // 3. 顺序下载这些 TV 的 TVDetails（任何一个失败都会导致整个操作失败）
+            // 4. 顺序下载这些 TV 的 TVDetails（任何一个失败都会导致整个操作失败）
             const tvDetailsResults = [];
             for (let i = 0; i < tvIds.length; i++) {
                 const tvId = tvIds[i];
-                onProgress?.(2, 3, `下载TV详情 (${i + 1}/${tvIds.length})...`);
+                onProgress?.(3, 4, `下载TV详情 (${i + 1}/${tvIds.length})...`);
                 const details = await getTVDetailsApi({ id: tvId });
                 tvDetailsResults.push(details);
             }
 
             await offlineDataCache.saveTVDetails(tvDetailsResults);
 
-            onProgress?.(3, 3, '进入离线模式成功');
+            onProgress?.(4, 4, '进入离线模式成功');
 
-            // 4. 设置离线模式状态
+            // 5. 设置离线模式状态
             await this.setOfflineMode(true);
         } catch (error) {
             console.error('进入离线模式失败:', error);
