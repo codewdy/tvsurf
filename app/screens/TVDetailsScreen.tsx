@@ -51,8 +51,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     const [showCacheSelector, setShowCacheSelector] = useState(false);
     const [selectedEpisodesForCache, setSelectedEpisodesForCache] = useState<Set<number>>(new Set());
     const lastUpdateTimeRef = useRef<number>(-1);
-    const lastKnownTimeRef = useRef<number>(-1);
-    const lastKnownEpisodeRef = useRef<number>(-1);
+    const lastUpdateEpisodeRef = useRef<number>(-1);
 
     // 缓存相关状态
     const [cachedEpisodes, setCachedEpisodes] = useState<Set<number>>(new Set());
@@ -253,6 +252,8 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
             setSelectedEpisode(savedEpisode);
             setResumeTime(details.info.user_data.watch_progress.time);
             setAutoPlay(false);
+            lastUpdateEpisodeRef.current = savedEpisode;
+            lastUpdateTimeRef.current = details.info.user_data.watch_progress.time;
         }
     }, [details?.info.user_data.watch_progress.episode_id, details?.info.user_data.watch_progress.time]);
 
@@ -291,6 +292,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
 
     const updateWatchProgress = useCallback(async (episodeId: number, time: number) => {
         if (!details) return;
+        if (lastUpdateEpisodeRef.current === episodeId && Math.abs(lastUpdateTimeRef.current - time) < 0.2) return;
 
         try {
             await setWatchProgress({
@@ -298,6 +300,8 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                 episode_id: episodeId,
                 time: time,
             });
+            lastUpdateEpisodeRef.current = episodeId;
+            lastUpdateTimeRef.current = time;
         } catch (err) {
             console.error('Update watch progress error:', err);
         }
@@ -313,26 +317,10 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
 
     // 监听播放进度并定期更新
     useEffect(() => {
-        if (lastKnownEpisodeRef.current != selectedEpisode || Math.abs(lastUpdateTimeRef.current - playbackState.currentTime) > 5) {
-            updateWatchProgress(selectedEpisode, playbackState.currentTime);
-            lastUpdateTimeRef.current = playbackState.currentTime;
-        }
-        lastKnownEpisodeRef.current = selectedEpisode;
-        lastKnownTimeRef.current = playbackState.currentTime;
-    }, [details, selectedEpisode, playbackState.currentTime, updateWatchProgress]);
-
-    // 组件卸载时更新播放进度
-    useEffect(() => {
-        return () => {
-            if (details) {
-                try {
-                    updateWatchProgress(lastKnownEpisodeRef.current, lastKnownTimeRef.current);
-                } catch (err) {
-                    console.error('Error updating progress on unmount:', err);
-                }
-            }
-        };
-    }, [details, updateWatchProgress]);
+        if (!details) return;
+        if (playbackState.duration === 0) return;
+        updateWatchProgress(selectedEpisode, playbackState.currentTime);
+    }, [details, selectedEpisode, playbackState, updateWatchProgress]);
 
     useEffect(() => {
         if (!isFullscreen) {

@@ -40,7 +40,7 @@ export default function VideoPlayer({
     const [seekOffset, setSeekOffset] = useState(0);
     const [showSeekIndicator, setShowSeekIndicator] = useState(false);
     const [playerWidth, setPlayerWidth] = useState(0);
-    const resumeAppliedRef = useRef(false);
+    const readyRef = useRef(false);
     const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const lastClickTimeRef = useRef<number>(0);
     const autoHideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -73,7 +73,7 @@ export default function VideoPlayer({
     });
 
     useEffect(() => {
-        resumeAppliedRef.current = false;
+        readyRef.current = false;
     }, [videoUrl, resumeTime, localUri]);
 
     useEffect(() => {
@@ -94,11 +94,11 @@ export default function VideoPlayer({
     }, [player, videoSource, autoPlay]);
 
     useEffect(() => {
-        if (!player || resumeAppliedRef.current || resumeTime <= 0) return;
+        if (!player || readyRef.current) return;
         const checkReady = setInterval(() => {
             if (player.status === 'readyToPlay') {
                 player.currentTime = resumeTime;
-                resumeAppliedRef.current = true;
+                readyRef.current = true;
                 clearInterval(checkReady);
             }
         }, 100);
@@ -108,28 +108,29 @@ export default function VideoPlayer({
     useEffect(() => {
         if (!player) return;
         const endSubscription = player.addListener('playToEnd', () => {
+            if (!readyRef.current) {
+                return;
+            }
             onPlayToEnd?.();
         });
         const playingChangeSubscription = player.addListener('playingChange', (payload: { isPlaying: boolean }) => {
+            if (!readyRef.current) {
+                return;
+            }
             setIsPlaying(payload.isPlaying);
+            console.log('playingChange', player.currentTime, player.duration, payload.isPlaying);
             onPlaybackState?.({
                 currentTime: player.currentTime || 0,
                 duration: player.duration || 0,
                 isPlaying: payload.isPlaying,
             });
         });
-        return () => {
-            endSubscription.remove();
-            playingChangeSubscription.remove();
-        };
-    }, [player, onPlayToEnd, onPlaybackState]);
-
-    // 订阅播放状态和时间更新事件
-    useEffect(() => {
-        if (!player) return;
 
         // 订阅 statusChange 事件，监听播放器状态变化
         const statusChangeSubscription = player.addListener('statusChange', (status) => {
+            if (!readyRef.current) {
+                return;
+            }
             try {
                 const current = player.currentTime || 0;
                 const total = player.duration || 0;
@@ -149,6 +150,9 @@ export default function VideoPlayer({
 
         // 订阅 timeUpdate 事件，在播放时定期触发
         const timeUpdateSubscription = player.addListener('timeUpdate', (payload: { currentTime: number; currentLiveTimestamp: number | null }) => {
+            if (!readyRef.current) {
+                return;
+            }
             try {
                 const current = payload.currentTime || 0;
                 const total = player.duration || 0;
@@ -167,10 +171,12 @@ export default function VideoPlayer({
         });
 
         return () => {
+            endSubscription.remove();
+            playingChangeSubscription.remove();
             statusChangeSubscription.remove();
             timeUpdateSubscription.remove();
         };
-    }, [player, onPlaybackState]);
+    }, [player, onPlayToEnd, onPlaybackState]);
 
     const clearAutoHide = useCallback(() => {
         if (autoHideTimeoutRef.current) {
