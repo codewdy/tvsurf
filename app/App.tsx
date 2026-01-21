@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View, Text, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, Text, StyleSheet, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
@@ -10,6 +10,7 @@ import SeriesListScreen from './screens/SeriesListScreen';
 import SeriesDetailsScreen from './screens/SeriesDetailsScreen';
 import AddTVScreen from './screens/AddTVScreen';
 import { getApiToken, clearApiToken } from './api/client-proxy';
+import { offlineModeManager } from './utils/offlineModeManager';
 import type { TVInfo } from './api/types';
 
 type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv';
@@ -19,10 +20,29 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [selectedTV, setSelectedTV] = useState<TVInfo | null>(null);
   const [selectedSeriesId, setSelectedSeriesId] = useState<number | null>(null);
+  const [isOffline, setIsOffline] = useState(false);
 
   useEffect(() => {
     checkLoginStatus();
+    loadOfflineStatus();
   }, []);
+
+  // 监听屏幕变化，如果处于离线模式且尝试进入add-tv，则自动返回
+  useEffect(() => {
+    if (isOffline && currentScreen === 'add-tv') {
+      Alert.alert('提示', '离线模式下无法添加TV，请先退出离线模式');
+      setCurrentScreen('home');
+    }
+  }, [isOffline, currentScreen]);
+
+  const loadOfflineStatus = async () => {
+    try {
+      const offline = await offlineModeManager.getOfflineMode();
+      setIsOffline(offline);
+    } catch (error) {
+      console.error('加载离线模式状态失败:', error);
+    }
+  };
 
   const checkLoginStatus = async () => {
     try {
@@ -69,7 +89,14 @@ export default function App() {
     setCurrentScreen('series-list');
   };
 
-  const handleNavigateToAddTV = () => {
+  const handleNavigateToAddTV = async () => {
+    // 检查离线模式
+    const offline = await offlineModeManager.getOfflineMode();
+    if (offline) {
+      Alert.alert('提示', '离线模式下无法添加TV，请先退出离线模式');
+      return;
+    }
+    setIsOffline(offline);
     setCurrentScreen('add-tv');
   };
 
