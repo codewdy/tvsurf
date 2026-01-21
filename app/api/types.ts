@@ -244,3 +244,26 @@ export interface GetDownloadProgressRequest {
 export interface GetDownloadProgressResponse {
     progress: DownloadProgressWithName[];
 }
+
+// 更新 TV 源请求
+export interface UpdateTVSourceRequest {
+    id: number;
+    source: Source;
+}
+
+// 更新 TV 源响应
+export interface UpdateTVSourceResponse {
+    // 空响应
+}
+
+// 更新剧集源请求
+export interface UpdateEpisodeSourceRequest {
+    tv_id: number;
+    episode_id: number;
+    source: SourceUrl;
+}
+
+// 更新剧集源响应
+export interface UpdateEpisodeSourceResponse {
+    // 空响应
+}

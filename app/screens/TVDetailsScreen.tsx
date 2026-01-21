@@ -11,14 +11,16 @@ import {
     StatusBar,
     Modal,
     Alert,
+    TextInput,
+    Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import VideoPlayer from '../components/VideoPlayer';
-import { getTVDetails, setWatchProgress, setTVTag, setTVTracking, getApiToken, getApiBaseUrl, getSeries } from '../api/client-proxy';
-import type { GetTVDetailsResponse, Tag, Series } from '../api/types';
+import { getTVDetails, setWatchProgress, setTVTag, setTVTracking, getApiToken, getApiBaseUrl, getSeries, searchTV, updateTVSource, updateEpisodeSource } from '../api/client-proxy';
+import type { GetTVDetailsResponse, Tag, Series, Source, SearchError } from '../api/types';
 import { videoCache } from '../utils/videoCache';
 import { offlineModeManager } from '../utils/offlineModeManager';
 
@@ -52,6 +54,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
     const [showCacheSelector, setShowCacheSelector] = useState(false);
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showTagDropdown, setShowTagDropdown] = useState(false);
+    const [showSourceSelector, setShowSourceSelector] = useState(false);
     const [seriesList, setSeriesList] = useState<Series[]>([]);
     const [selectedEpisodesForCache, setSelectedEpisodesForCache] = useState<Set<number>>(new Set());
     const lastUpdateTimeRef = useRef<number>(-1);
@@ -69,6 +72,17 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
 
     // 追更状态更新中
     const [updatingTracking, setUpdatingTracking] = useState(false);
+
+    // 换源相关状态
+    const [sourceSearchKeyword, setSourceSearchKeyword] = useState('');
+    const [sourceSearchLoading, setSourceSearchLoading] = useState(false);
+    const [sourceSearchResults, setSourceSearchResults] = useState<Source[]>([]);
+    const [sourceSearchErrors, setSourceSearchErrors] = useState<SearchError[]>([]);
+    const [selectedSourceIndex, setSelectedSourceIndex] = useState<number | null>(null);
+    const [updatingSource, setUpdatingSource] = useState(false);
+    const [sourceType, setSourceType] = useState<'tv' | 'episode'>('tv'); // 换源类型：整体换源 or 按集换源
+    const [selectedEpisodeForSource, setSelectedEpisodeForSource] = useState<number>(0); // 当前要换源的剧集索引
+    const [selectedEpisodeInNewSource, setSelectedEpisodeInNewSource] = useState<number>(0); // 在新源中选择的剧集索引
 
     // 存储取消订阅函数
     const unsubscribersRef = useRef<Array<() => void>>([]);
@@ -130,6 +144,35 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
             loadSeriesInfo();
         }
     }, [showDetailsModal, details]);
+
+    // 当换源弹窗打开时，如果有关键词则自动搜索
+    useEffect(() => {
+        if (showSourceSelector && sourceSearchKeyword.trim() && !sourceSearchLoading) {
+            const performSearch = async () => {
+                setSourceSearchLoading(true);
+                setSourceSearchResults([]);
+                setSourceSearchErrors([]);
+                setSelectedSourceIndex(null);
+
+                try {
+                    const data = await searchTV({ keyword: sourceSearchKeyword.trim() });
+                    setSourceSearchResults(data.source || []);
+                    setSourceSearchErrors(data.search_error || []);
+                } catch (err) {
+                    console.error('Auto search error:', err);
+                } finally {
+                    setSourceSearchLoading(false);
+                }
+            };
+
+            // 延迟一点执行，让UI先渲染
+            const timer = setTimeout(() => {
+                performSearch();
+            }, 300);
+
+            return () => clearTimeout(timer);
+        }
+    }, [showSourceSelector, sourceSearchKeyword]);
 
     const loadSeriesInfo = async () => {
         if (!details || details.info.series.length === 0) {
@@ -1003,6 +1046,362 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                 </View>
             </Modal>
 
+            {/* 换源弹窗 */}
+            <Modal
+                visible={showSourceSelector}
+                transparent
+                animationType="slide"
+                onRequestClose={() => setShowSourceSelector(false)}
+            >
+                <View style={styles.sourceSelectorOverlay}>
+                    <View style={styles.sourceSelectorContainer}>
+                        <View style={styles.sourceSelectorHeader}>
+                            <Text style={styles.sourceSelectorTitle}>更换源</Text>
+                            <TouchableOpacity
+                                onPress={() => setShowSourceSelector(false)}
+                                style={styles.closeButton}
+                            >
+                                <Ionicons name="close" size={24} color="#333" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={styles.sourceSelectorContent}>
+                            {/* 换源类型选择 */}
+                            <View style={styles.sourceTypeContainer}>
+                                <Text style={styles.sourceTypeLabel}>换源类型</Text>
+                                <View style={styles.sourceTypeOptions}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.sourceTypeOption,
+                                            sourceType === 'tv' && styles.sourceTypeOptionSelected
+                                        ]}
+                                        onPress={() => {
+                                            setSourceType('tv');
+                                            setSelectedSourceIndex(null);
+                                            setSelectedEpisodeInNewSource(0);
+                                        }}
+                                    >
+                                        <Ionicons
+                                            name={sourceType === 'tv' ? 'radio-button-on' : 'radio-button-off'}
+                                            size={20}
+                                            color={sourceType === 'tv' ? '#007AFF' : '#999'}
+                                        />
+                                        <Text style={[
+                                            styles.sourceTypeOptionText,
+                                            sourceType === 'tv' && styles.sourceTypeOptionTextSelected
+                                        ]}>更换整部剧源</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.sourceTypeOption,
+                                            sourceType === 'episode' && styles.sourceTypeOptionSelected
+                                        ]}
+                                        onPress={() => {
+                                            setSourceType('episode');
+                                            setSelectedSourceIndex(null);
+                                            setSelectedEpisodeInNewSource(0);
+                                        }}
+                                    >
+                                        <Ionicons
+                                            name={sourceType === 'episode' ? 'radio-button-on' : 'radio-button-off'}
+                                            size={20}
+                                            color={sourceType === 'episode' ? '#007AFF' : '#999'}
+                                        />
+                                        <Text style={[
+                                            styles.sourceTypeOptionText,
+                                            sourceType === 'episode' && styles.sourceTypeOptionTextSelected
+                                        ]}>更换单集源</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {/* 选择剧集（仅当按集换源时显示） */}
+                            {sourceType === 'episode' && details && (
+                                <View style={styles.sourceEpisodeSelector}>
+                                    <Text style={styles.sourceEpisodeSelectorLabel}>选择要更换的剧集</Text>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                        <View style={styles.sourceEpisodeList}>
+                                            {details.tv.source.episodes.map((episode, index) => (
+                                                <TouchableOpacity
+                                                    key={index}
+                                                    style={[
+                                                        styles.sourceEpisodeItem,
+                                                        selectedEpisodeForSource === index && styles.sourceEpisodeItemSelected
+                                                    ]}
+                                                    onPress={() => {
+                                                        setSelectedEpisodeForSource(index);
+                                                        setSelectedSourceIndex(null);
+                                                        setSelectedEpisodeInNewSource(0);
+                                                    }}
+                                                >
+                                                    <Text style={[
+                                                        styles.sourceEpisodeItemText,
+                                                        selectedEpisodeForSource === index && styles.sourceEpisodeItemTextSelected
+                                                    ]} numberOfLines={1}>
+                                                        {episode.name || `第${index + 1}集`}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </ScrollView>
+                                </View>
+                            )}
+
+                            {/* 搜索框 */}
+                            <View style={styles.sourceSearchContainer}>
+                                <Text style={styles.sourceSearchLabel}>搜索新源</Text>
+                                <View style={styles.sourceSearchInputContainer}>
+                                    <TextInput
+                                        style={styles.sourceSearchInput}
+                                        value={sourceSearchKeyword}
+                                        onChangeText={setSourceSearchKeyword}
+                                        placeholder="输入搜索关键词..."
+                                        placeholderTextColor="#999"
+                                        editable={!sourceSearchLoading}
+                                    />
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.sourceSearchButton,
+                                            (sourceSearchLoading || !sourceSearchKeyword.trim()) && styles.sourceSearchButtonDisabled
+                                        ]}
+                                        onPress={async () => {
+                                            if (!sourceSearchKeyword.trim() || sourceSearchLoading) return;
+
+                                            setSourceSearchLoading(true);
+                                            setSourceSearchResults([]);
+                                            setSourceSearchErrors([]);
+                                            setSelectedSourceIndex(null);
+
+                                            try {
+                                                const data = await searchTV({ keyword: sourceSearchKeyword.trim() });
+                                                setSourceSearchResults(data.source || []);
+                                                setSourceSearchErrors(data.search_error || []);
+                                            } catch (err) {
+                                                Alert.alert('错误', err instanceof Error ? err.message : '搜索时发生错误');
+                                                console.error('Search error:', err);
+                                            } finally {
+                                                setSourceSearchLoading(false);
+                                            }
+                                        }}
+                                        disabled={sourceSearchLoading || !sourceSearchKeyword.trim()}
+                                    >
+                                        {sourceSearchLoading ? (
+                                            <ActivityIndicator size="small" color="#fff" />
+                                        ) : (
+                                            <Text style={styles.sourceSearchButtonText}>搜索</Text>
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {/* 搜索错误信息 */}
+                            {sourceSearchErrors.length > 0 && (
+                                <View style={styles.sourceErrorContainer}>
+                                    <Text style={styles.sourceErrorTitle}>
+                                        搜索过程中部分来源出现错误 ({sourceSearchErrors.length})
+                                    </Text>
+                                    {sourceSearchErrors.map((searchError, index) => (
+                                        <View key={index} style={styles.sourceErrorItem}>
+                                            <Text style={styles.sourceErrorText}>
+                                                {searchError.source_name}: {searchError.error}
+                                            </Text>
+                                        </View>
+                                    ))}
+                                </View>
+                            )}
+
+                            {/* 搜索结果 */}
+                            {sourceSearchResults.length > 0 && (
+                                <View style={styles.sourceResultsContainer}>
+                                    <Text style={styles.sourceResultsTitle}>
+                                        找到 {sourceSearchResults.length} 个结果
+                                    </Text>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sourceResultsScroll}>
+                                        {sourceSearchResults.map((source, index) => {
+                                            const isSelected = selectedSourceIndex === index;
+                                            const isCurrentSource =
+                                                details?.tv.source.source.source_key === source.source.source_key &&
+                                                details?.tv.source.source.channel_name === source.source.channel_name;
+
+                                            return (
+                                                <TouchableOpacity
+                                                    key={index}
+                                                    style={[
+                                                        styles.sourceResultCard,
+                                                        isSelected && styles.sourceResultCardSelected,
+                                                        isCurrentSource && styles.sourceResultCardCurrent
+                                                    ]}
+                                                    onPress={() => {
+                                                        if (sourceType === 'tv') {
+                                                            setSelectedSourceIndex(index);
+                                                            setSelectedEpisodeInNewSource(0);
+                                                        } else {
+                                                            // 按集换源：选择源后需要选择剧集
+                                                            setSelectedSourceIndex(index);
+                                                            setSelectedEpisodeInNewSource(0);
+                                                        }
+                                                    }}
+                                                >
+                                                    {source.cover_url ? (
+                                                        <Image
+                                                            source={{ uri: source.cover_url }}
+                                                            style={styles.sourceResultCover}
+                                                            resizeMode="cover"
+                                                        />
+                                                    ) : (
+                                                        <View style={styles.sourceResultCoverPlaceholder}>
+                                                            <Text style={styles.sourceResultCoverPlaceholderText}>无封面</Text>
+                                                        </View>
+                                                    )}
+                                                    <View style={styles.sourceResultInfo}>
+                                                        <Text style={styles.sourceResultName} numberOfLines={2}>
+                                                            {source.name}
+                                                        </Text>
+                                                        <Text style={styles.sourceResultMeta} numberOfLines={1}>
+                                                            来源: {source.source.source_name}
+                                                        </Text>
+                                                        <Text style={styles.sourceResultMeta} numberOfLines={1}>
+                                                            频道: {source.source.channel_name}
+                                                        </Text>
+                                                        <Text style={styles.sourceResultMeta}>
+                                                            剧集数: {source.episodes.length}
+                                                        </Text>
+                                                        {isCurrentSource && (
+                                                            <View style={styles.sourceResultCurrentBadge}>
+                                                                <Text style={styles.sourceResultCurrentBadgeText}>当前源</Text>
+                                                            </View>
+                                                        )}
+                                                        {isSelected && !isCurrentSource && (
+                                                            <View style={styles.sourceResultSelectedBadge}>
+                                                                <Ionicons name="checkmark-circle" size={20} color="#007AFF" />
+                                                            </View>
+                                                        )}
+                                                    </View>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </ScrollView>
+                                </View>
+                            )}
+
+                            {sourceSearchResults.length === 0 && !sourceSearchLoading && sourceSearchKeyword && (
+                                <View style={styles.sourceEmptyContainer}>
+                                    <Text style={styles.sourceEmptyText}>暂无搜索结果</Text>
+                                    <Text style={styles.sourceEmptySubtext}>请尝试其他关键词</Text>
+                                </View>
+                            )}
+
+                            {/* 选择新源中的剧集（仅当按集换源且已选择源时显示） */}
+                            {sourceType === 'episode' && selectedSourceIndex !== null && sourceSearchResults[selectedSourceIndex] && details && (
+                                <View style={styles.sourceNewEpisodeSelector}>
+                                    <Text style={styles.sourceNewEpisodeSelectorLabel}>
+                                        选择新源中的剧集（当前要更换的剧集：{details.tv.source.episodes[selectedEpisodeForSource]?.name || `第${selectedEpisodeForSource + 1}集`}）
+                                    </Text>
+                                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                                        <View style={styles.sourceNewEpisodeList}>
+                                            {sourceSearchResults[selectedSourceIndex].episodes.map((episode, index) => (
+                                                <TouchableOpacity
+                                                    key={index}
+                                                    style={[
+                                                        styles.sourceNewEpisodeItem,
+                                                        selectedEpisodeInNewSource === index && styles.sourceNewEpisodeItemSelected
+                                                    ]}
+                                                    onPress={() => setSelectedEpisodeInNewSource(index)}
+                                                >
+                                                    <Text style={[
+                                                        styles.sourceNewEpisodeItemText,
+                                                        selectedEpisodeInNewSource === index && styles.sourceNewEpisodeItemTextSelected
+                                                    ]} numberOfLines={1}>
+                                                        {episode.name || `第${index + 1}集`}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            ))}
+                                        </View>
+                                    </ScrollView>
+                                </View>
+                            )}
+                        </ScrollView>
+
+                        <View style={styles.sourceSelectorFooter}>
+                            <TouchableOpacity
+                                style={styles.sourceSelectorCancelButton}
+                                onPress={() => setShowSourceSelector(false)}
+                            >
+                                <Text style={styles.sourceSelectorCancelButtonText}>取消</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.sourceSelectorConfirmButton,
+                                    (selectedSourceIndex === null || updatingSource) && styles.sourceSelectorConfirmButtonDisabled
+                                ]}
+                                onPress={async () => {
+                                    if (selectedSourceIndex === null || updatingSource || !details) return;
+
+                                    const selectedSource = sourceSearchResults[selectedSourceIndex];
+                                    if (!selectedSource) return;
+
+                                    try {
+                                        setUpdatingSource(true);
+
+                                        if (sourceType === 'tv') {
+                                            // 整体换源
+
+                                            await updateTVSource({
+                                                id: details.tv.id,
+                                                source: selectedSource
+                                            });
+
+                                            setShowSourceSelector(false);
+                                            loadTVDetails();
+                                        } else {
+                                            // 按集换源
+                                            const selectedEpisode = selectedSource.episodes[selectedEpisodeInNewSource];
+                                            if (!selectedEpisode) {
+                                                Alert.alert('错误', '请选择新源中的剧集');
+                                                setUpdatingSource(false);
+                                                return;
+                                            }
+
+                                            await updateEpisodeSource({
+                                                tv_id: details.tv.id,
+                                                episode_id: selectedEpisodeForSource,
+                                                source: selectedEpisode.source
+                                            });
+
+                                            setShowSourceSelector(false);
+                                            loadTVDetails();
+                                        }
+                                    } catch (err) {
+                                        Alert.alert('错误', err instanceof Error ? err.message : '更换源失败，请稍后重试');
+                                        console.error('Update source error:', err);
+                                    } finally {
+                                        setUpdatingSource(false);
+                                    }
+                                }}
+                                disabled={
+                                    selectedSourceIndex === null ||
+                                    updatingSource ||
+                                    (sourceType === 'episode' && (
+                                        selectedSourceIndex === null ||
+                                        sourceSearchResults[selectedSourceIndex]?.episodes.length === 0 ||
+                                        selectedEpisodeInNewSource < 0 ||
+                                        selectedEpisodeInNewSource >= (sourceSearchResults[selectedSourceIndex]?.episodes.length || 0)
+                                    ))
+                                }
+                            >
+                                {updatingSource ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.sourceSelectorConfirmButtonText}>
+                                        {sourceType === 'tv' ? '确认更换' : '确认更换剧集源'}
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             {/* 详情弹窗 */}
             <Modal
                 visible={showDetailsModal}
@@ -1172,12 +1571,38 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                             <View style={styles.detailsSection}>
                                 <Text style={styles.detailsSectionTitle}>源</Text>
                                 <View style={styles.detailsSectionContent}>
-                                    <Text style={styles.detailsText}>
-                                        {details?.tv.source.source.source_name || '-'}
-                                    </Text>
-                                    <Text style={styles.detailsSubtext}>
-                                        频道: {details?.tv.source.source.channel_name || '-'}
-                                    </Text>
+                                    <TouchableOpacity
+                                        style={styles.sourceButton}
+                                        onPress={() => {
+                                            if (isOffline) {
+                                                Alert.alert('提示', '离线模式下无法更换源');
+                                                return;
+                                            }
+                                            setShowDetailsModal(false);
+                                            setShowSourceSelector(true);
+                                            // 使用当前TV名称作为搜索关键词
+                                            setSourceSearchKeyword(details?.tv.name || '');
+                                            setSourceSearchResults([]);
+                                            setSourceSearchErrors([]);
+                                            setSelectedSourceIndex(null);
+                                            setSourceType('tv');
+                                            setSelectedEpisodeForSource(0);
+                                            setSelectedEpisodeInNewSource(0);
+                                        }}
+                                        disabled={isOffline}
+                                    >
+                                        <View style={styles.sourceInfo}>
+                                            <Text style={styles.detailsText}>
+                                                {details?.tv.source.source.source_name || '-'}
+                                            </Text>
+                                            <Text style={styles.detailsSubtext}>
+                                                频道: {details?.tv.source.source.channel_name || '-'}
+                                            </Text>
+                                        </View>
+                                        {!isOffline && (
+                                            <Ionicons name="chevron-forward" size={20} color="#999" />
+                                        )}
+                                    </TouchableOpacity>
                                 </View>
                             </View>
 
@@ -1778,5 +2203,349 @@ const styles = StyleSheet.create({
     },
     seriesItemLast: {
         borderBottomWidth: 0,
+    },
+    sourceButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    sourceInfo: {
+        flex: 1,
+    },
+    sourceSelectorOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    sourceSelectorContainer: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        height: '80%',
+        paddingBottom: 20,
+    },
+    sourceSelectorHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    sourceSelectorTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    sourceSelectorContent: {
+        flex: 1,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+    },
+    sourceSearchContainer: {
+        marginBottom: 16,
+    },
+    sourceSearchLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#666',
+        marginBottom: 8,
+    },
+    sourceSearchInputContainer: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    sourceSearchInput: {
+        flex: 1,
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        borderRadius: 8,
+        fontSize: 16,
+        color: '#333',
+        backgroundColor: '#fff',
+    },
+    sourceSearchButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        backgroundColor: '#007AFF',
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        minWidth: 80,
+    },
+    sourceSearchButtonDisabled: {
+        backgroundColor: '#ccc',
+    },
+    sourceSearchButtonText: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    sourceErrorContainer: {
+        backgroundColor: '#FFF3CD',
+        borderRadius: 8,
+        padding: 12,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: '#FFE69C',
+    },
+    sourceErrorTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#856404',
+        marginBottom: 8,
+    },
+    sourceErrorItem: {
+        backgroundColor: '#FFF8DC',
+        borderRadius: 6,
+        padding: 8,
+        marginTop: 4,
+        borderWidth: 1,
+        borderColor: '#FFE69C',
+    },
+    sourceErrorText: {
+        fontSize: 12,
+        color: '#856404',
+    },
+    sourceResultsContainer: {
+        marginBottom: 16,
+    },
+    sourceResultsTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 12,
+    },
+    sourceResultsScroll: {
+        marginHorizontal: -20,
+        paddingHorizontal: 20,
+    },
+    sourceResultCard: {
+        width: 280,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 8,
+        borderWidth: 2,
+        borderColor: '#e0e0e0',
+        marginRight: 12,
+        overflow: 'hidden',
+    },
+    sourceResultCardSelected: {
+        borderColor: '#007AFF',
+        backgroundColor: '#e3f2fd',
+    },
+    sourceResultCardCurrent: {
+        borderColor: '#34C759',
+        backgroundColor: '#e8f5e9',
+    },
+    sourceResultCover: {
+        width: '100%',
+        height: 160,
+        backgroundColor: '#e0e0e0',
+    },
+    sourceResultCoverPlaceholder: {
+        width: '100%',
+        height: 160,
+        backgroundColor: '#e0e0e0',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    sourceResultCoverPlaceholderText: {
+        fontSize: 12,
+        color: '#999',
+    },
+    sourceResultInfo: {
+        padding: 12,
+    },
+    sourceResultName: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: '#333',
+        marginBottom: 6,
+        minHeight: 36,
+    },
+    sourceResultMeta: {
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 2,
+    },
+    sourceResultCurrentBadge: {
+        marginTop: 8,
+        paddingVertical: 4,
+        paddingHorizontal: 8,
+        backgroundColor: '#34C759',
+        borderRadius: 4,
+        alignSelf: 'flex-start',
+    },
+    sourceResultCurrentBadgeText: {
+        fontSize: 10,
+        color: '#fff',
+        fontWeight: '500',
+    },
+    sourceResultSelectedBadge: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+    },
+    sourceEmptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingVertical: 40,
+    },
+    sourceEmptyText: {
+        fontSize: 16,
+        color: '#666',
+        marginBottom: 8,
+    },
+    sourceEmptySubtext: {
+        fontSize: 14,
+        color: '#999',
+    },
+    sourceSelectorFooter: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        paddingTop: 12,
+        borderTopWidth: 1,
+        borderTopColor: '#e0e0e0',
+        gap: 12,
+    },
+    sourceSelectorCancelButton: {
+        flex: 1,
+        paddingVertical: 12,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 8,
+        alignItems: 'center',
+    },
+    sourceSelectorCancelButtonText: {
+        fontSize: 16,
+        color: '#333',
+        fontWeight: '500',
+    },
+    sourceSelectorConfirmButton: {
+        flex: 2,
+        paddingVertical: 12,
+        backgroundColor: '#007AFF',
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    sourceSelectorConfirmButtonDisabled: {
+        backgroundColor: '#ccc',
+    },
+    sourceSelectorConfirmButtonText: {
+        fontSize: 16,
+        color: '#fff',
+        fontWeight: '600',
+    },
+    sourceTypeContainer: {
+        marginBottom: 16,
+    },
+    sourceTypeLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#666',
+        marginBottom: 8,
+    },
+    sourceTypeOptions: {
+        flexDirection: 'row',
+        gap: 16,
+    },
+    sourceTypeOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        backgroundColor: '#fff',
+    },
+    sourceTypeOptionSelected: {
+        borderColor: '#007AFF',
+        backgroundColor: '#e3f2fd',
+    },
+    sourceTypeOptionText: {
+        fontSize: 14,
+        color: '#666',
+    },
+    sourceTypeOptionTextSelected: {
+        color: '#007AFF',
+        fontWeight: '500',
+    },
+    sourceEpisodeSelector: {
+        marginBottom: 16,
+    },
+    sourceEpisodeSelectorLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#666',
+        marginBottom: 8,
+    },
+    sourceEpisodeList: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    sourceEpisodeItem: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        backgroundColor: '#f5f5f5',
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+    },
+    sourceEpisodeItemSelected: {
+        backgroundColor: '#007AFF',
+        borderColor: '#007AFF',
+    },
+    sourceEpisodeItemText: {
+        fontSize: 14,
+        color: '#666',
+    },
+    sourceEpisodeItemTextSelected: {
+        color: '#fff',
+        fontWeight: '500',
+    },
+    sourceNewEpisodeSelector: {
+        marginTop: 16,
+        marginBottom: 16,
+        padding: 12,
+        backgroundColor: '#e3f2fd',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#90caf9',
+    },
+    sourceNewEpisodeSelectorLabel: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#1976d2',
+        marginBottom: 12,
+    },
+    sourceNewEpisodeList: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    sourceNewEpisodeItem: {
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 20,
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#90caf9',
+    },
+    sourceNewEpisodeItemSelected: {
+        backgroundColor: '#007AFF',
+        borderColor: '#007AFF',
+    },
+    sourceNewEpisodeItemText: {
+        fontSize: 14,
+        color: '#1976d2',
+    },
+    sourceNewEpisodeItemTextSelected: {
+        color: '#fff',
+        fontWeight: '500',
     },
 });

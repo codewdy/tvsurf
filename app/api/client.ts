@@ -22,7 +22,11 @@ import type {
     AddTVRequest,
     AddTVResponse,
     GetDownloadProgressRequest,
-    GetDownloadProgressResponse
+    GetDownloadProgressResponse,
+    UpdateTVSourceRequest,
+    UpdateTVSourceResponse,
+    UpdateEpisodeSourceRequest,
+    UpdateEpisodeSourceResponse
 } from './types';
 
 // API 基础 URL 存储键
@@ -336,6 +340,42 @@ export async function getDownloadProgress(
     return apiCall<GetDownloadProgressRequest, GetDownloadProgressResponse>(
         baseUrl,
         '/api/get_download_progress',
+        request,
+        token
+    );
+}
+
+// 更新 TV 源 API
+export async function updateTVSource(
+    request: UpdateTVSourceRequest
+): Promise<UpdateTVSourceResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<UpdateTVSourceRequest, UpdateTVSourceResponse>(
+        baseUrl,
+        '/api/update_tv_source',
+        request,
+        token
+    );
+}
+
+// 更新剧集源 API
+export async function updateEpisodeSource(
+    request: UpdateEpisodeSourceRequest
+): Promise<UpdateEpisodeSourceResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<UpdateEpisodeSourceRequest, UpdateEpisodeSourceResponse>(
+        baseUrl,
+        '/api/update_episode_series',
         request,
         token
     );

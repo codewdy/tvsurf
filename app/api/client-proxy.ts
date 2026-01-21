@@ -17,7 +17,9 @@ import {
     removeSeries as removeSeriesBase,
     searchTV as searchTVBase,
     addTV as addTVBase,
-    getDownloadProgress as getDownloadProgressBase
+    getDownloadProgress as getDownloadProgressBase,
+    updateTVSource as updateTVSourceBase,
+    updateEpisodeSource as updateEpisodeSourceBase
 } from './client';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { offlineDataCache } from '../utils/offlineDataCache';
@@ -47,7 +49,11 @@ import type {
     AddTVRequest,
     AddTVResponse,
     GetDownloadProgressRequest,
-    GetDownloadProgressResponse
+    GetDownloadProgressResponse,
+    UpdateTVSourceRequest,
+    UpdateTVSourceResponse,
+    UpdateEpisodeSourceRequest,
+    UpdateEpisodeSourceResponse
 } from './types';
 
 // 离线模式错误
@@ -345,6 +351,34 @@ export async function getDownloadProgress(
 
     // 在线模式：直接调用 API
     return await getDownloadProgressBase(request);
+}
+
+// 更新 TV 源 API（离线模式下不可用）
+export async function updateTVSource(
+    request: UpdateTVSourceRequest
+): Promise<UpdateTVSourceResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法更新TV源，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await updateTVSourceBase(request);
+}
+
+// 更新剧集源 API（离线模式下不可用）
+export async function updateEpisodeSource(
+    request: UpdateEpisodeSourceRequest
+): Promise<UpdateEpisodeSourceResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法更新剧集源，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await updateEpisodeSourceBase(request);
 }
 
 // 导出离线模式错误类和离线数据缓存，供外部使用
