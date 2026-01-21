@@ -1,6 +1,6 @@
 // API 客户端
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { LoginRequest, LoginResponse, GetTVInfosRequest, GetTVInfosResponse, GetTVDetailsRequest, GetTVDetailsResponse, SetTVTagRequest, SetWatchProgressRequest, GetSeriesRequest, GetSeriesResponse, UpdateSeriesTVsRequest } from './types';
+import type { LoginRequest, LoginResponse, GetTVInfosRequest, GetTVInfosResponse, GetTVDetailsRequest, GetTVDetailsResponse, SetTVTagRequest, SetWatchProgressRequest, GetSeriesRequest, GetSeriesResponse, UpdateSeriesTVsRequest, AddSeriesRequest, AddSeriesResponse, RemoveSeriesRequest } from './types';
 
 // API 基础 URL 存储键
 export const API_BASE_URL_KEY = '@tvsurf_api_base_url';
@@ -205,6 +205,42 @@ export async function updateSeriesTVs(
     await apiCall<UpdateSeriesTVsRequest, void>(
         baseUrl,
         '/api/update_series_tvs',
+        request,
+        token
+    );
+}
+
+// 创建播放列表 API
+export async function addSeries(
+    request: AddSeriesRequest
+): Promise<AddSeriesResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<AddSeriesRequest, AddSeriesResponse>(
+        baseUrl,
+        '/api/add_series',
+        request,
+        token
+    );
+}
+
+// 删除播放列表 API
+export async function removeSeries(
+    request: RemoveSeriesRequest
+): Promise<void> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    await apiCall<RemoveSeriesRequest, void>(
+        baseUrl,
+        '/api/remove_series',
         request,
         token
     );

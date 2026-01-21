@@ -158,3 +158,18 @@ export interface UpdateSeriesTVsRequest {
     id: number;
     tvs: number[];
 }
+
+// 创建播放列表请求
+export interface AddSeriesRequest {
+    name: string;
+}
+
+// 创建播放列表响应
+export interface AddSeriesResponse {
+    id: number;
+}
+
+// 删除播放列表请求
+export interface RemoveSeriesRequest {
+    id: number;
+}

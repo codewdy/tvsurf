@@ -8,11 +8,14 @@ import {
     ActivityIndicator,
     RefreshControl,
     BackHandler,
+    Modal,
+    TextInput,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { getSeries, getTVInfos, getApiBaseUrl, getApiToken } from '../api/client-proxy';
+import { getSeries, getTVInfos, getApiBaseUrl, getApiToken, addSeries, removeSeries, OfflineModeError } from '../api/client-proxy';
 import type { Series, TVInfo } from '../api/types';
 
 interface SeriesListScreenProps {
@@ -32,6 +35,10 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
     const [error, setError] = useState<string | null>(null);
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
+    const [isManageMode, setIsManageMode] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [newSeriesName, setNewSeriesName] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         loadData();
@@ -226,6 +233,47 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
         return undefined;
     }, [token]);
 
+    // 处理新增播放列表
+    const handleAddSeries = async () => {
+        if (!newSeriesName.trim()) {
+            Alert.alert('提示', '请输入播放列表名称');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            await addSeries({ name: newSeriesName.trim() });
+            setShowAddModal(false);
+            setNewSeriesName('');
+            // 重新加载数据
+            await loadData();
+        } catch (error) {
+            console.error('Error adding series:', error);
+            if (error instanceof OfflineModeError) {
+                Alert.alert('错误', error.message);
+            } else {
+                Alert.alert('错误', error instanceof Error ? error.message : '创建播放列表失败');
+            }
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // 处理删除播放列表
+    const handleDeleteSeries = async (seriesId: number, seriesName: string) => {
+        try {
+            await removeSeries({ id: seriesId });
+            await loadData();
+        } catch (error) {
+            console.error('Error removing series:', error);
+            if (error instanceof OfflineModeError) {
+                Alert.alert('错误', error.message);
+            } else {
+                Alert.alert('错误', error instanceof Error ? error.message : '删除播放列表失败');
+            }
+        }
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -248,7 +296,34 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
                 <View style={styles.titleBarCenter}>
                     <Text style={styles.titleBarText}>播放列表</Text>
                 </View>
-                <View style={styles.titleBarPlaceholder} />
+                <View style={styles.titleBarRight}>
+                    {isManageMode ? (
+                        <>
+                            <TouchableOpacity
+                                style={styles.manageButton}
+                                onPress={() => setIsManageMode(false)}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="checkmark" size={24} color="#007AFF" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.manageButton}
+                                onPress={() => setShowAddModal(true)}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="add" size={24} color="#007AFF" />
+                            </TouchableOpacity>
+                        </>
+                    ) : (
+                        <TouchableOpacity
+                            style={styles.manageButton}
+                            onPress={() => setIsManageMode(true)}
+                            activeOpacity={0.7}
+                        >
+                            <Ionicons name="create-outline" size={24} color="#333" />
+                        </TouchableOpacity>
+                    )}
+                </View>
             </View>
             <ScrollView
                 style={styles.scrollView}
@@ -277,43 +352,114 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
                             const coverUrl = firstTV?.cover_url ? getCoverUrl(firstTV.cover_url) : null;
 
                             return (
-                                <TouchableOpacity
-                                    key={series.id}
-                                    style={styles.seriesCard}
-                                    activeOpacity={0.7}
-                                    onPress={() => onSeriesPress?.(series.id)}
-                                >
-                                    <View style={styles.coverContainer}>
-                                        {coverUrl ? (
-                                            <ExpoImage
-                                                source={{
-                                                    uri: coverUrl,
-                                                    headers: requestHeaders
-                                                }}
-                                                style={styles.coverImage}
-                                                contentFit="cover"
-                                                cachePolicy="disk"
-                                            />
-                                        ) : (
-                                            <View style={styles.coverPlaceholder}>
-                                                <Ionicons name="list" size={32} color="#999" />
-                                            </View>
-                                        )}
-                                    </View>
-                                    <View style={styles.seriesInfo}>
-                                        <Text style={styles.seriesName} numberOfLines={2}>
-                                            {series.name}
-                                        </Text>
-                                        <Text style={styles.seriesMeta}>
-                                            包含 {series.tvInfos.length} 个 TV
-                                        </Text>
-                                    </View>
-                                </TouchableOpacity>
+                                <View key={series.id} style={styles.seriesCardWrapper}>
+                                    <TouchableOpacity
+                                        style={styles.seriesCard}
+                                        activeOpacity={0.7}
+                                        onPress={() => {
+                                            if (!isManageMode) {
+                                                onSeriesPress?.(series.id);
+                                            }
+                                        }}
+                                    >
+                                        <View style={styles.coverContainer}>
+                                            {coverUrl ? (
+                                                <ExpoImage
+                                                    source={{
+                                                        uri: coverUrl,
+                                                        headers: requestHeaders
+                                                    }}
+                                                    style={styles.coverImage}
+                                                    contentFit="cover"
+                                                    cachePolicy="disk"
+                                                />
+                                            ) : (
+                                                <View style={styles.coverPlaceholder}>
+                                                    <Ionicons name="list" size={32} color="#999" />
+                                                </View>
+                                            )}
+                                        </View>
+                                        <View style={styles.seriesInfo}>
+                                            <Text style={styles.seriesName} numberOfLines={2}>
+                                                {series.name}
+                                            </Text>
+                                            <Text style={styles.seriesMeta}>
+                                                包含 {series.tvInfos.length} 个 TV
+                                            </Text>
+                                        </View>
+                                    </TouchableOpacity>
+                                    {isManageMode && (
+                                        <TouchableOpacity
+                                            style={styles.deleteButton}
+                                            onPress={() => handleDeleteSeries(series.id, series.name)}
+                                            activeOpacity={0.7}
+                                        >
+                                            <Ionicons name="trash-outline" size={20} color="#fff" />
+                                        </TouchableOpacity>
+                                    )}
+                                </View>
                             );
                         })}
                     </View>
                 )}
             </ScrollView>
+
+            {/* 新增播放列表 Modal */}
+            <Modal
+                visible={showAddModal}
+                transparent={true}
+                animationType="fade"
+                onRequestClose={() => setShowAddModal(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Text style={styles.modalTitle}>新建播放列表</Text>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setShowAddModal(false);
+                                    setNewSeriesName('');
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="close" size={24} color="#333" />
+                            </TouchableOpacity>
+                        </View>
+                        <TextInput
+                            style={styles.modalInput}
+                            placeholder="请输入播放列表名称"
+                            value={newSeriesName}
+                            onChangeText={setNewSeriesName}
+                            autoFocus={true}
+                            maxLength={50}
+                        />
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.modalButtonCancel]}
+                                onPress={() => {
+                                    setShowAddModal(false);
+                                    setNewSeriesName('');
+                                }}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.modalButtonTextCancel}>取消</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.modalButton, styles.modalButtonConfirm, isSubmitting && styles.modalButtonDisabled]}
+                                onPress={handleAddSeries}
+                                activeOpacity={0.7}
+                                disabled={isSubmitting}
+                            >
+                                {isSubmitting ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.modalButtonTextConfirm}>创建</Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView >
     );
 }
@@ -361,6 +507,17 @@ const styles = StyleSheet.create({
     titleBarPlaceholder: {
         width: 40,
     },
+    titleBarRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    manageButton: {
+        width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     scrollView: {
         flex: 1,
     },
@@ -403,11 +560,15 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
         justifyContent: 'space-between',
     },
-    seriesCard: {
+    seriesCardWrapper: {
         width: '48%',
+        marginBottom: 12,
+        position: 'relative',
+    },
+    seriesCard: {
+        width: '100%',
         backgroundColor: '#fff',
         borderRadius: 8,
-        marginBottom: 12,
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
@@ -417,6 +578,25 @@ const styles = StyleSheet.create({
         shadowRadius: 2,
         elevation: 2,
         overflow: 'hidden',
+    },
+    deleteButton: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: '#f44336',
+        borderRadius: 16,
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
     },
     coverContainer: {
         width: '100%',
@@ -446,5 +626,70 @@ const styles = StyleSheet.create({
     seriesMeta: {
         fontSize: 12,
         color: '#666',
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    modalContent: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        padding: 20,
+        width: '80%',
+        maxWidth: 400,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 20,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    modalInput: {
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        borderRadius: 8,
+        padding: 12,
+        fontSize: 16,
+        marginBottom: 20,
+        backgroundColor: '#f9f9f9',
+    },
+    modalButtons: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 12,
+    },
+    modalButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderRadius: 8,
+        minWidth: 80,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    modalButtonCancel: {
+        backgroundColor: '#f5f5f5',
+    },
+    modalButtonConfirm: {
+        backgroundColor: '#007AFF',
+    },
+    modalButtonDisabled: {
+        opacity: 0.6,
+    },
+    modalButtonTextCancel: {
+        fontSize: 16,
+        color: '#333',
+        fontWeight: '500',
+    },
+    modalButtonTextConfirm: {
+        fontSize: 16,
+        color: '#fff',
+        fontWeight: '500',
     },
 });
