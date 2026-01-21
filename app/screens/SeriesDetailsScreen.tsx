@@ -235,24 +235,8 @@ export default function SeriesDetailsScreen({ seriesId, onBack, onTVPress }: Ser
 
     // 取消编辑
     const cancelEdit = () => {
-        if (hasChanges) {
-            Alert.alert(
-                '放弃更改',
-                '您有未保存的更改，确定要放弃吗？',
-                [
-                    { text: '取消', style: 'cancel' },
-                    {
-                        text: '确定',
-                        onPress: () => {
-                            setIsEditMode(false);
-                            setHasChanges(false);
-                        }
-                    }
-                ]
-            );
-        } else {
-            setIsEditMode(false);
-        }
+        setIsEditMode(false);
+        setHasChanges(false);
     };
 
     // 获取可添加的 TV 列表（过滤掉已添加的，并支持搜索）
