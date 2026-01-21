@@ -17,8 +17,8 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import VideoPlayer from '../components/VideoPlayer';
-import { getTVDetails, setWatchProgress, setTVTag, getApiToken, getApiBaseUrl } from '../api/client-proxy';
-import type { GetTVDetailsResponse, Tag } from '../api/types';
+import { getTVDetails, setWatchProgress, setTVTag, getApiToken, getApiBaseUrl, getSeries } from '../api/client-proxy';
+import type { GetTVDetailsResponse, Tag, Series } from '../api/types';
 import { videoCache } from '../utils/videoCache';
 import { offlineModeManager } from '../utils/offlineModeManager';
 
@@ -29,9 +29,10 @@ interface TVDetailsScreenProps {
         cover_url: string;
     };
     onBack: () => void;
+    onSeriesPress?: (seriesId: number) => void;
 }
 
-export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
+export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetailsScreenProps) {
     const [token, setToken] = useState<string | null>(null);
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [details, setDetails] = useState<GetTVDetailsResponse | null>(null);
@@ -49,6 +50,9 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
     const [showMenu, setShowMenu] = useState(false);
     const [showTagSelector, setShowTagSelector] = useState(false);
     const [showCacheSelector, setShowCacheSelector] = useState(false);
+    const [showDetailsModal, setShowDetailsModal] = useState(false);
+    const [showTagDropdown, setShowTagDropdown] = useState(false);
+    const [seriesList, setSeriesList] = useState<Series[]>([]);
     const [selectedEpisodesForCache, setSelectedEpisodesForCache] = useState<Set<number>>(new Set());
     const lastUpdateTimeRef = useRef<number>(-1);
     const lastUpdateEpisodeRef = useRef<number>(-1);
@@ -116,6 +120,27 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
             unsubscribersRef.current = [];
         };
     }, [tv.id]);
+
+    // 加载播放列表信息
+    useEffect(() => {
+        if (showDetailsModal && details) {
+            loadSeriesInfo();
+        }
+    }, [showDetailsModal, details]);
+
+    const loadSeriesInfo = async () => {
+        if (!details || details.info.series.length === 0) {
+            setSeriesList([]);
+            return;
+        }
+        try {
+            const response = await getSeries({ ids: details.info.series });
+            setSeriesList(response.series);
+        } catch (err) {
+            console.error('Error loading series info:', err);
+            setSeriesList([]);
+        }
+    };
 
     // 加载离线模式状态
     const loadOfflineStatus = async () => {
@@ -374,6 +399,7 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
             details.info.user_data.tag = tag;
             setShowTagSelector(false);
             setShowMenu(false);
+            setShowTagDropdown(false);
         } catch (err) {
             console.error('Error setting tag:', err);
         }
@@ -792,11 +818,11 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                             style={styles.menuItem}
                             onPress={() => {
                                 setShowMenu(false);
-                                setShowTagSelector(true);
+                                setShowDetailsModal(true);
                             }}
                         >
-                            <Ionicons name="pricetag-outline" size={20} color="#333" />
-                            <Text style={styles.menuItemText}>修改标签</Text>
+                            <Ionicons name="information-circle-outline" size={20} color="#333" />
+                            <Text style={styles.menuItemText}>详情</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
                             style={[
@@ -824,70 +850,6 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                 </TouchableOpacity>
             </Modal>
 
-            {/* 标签选择器弹窗 */}
-            <Modal
-                visible={showTagSelector}
-                transparent
-                animationType="fade"
-                onRequestClose={() => setShowTagSelector(false)}
-            >
-                <TouchableOpacity
-                    style={styles.modalOverlay}
-                    activeOpacity={1}
-                    onPress={() => setShowTagSelector(false)}
-                >
-                    <View style={styles.tagSelectorContainer}>
-                        <Text style={styles.tagSelectorTitle}>选择标签</Text>
-                        <View style={styles.tagList}>
-                            <TouchableOpacity
-                                style={[
-                                    styles.tagItem,
-                                    details?.info.user_data.tag === 'watching' && styles.tagItemSelected
-                                ]}
-                                onPress={() => handleTagChange('watching')}
-                            >
-                                <Text style={styles.tagItemText}>在看</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[
-                                    styles.tagItem,
-                                    details?.info.user_data.tag === 'wanted' && styles.tagItemSelected
-                                ]}
-                                onPress={() => handleTagChange('wanted')}
-                            >
-                                <Text style={styles.tagItemText}>想看</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[
-                                    styles.tagItem,
-                                    details?.info.user_data.tag === 'watched' && styles.tagItemSelected
-                                ]}
-                                onPress={() => handleTagChange('watched')}
-                            >
-                                <Text style={styles.tagItemText}>看过</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[
-                                    styles.tagItem,
-                                    details?.info.user_data.tag === 'on_hold' && styles.tagItemSelected
-                                ]}
-                                onPress={() => handleTagChange('on_hold')}
-                            >
-                                <Text style={styles.tagItemText}>搁置</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[
-                                    styles.tagItem,
-                                    details?.info.user_data.tag === 'not_tagged' && styles.tagItemSelected
-                                ]}
-                                onPress={() => handleTagChange('not_tagged')}
-                            >
-                                <Text style={styles.tagItemText}>未标记</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </TouchableOpacity>
-            </Modal>
 
             {/* 缓存选择器弹窗 */}
             <Modal
@@ -1013,6 +975,216 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                                 </Text>
                             </TouchableOpacity>
                         </View>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* 详情弹窗 */}
+            <Modal
+                visible={showDetailsModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => {
+                    setShowDetailsModal(false);
+                    setShowTagDropdown(false);
+                }}
+            >
+                <View style={styles.detailsModalOverlay}>
+                    <View style={styles.detailsModalContainer}>
+                        <View style={styles.detailsModalHeader}>
+                            <Text style={styles.detailsModalTitle}>详情</Text>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setShowDetailsModal(false);
+                                    setShowTagDropdown(false);
+                                }}
+                                style={styles.closeButton}
+                            >
+                                <Ionicons name="close" size={24} color="#333" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={styles.detailsModalContent}>
+                            {/* 是否追更 */}
+                            <View style={styles.detailsSection}>
+                                <Text style={styles.detailsSectionTitle}>是否追更</Text>
+                                <View style={styles.detailsSectionContent}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.trackingSwitch,
+                                            details?.tv.track.tracking && styles.trackingSwitchActive
+                                        ]}
+                                        onPress={() => {
+                                            // 追更状态暂时只读显示，因为后端可能没有更新API
+                                            Alert.alert('提示', '追更状态暂不支持修改');
+                                        }}
+                                    >
+                                        <Ionicons
+                                            name={details?.tv.track.tracking ? "notifications" : "notifications-off"}
+                                            size={18}
+                                            color={details?.tv.track.tracking ? "#007AFF" : "#999"}
+                                        />
+                                        <Text style={[
+                                            styles.trackingText,
+                                            details?.tv.track.tracking && styles.trackingTextActive
+                                        ]}>
+                                            {details?.tv.track.tracking ? "是" : "否"}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {/* 标签 */}
+                            <View style={styles.detailsSection}>
+                                <Text style={styles.detailsSectionTitle}>标签</Text>
+                                <View style={styles.detailsSectionContent}>
+                                    <View style={styles.tagDisplayContainer}>
+                                        <TouchableOpacity
+                                            style={styles.tagDisplayButton}
+                                            onPress={() => setShowTagDropdown(!showTagDropdown)}
+                                        >
+                                            <Text style={styles.tagDisplayText}>
+                                                {details?.info.user_data.tag === 'watching' ? '在看' :
+                                                    details?.info.user_data.tag === 'wanted' ? '想看' :
+                                                        details?.info.user_data.tag === 'watched' ? '看过' :
+                                                            details?.info.user_data.tag === 'on_hold' ? '搁置' :
+                                                                '未标记'}
+                                            </Text>
+                                            <Ionicons
+                                                name={showTagDropdown ? "chevron-up" : "chevron-down"}
+                                                size={20}
+                                                color="#999"
+                                            />
+                                        </TouchableOpacity>
+                                        {showTagDropdown && (
+                                            <View style={styles.tagDropdown}>
+                                                <TouchableOpacity
+                                                    style={[
+                                                        styles.tagDropdownItem,
+                                                        details?.info.user_data.tag === 'watching' && styles.tagDropdownItemSelected
+                                                    ]}
+                                                    onPress={() => handleTagChange('watching')}
+                                                >
+                                                    <Text style={[
+                                                        styles.tagDropdownItemText,
+                                                        details?.info.user_data.tag === 'watching' && styles.tagDropdownItemTextSelected
+                                                    ]}>在看</Text>
+                                                    {details?.info.user_data.tag === 'watching' && (
+                                                        <Ionicons name="checkmark" size={18} color="#007AFF" />
+                                                    )}
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={[
+                                                        styles.tagDropdownItem,
+                                                        details?.info.user_data.tag === 'wanted' && styles.tagDropdownItemSelected
+                                                    ]}
+                                                    onPress={() => handleTagChange('wanted')}
+                                                >
+                                                    <Text style={[
+                                                        styles.tagDropdownItemText,
+                                                        details?.info.user_data.tag === 'wanted' && styles.tagDropdownItemTextSelected
+                                                    ]}>想看</Text>
+                                                    {details?.info.user_data.tag === 'wanted' && (
+                                                        <Ionicons name="checkmark" size={18} color="#007AFF" />
+                                                    )}
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={[
+                                                        styles.tagDropdownItem,
+                                                        details?.info.user_data.tag === 'watched' && styles.tagDropdownItemSelected
+                                                    ]}
+                                                    onPress={() => handleTagChange('watched')}
+                                                >
+                                                    <Text style={[
+                                                        styles.tagDropdownItemText,
+                                                        details?.info.user_data.tag === 'watched' && styles.tagDropdownItemTextSelected
+                                                    ]}>看过</Text>
+                                                    {details?.info.user_data.tag === 'watched' && (
+                                                        <Ionicons name="checkmark" size={18} color="#007AFF" />
+                                                    )}
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={[
+                                                        styles.tagDropdownItem,
+                                                        details?.info.user_data.tag === 'on_hold' && styles.tagDropdownItemSelected
+                                                    ]}
+                                                    onPress={() => handleTagChange('on_hold')}
+                                                >
+                                                    <Text style={[
+                                                        styles.tagDropdownItemText,
+                                                        details?.info.user_data.tag === 'on_hold' && styles.tagDropdownItemTextSelected
+                                                    ]}>搁置</Text>
+                                                    {details?.info.user_data.tag === 'on_hold' && (
+                                                        <Ionicons name="checkmark" size={18} color="#007AFF" />
+                                                    )}
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={[
+                                                        styles.tagDropdownItem,
+                                                        styles.tagDropdownItemLast,
+                                                        details?.info.user_data.tag === 'not_tagged' && styles.tagDropdownItemSelected
+                                                    ]}
+                                                    onPress={() => handleTagChange('not_tagged')}
+                                                >
+                                                    <Text style={[
+                                                        styles.tagDropdownItemText,
+                                                        details?.info.user_data.tag === 'not_tagged' && styles.tagDropdownItemTextSelected
+                                                    ]}>未标记</Text>
+                                                    {details?.info.user_data.tag === 'not_tagged' && (
+                                                        <Ionicons name="checkmark" size={18} color="#007AFF" />
+                                                    )}
+                                                </TouchableOpacity>
+                                            </View>
+                                        )}
+                                    </View>
+                                </View>
+                            </View>
+
+                            {/* 源 */}
+                            <View style={styles.detailsSection}>
+                                <Text style={styles.detailsSectionTitle}>源</Text>
+                                <View style={styles.detailsSectionContent}>
+                                    <Text style={styles.detailsText}>
+                                        {details?.tv.source.source.source_name || '-'}
+                                    </Text>
+                                    <Text style={styles.detailsSubtext}>
+                                        频道: {details?.tv.source.source.channel_name || '-'}
+                                    </Text>
+                                </View>
+                            </View>
+
+                            {/* 所属播放列表 */}
+                            <View style={styles.detailsSection}>
+                                <Text style={styles.detailsSectionTitle}>所属播放列表</Text>
+                                <View style={styles.detailsSectionContent}>
+                                    {seriesList.length === 0 ? (
+                                        <Text style={styles.detailsText}>无</Text>
+                                    ) : (
+                                        seriesList.map((series, index) => (
+                                            <TouchableOpacity
+                                                key={series.id}
+                                                style={[
+                                                    styles.seriesItem,
+                                                    index === seriesList.length - 1 && styles.seriesItemLast
+                                                ]}
+                                                onPress={() => {
+                                                    if (onSeriesPress) {
+                                                        setShowDetailsModal(false);
+                                                        onSeriesPress(series.id);
+                                                    }
+                                                }}
+                                            >
+                                                <Ionicons name="list" size={18} color="#007AFF" />
+                                                <Text style={styles.seriesItemText}>{series.name}</Text>
+                                                {onSeriesPress && (
+                                                    <Ionicons name="chevron-forward" size={20} color="#999" />
+                                                )}
+                                            </TouchableOpacity>
+                                        ))
+                                    )}
+                                </View>
+                            </View>
+                        </ScrollView>
                     </View>
                 </View>
             </Modal>
@@ -1269,45 +1441,6 @@ const styles = StyleSheet.create({
         fontSize: 12,
         color: '#999',
     },
-    tagSelectorContainer: {
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 20,
-        marginHorizontal: 40,
-        marginTop: 200,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-        elevation: 5,
-    },
-    tagSelectorTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#333',
-        marginBottom: 16,
-        textAlign: 'center',
-    },
-    tagList: {
-        gap: 10,
-    },
-    tagItem: {
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        borderRadius: 8,
-        backgroundColor: '#f5f5f5',
-        borderWidth: 2,
-        borderColor: 'transparent',
-    },
-    tagItemSelected: {
-        backgroundColor: '#e3f2fd',
-        borderColor: '#007AFF',
-    },
-    tagItemText: {
-        fontSize: 16,
-        color: '#333',
-        textAlign: 'center',
-    },
     cacheSelectorOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -1470,5 +1603,146 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#fff',
         fontWeight: '600',
+    },
+    detailsModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    detailsModalContainer: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        height: '80%',
+        paddingBottom: 20,
+    },
+    detailsModalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    detailsModalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    detailsModalContent: {
+        flex: 1,
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+    },
+    detailsSection: {
+        marginBottom: 24,
+    },
+    detailsSectionTitle: {
+        fontSize: 14,
+        fontWeight: '600',
+        color: '#666',
+        marginBottom: 8,
+    },
+    detailsSectionContent: {
+        backgroundColor: '#f5f5f5',
+        borderRadius: 8,
+        padding: 12,
+    },
+    detailsText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    detailsSubtext: {
+        fontSize: 14,
+        color: '#666',
+        marginTop: 4,
+    },
+    trackingSwitch: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 4,
+    },
+    trackingSwitchActive: {
+        // 可以添加激活状态的样式
+    },
+    trackingText: {
+        fontSize: 16,
+        color: '#999',
+    },
+    trackingTextActive: {
+        color: '#007AFF',
+    },
+    tagDisplayContainer: {
+        position: 'relative',
+    },
+    tagDisplayButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 4,
+    },
+    tagDisplayText: {
+        fontSize: 16,
+        color: '#333',
+        flex: 1,
+    },
+    tagDropdown: {
+        position: 'absolute',
+        top: '100%',
+        left: 0,
+        right: 0,
+        marginTop: 4,
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 5,
+        zIndex: 1000,
+    },
+    tagDropdownItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 12,
+        paddingHorizontal: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    tagDropdownItemSelected: {
+        backgroundColor: '#e3f2fd',
+    },
+    tagDropdownItemText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    tagDropdownItemTextSelected: {
+        color: '#007AFF',
+        fontWeight: '500',
+    },
+    tagDropdownItemLast: {
+        borderBottomWidth: 0,
+    },
+    seriesItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    seriesItemText: {
+        fontSize: 16,
+        color: '#333',
+        flex: 1,
+    },
+    seriesItemLast: {
+        borderBottomWidth: 0,
     },
 });

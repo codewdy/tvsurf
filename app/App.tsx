@@ -156,6 +156,7 @@ export default function App() {
           <TVDetailsScreen
             tv={selectedTV}
             onBack={handleBackToHome}
+            onSeriesPress={handleSeriesPress}
           />
         ) : (
           <HomeScreen
