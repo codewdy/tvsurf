@@ -15,12 +15,20 @@ import type { TVInfo } from './api/types';
 
 type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv';
 
+interface NavigationState {
+  screen: Screen;
+  selectedTV?: TVInfo | null;
+  selectedSeriesId?: number | null;
+}
+
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [selectedTV, setSelectedTV] = useState<TVInfo | null>(null);
   const [selectedSeriesId, setSelectedSeriesId] = useState<number | null>(null);
   const [isOffline, setIsOffline] = useState(false);
+  // 导航栈：存储导航历史
+  const [navigationStack, setNavigationStack] = useState<NavigationState[]>([]);
 
   useEffect(() => {
     checkLoginStatus();
@@ -69,24 +77,65 @@ export default function App() {
     setCurrentScreen('home');
     setSelectedTV(null);
     setSelectedSeriesId(null);
+    // 清空导航栈
+    setNavigationStack([]);
+  };
+
+  // 导航到新屏幕（推入栈）
+  const navigateTo = (screen: Screen, state?: { selectedTV?: TVInfo | null; selectedSeriesId?: number | null }) => {
+    // 将当前屏幕状态推入栈
+    setNavigationStack(prev => [...prev, {
+      screen: currentScreen,
+      selectedTV: selectedTV,
+      selectedSeriesId: selectedSeriesId,
+    }]);
+
+    // 设置新屏幕和状态
+    setCurrentScreen(screen);
+    if (state?.selectedTV !== undefined) {
+      setSelectedTV(state.selectedTV);
+    } else if (screen !== 'tv-details') {
+      // 如果不是导航到 tv-details，清空 selectedTV
+      setSelectedTV(null);
+    }
+    if (state?.selectedSeriesId !== undefined) {
+      setSelectedSeriesId(state.selectedSeriesId);
+    } else if (screen !== 'series-details') {
+      // 如果不是导航到 series-details，清空 selectedSeriesId
+      setSelectedSeriesId(null);
+    }
+  };
+
+  // 返回上一屏幕（从栈中弹出）
+  const navigateBack = () => {
+    if (navigationStack.length === 0) {
+      // 如果栈为空，返回到 home
+      setCurrentScreen('home');
+      setSelectedTV(null);
+      setSelectedSeriesId(null);
+      return;
+    }
+
+    // 从栈中弹出上一个屏幕状态
+    const prevState = navigationStack[navigationStack.length - 1];
+    setNavigationStack(prev => prev.slice(0, -1));
+
+    // 恢复上一个屏幕的状态
+    setCurrentScreen(prevState.screen);
+    setSelectedTV(prevState.selectedTV ?? null);
+    setSelectedSeriesId(prevState.selectedSeriesId ?? null);
   };
 
   const handleTVPress = (tv: TVInfo) => {
-    setSelectedTV(tv);
-    setCurrentScreen('tv-details');
-  };
-
-  const handleBackToHome = () => {
-    setCurrentScreen('home');
-    setSelectedTV(null);
+    navigateTo('tv-details', { selectedTV: tv });
   };
 
   const handleNavigateToCache = () => {
-    setCurrentScreen('cache');
+    navigateTo('cache');
   };
 
   const handleNavigateToSeriesList = () => {
-    setCurrentScreen('series-list');
+    navigateTo('series-list');
   };
 
   const handleNavigateToAddTV = async () => {
@@ -97,21 +146,11 @@ export default function App() {
       return;
     }
     setIsOffline(offline);
-    setCurrentScreen('add-tv');
+    navigateTo('add-tv');
   };
 
   const handleSeriesPress = (seriesId: number) => {
-    setSelectedSeriesId(seriesId);
-    setCurrentScreen('series-details');
-  };
-
-  const handleBackFromSeriesDetails = () => {
-    setCurrentScreen('series-list');
-    setSelectedSeriesId(null);
-  };
-
-  const handleBackFromAddTV = () => {
-    setCurrentScreen('home');
+    navigateTo('series-details', { selectedSeriesId: seriesId });
   };
 
   // 显示加载状态
@@ -137,25 +176,25 @@ export default function App() {
             onNavigateToAddTV={handleNavigateToAddTV}
           />
         ) : currentScreen === 'cache' ? (
-          <VideoCacheScreen onBack={handleBackToHome} />
+          <VideoCacheScreen onBack={navigateBack} />
         ) : currentScreen === 'series-list' ? (
           <SeriesListScreen
-            onBack={handleBackToHome}
+            onBack={navigateBack}
             onTVPress={handleTVPress}
             onSeriesPress={handleSeriesPress}
           />
         ) : currentScreen === 'series-details' && selectedSeriesId !== null ? (
           <SeriesDetailsScreen
             seriesId={selectedSeriesId}
-            onBack={handleBackFromSeriesDetails}
+            onBack={navigateBack}
             onTVPress={handleTVPress}
           />
         ) : currentScreen === 'add-tv' ? (
-          <AddTVScreen onBack={handleBackFromAddTV} />
+          <AddTVScreen onBack={navigateBack} />
         ) : selectedTV ? (
           <TVDetailsScreen
             tv={selectedTV}
-            onBack={handleBackToHome}
+            onBack={navigateBack}
             onSeriesPress={handleSeriesPress}
           />
         ) : (
