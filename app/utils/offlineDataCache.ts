@@ -197,12 +197,6 @@ class OfflineDataCache {
         await this.clearTempIdMapping();
     }
 
-    // 获取上次同步时间
-    async getLastSyncTime(): Promise<string | null> {
-        await this.initialize();
-        return this.offlineData.lastSync || null;
-    }
-
     // ==================== 待上传变更管理 ====================
 
     // 加载待上传变更
@@ -310,22 +304,6 @@ class OfflineDataCache {
         return [...this.operations];
     }
 
-    // 获取所有待上传的观看进度（保留用于兼容性）
-    async getPendingWatchProgress(): Promise<WatchProgressData[]> {
-        await this.initialize();
-        return this.operations
-            .filter(op => op.type === OperationType.WATCH_PROGRESS)
-            .map(op => op.data as WatchProgressData);
-    }
-
-    // 获取所有待上传的 tag 变更（保留用于兼容性）
-    async getPendingTagChanges(): Promise<TagChangeData[]> {
-        await this.initialize();
-        return this.operations
-            .filter(op => op.type === OperationType.TAG_CHANGE)
-            .map(op => op.data as TagChangeData);
-    }
-
     // 获取待同步数据总数
     async getPendingChangesCount(): Promise<{ watchProgress: number; tags: number; total: number }> {
         await this.initialize();
@@ -336,28 +314,6 @@ class OfflineDataCache {
             tags: tagsCount,
             total: this.operations.length,
         };
-    }
-
-    // 删除已上传的观看进度记录
-    async removePendingWatchProgress(tvId: number, episodeId: number): Promise<void> {
-        await this.initialize();
-        this.operations = this.operations.filter(op => {
-            if (op.type !== OperationType.WATCH_PROGRESS) return true;
-            const data = op.data as WatchProgressData;
-            return !(data.tvId === tvId && data.episodeId === episodeId);
-        });
-        await this.savePendingChanges();
-    }
-
-    // 删除已上传的 tag 变更记录
-    async removePendingTagChange(tvId: number): Promise<void> {
-        await this.initialize();
-        this.operations = this.operations.filter(op => {
-            if (op.type !== OperationType.TAG_CHANGE) return true;
-            const data = op.data as TagChangeData;
-            return data.tvId !== tvId;
-        });
-        await this.savePendingChanges();
     }
 
     // 按索引删除操作
