@@ -13,7 +13,9 @@ import {
     getSeries as getSeriesBase,
     updateSeriesTVs as updateSeriesTVsBase,
     addSeries as addSeriesBase,
-    removeSeries as removeSeriesBase
+    removeSeries as removeSeriesBase,
+    searchTV as searchTVBase,
+    addTV as addTVBase
 } from './client';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { offlineDataCache } from '../utils/offlineDataCache';
@@ -35,7 +37,11 @@ import type {
     UpdateSeriesTVsRequest,
     AddSeriesRequest,
     AddSeriesResponse,
-    RemoveSeriesRequest
+    RemoveSeriesRequest,
+    SearchTVRequest,
+    SearchTVResponse,
+    AddTVRequest,
+    AddTVResponse
 } from './types';
 
 // 离线模式错误
@@ -275,6 +281,34 @@ export async function removeSeries(
 
     // 在线模式：直接调用 API
     await removeSeriesBase(request);
+}
+
+// 搜索 TV API（离线模式下不可用）
+export async function searchTV(
+    request: SearchTVRequest
+): Promise<SearchTVResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法搜索TV，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await searchTVBase(request);
+}
+
+// 添加 TV API（离线模式下不可用）
+export async function addTV(
+    request: AddTVRequest
+): Promise<AddTVResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法添加TV，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await addTVBase(request);
 }
 
 // 导出离线模式错误类和离线数据缓存，供外部使用

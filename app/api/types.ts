@@ -173,3 +173,36 @@ export interface AddSeriesResponse {
 export interface RemoveSeriesRequest {
     id: number;
 }
+
+// 搜索 TV 相关类型定义
+
+// 搜索错误
+export interface SearchError {
+    source_name: string;
+    source_key: string;
+    error: string;
+}
+
+// 搜索 TV 请求
+export interface SearchTVRequest {
+    keyword: string;
+}
+
+// 搜索 TV 响应
+export interface SearchTVResponse {
+    source: Source[];
+    search_error: SearchError[];
+}
+
+// 添加 TV 请求
+export interface AddTVRequest {
+    name: string;
+    source: Source;
+    tracking: boolean;
+    series: number[];
+}
+
+// 添加 TV 响应
+export interface AddTVResponse {
+    id: number;
+}

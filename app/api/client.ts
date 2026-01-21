@@ -14,7 +14,11 @@ import type {
     UpdateSeriesTVsRequest,
     AddSeriesRequest,
     AddSeriesResponse,
-    RemoveSeriesRequest
+    RemoveSeriesRequest,
+    SearchTVRequest,
+    SearchTVResponse,
+    AddTVRequest,
+    AddTVResponse
 } from './types';
 
 // API 基础 URL 存储键
@@ -256,6 +260,42 @@ export async function removeSeries(
     await apiCall<RemoveSeriesRequest, void>(
         baseUrl,
         '/api/remove_series',
+        request,
+        token
+    );
+}
+
+// 搜索 TV API
+export async function searchTV(
+    request: SearchTVRequest
+): Promise<SearchTVResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<SearchTVRequest, SearchTVResponse>(
+        baseUrl,
+        '/api/search_tv',
+        request,
+        token
+    );
+}
+
+// 添加 TV API
+export async function addTV(
+    request: AddTVRequest
+): Promise<AddTVResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<AddTVRequest, AddTVResponse>(
+        baseUrl,
+        '/api/add_tv',
         request,
         token
     );

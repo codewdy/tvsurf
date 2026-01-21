@@ -30,13 +30,15 @@ interface HomeScreenProps {
     onTVPress?: (tv: TVInfo) => void;
     onNavigateToCache?: () => void;
     onNavigateToSeriesList?: () => void;
+    onNavigateToAddTV?: () => void;
 }
 
 export default function HomeScreen({
     onLogout,
     onTVPress,
     onNavigateToCache,
-    onNavigateToSeriesList
+    onNavigateToSeriesList,
+    onNavigateToAddTV
 }: HomeScreenProps) {
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -558,6 +560,20 @@ export default function HomeScreen({
 
                             {/* 菜单项 */}
                             <View style={styles.menuItems}>
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => handleMenuItemPress(() => onNavigateToAddTV?.())}
+                                    activeOpacity={0.7}
+                                    disabled={isOffline}
+                                >
+                                    <Text style={styles.menuItemIcon}>➕</Text>
+                                    <Text style={[
+                                        styles.menuItemText,
+                                        isOffline && styles.menuItemTextDisabled
+                                    ]}>添加TV</Text>
+                                    <Text style={styles.menuItemArrow}>›</Text>
+                                </TouchableOpacity>
+
                                 <TouchableOpacity
                                     style={styles.menuItem}
                                     onPress={() => handleMenuItemPress(() => onNavigateToSeriesList?.())}

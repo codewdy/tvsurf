@@ -8,10 +8,11 @@ import TVDetailsScreen from './screens/TVDetailsScreen';
 import VideoCacheScreen from './screens/VideoCacheScreen';
 import SeriesListScreen from './screens/SeriesListScreen';
 import SeriesDetailsScreen from './screens/SeriesDetailsScreen';
+import AddTVScreen from './screens/AddTVScreen';
 import { getApiToken, clearApiToken } from './api/client-proxy';
 import type { TVInfo } from './api/types';
 
-type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details';
+type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
@@ -68,6 +69,10 @@ export default function App() {
     setCurrentScreen('series-list');
   };
 
+  const handleNavigateToAddTV = () => {
+    setCurrentScreen('add-tv');
+  };
+
   const handleSeriesPress = (seriesId: number) => {
     setSelectedSeriesId(seriesId);
     setCurrentScreen('series-details');
@@ -76,6 +81,10 @@ export default function App() {
   const handleBackFromSeriesDetails = () => {
     setCurrentScreen('series-list');
     setSelectedSeriesId(null);
+  };
+
+  const handleBackFromAddTV = () => {
+    setCurrentScreen('home');
   };
 
   // 显示加载状态
@@ -98,6 +107,7 @@ export default function App() {
             onTVPress={handleTVPress}
             onNavigateToCache={handleNavigateToCache}
             onNavigateToSeriesList={handleNavigateToSeriesList}
+            onNavigateToAddTV={handleNavigateToAddTV}
           />
         ) : currentScreen === 'cache' ? (
           <VideoCacheScreen onBack={handleBackToHome} />
@@ -113,6 +123,8 @@ export default function App() {
             onBack={handleBackFromSeriesDetails}
             onTVPress={handleTVPress}
           />
+        ) : currentScreen === 'add-tv' ? (
+          <AddTVScreen onBack={handleBackFromAddTV} />
         ) : selectedTV ? (
           <TVDetailsScreen
             tv={selectedTV}
@@ -124,6 +136,7 @@ export default function App() {
             onTVPress={handleTVPress}
             onNavigateToCache={handleNavigateToCache}
             onNavigateToSeriesList={handleNavigateToSeriesList}
+            onNavigateToAddTV={handleNavigateToAddTV}
           />
         )
       ) : (
