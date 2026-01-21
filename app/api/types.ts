@@ -152,3 +152,9 @@ export interface GetSeriesRequest {
 export interface GetSeriesResponse {
     series: Series[];
 }
+
+// 更新播放列表 TV 请求
+export interface UpdateSeriesTVsRequest {
+    id: number;
+    tvs: number[];
+}

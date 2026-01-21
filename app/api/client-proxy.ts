@@ -10,11 +10,12 @@ import {
     getTVDetails as getTVDetailsBase,
     setWatchProgress as setWatchProgressBase,
     setTVTag as setTVTagBase,
-    getSeries as getSeriesBase
+    getSeries as getSeriesBase,
+    updateSeriesTVs as updateSeriesTVsBase
 } from './client';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { offlineDataCache } from '../utils/offlineDataCache';
-import type { GetTVInfosRequest, GetTVInfosResponse, GetTVDetailsRequest, GetTVDetailsResponse, TVInfo, TV, StorageEpisode, SetWatchProgressRequest, SetTVTagRequest, Tag, LoginRequest, LoginResponse, GetSeriesRequest, GetSeriesResponse } from './types';
+import type { GetTVInfosRequest, GetTVInfosResponse, GetTVDetailsRequest, GetTVDetailsResponse, TVInfo, TV, StorageEpisode, SetWatchProgressRequest, SetTVTagRequest, Tag, LoginRequest, LoginResponse, GetSeriesRequest, GetSeriesResponse, UpdateSeriesTVsRequest } from './types';
 
 // 离线模式错误
 class OfflineModeError extends Error {
@@ -204,6 +205,20 @@ export async function getSeries(
 
     // 在线模式：从 API 获取
     return await getSeriesBase(request);
+}
+
+// 更新播放列表 TV API（离线模式下不可用）
+export async function updateSeriesTVs(
+    request: UpdateSeriesTVsRequest
+): Promise<void> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法编辑播放列表，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    await updateSeriesTVsBase(request);
 }
 
 // 导出离线模式错误类，供外部使用

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, Text, StyleSheet } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import TVDetailsScreen from './screens/TVDetailsScreen';
@@ -89,7 +90,7 @@ export default function App() {
   }
 
   return (
-    <>
+    <GestureHandlerRootView style={{ flex: 1 }}>
       {isLoggedIn ? (
         currentScreen === 'home' ? (
           <HomeScreen
@@ -129,7 +130,7 @@ export default function App() {
         <LoginScreen onLoginSuccess={handleLoginSuccess} />
       )}
       <StatusBar style="auto" />
-    </>
+    </GestureHandlerRootView>
   );
 }
 
