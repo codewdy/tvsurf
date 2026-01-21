@@ -60,14 +60,7 @@ export default function SeriesList() {
         ...series,
         tvInfos: series.tvs
           .map((tvId) => tvMap.get(tvId))
-          .filter((tv): tv is TVInfo => tv !== undefined)
-          .sort((a, b) => {
-            // 按更新时间排序，最新的在前
-            return (
-              new Date(b.last_update).getTime() -
-              new Date(a.last_update).getTime()
-            );
-          }),
+          .filter((tv): tv is TVInfo => tv !== undefined),
       }));
 
       // 计算每个播放列表的最大更新时间并缓存

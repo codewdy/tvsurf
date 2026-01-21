@@ -80,14 +80,7 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
                     ...series,
                     tvInfos: series.tvs
                         .map((tvId) => tvMap.get(tvId))
-                        .filter((tv): tv is TVInfo => tv !== undefined)
-                        .sort((a, b) => {
-                            // 按更新时间排序，最新的在前
-                            return (
-                                new Date(b.last_update).getTime() -
-                                new Date(a.last_update).getTime()
-                            );
-                        }),
+                        .filter((tv): tv is TVInfo => tv !== undefined),
                 }));
 
                 // 根据播放列表中所有 TV 的 last_update、user_data.last_update 和 series.last_update 的最大值进行排序
