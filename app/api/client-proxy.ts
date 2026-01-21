@@ -228,47 +228,55 @@ export async function getSeries(
     return await getSeriesBase(request);
 }
 
-// 更新播放列表 TV API（离线模式下不可用）
+// 更新播放列表 TV API（支持离线模式）
 export async function updateSeriesTVs(
     request: UpdateSeriesTVsRequest
 ): Promise<void> {
     // 检查是否处于离线模式
     const isOffline = await offlineModeManager.getOfflineMode();
     if (isOffline) {
-        throw new OfflineModeError('离线模式下无法编辑播放列表，请先退出离线模式');
+        // 离线模式：记录操作
+        await offlineModeManager.recordUpdateSeriesTVs(request.id, request.tvs);
+        return;
     }
 
     // 在线模式：直接调用 API
     await updateSeriesTVsBase(request);
 }
 
-// 创建播放列表 API（离线模式下不可用）
+// 创建播放列表 API（支持离线模式）
 export async function addSeries(
     request: AddSeriesRequest
 ): Promise<AddSeriesResponse> {
     // 检查是否处于离线模式
     const isOffline = await offlineModeManager.getOfflineMode();
     if (isOffline) {
-        throw new OfflineModeError('离线模式下无法创建播放列表，请先退出离线模式');
+        // 离线模式：生成临时 ID 并记录操作
+        const tempId = await offlineDataCache.generateTempSeriesId();
+        await offlineModeManager.recordAddSeries(tempId, request.name);
+        return { id: tempId };
     }
 
     // 在线模式：直接调用 API
     return await addSeriesBase(request);
 }
 
-// 删除播放列表 API（离线模式下不可用）
+// 删除播放列表 API（支持离线模式）
 export async function removeSeries(
     request: RemoveSeriesRequest
 ): Promise<void> {
     // 检查是否处于离线模式
     const isOffline = await offlineModeManager.getOfflineMode();
     if (isOffline) {
-        throw new OfflineModeError('离线模式下无法删除播放列表，请先退出离线模式');
+        // 离线模式：记录操作
+        await offlineModeManager.recordRemoveSeries(request.id);
+        return;
     }
 
     // 在线模式：直接调用 API
     await removeSeriesBase(request);
 }
 
-// 导出离线模式错误类，供外部使用
+// 导出离线模式错误类和离线数据缓存，供外部使用
 export { OfflineModeError };
+export { offlineDataCache } from '../utils/offlineDataCache';

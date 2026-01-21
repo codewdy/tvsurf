@@ -4,7 +4,10 @@ import { videoCache } from './videoCache';
 import {
     getTVInfos as getTVInfosApi,
     getTVDetails as getTVDetailsApi,
-    getSeries as getSeriesApi
+    getSeries as getSeriesApi,
+    updateSeriesTVs as updateSeriesTVsApi,
+    addSeries as addSeriesApi,
+    removeSeries as removeSeriesApi
 } from '../api/client';
 import { setWatchProgress as setWatchProgressApi, setTVTag as setTVTagApi } from '../api/client';
 import type { Tag } from '../api/types';
@@ -22,9 +25,12 @@ export interface SyncResult {
 }
 
 export interface SyncError {
-    type: 'watch_progress' | 'tag';
-    tvId: number;
+    type: 'watch_progress' | 'tag' | 'update_series_tvs' | 'add_series' | 'remove_series';
+    tvId?: number;
     episodeId?: number;
+    seriesId?: number;
+    tempId?: number;
+    name?: string;
     error: string;
 }
 
@@ -173,6 +179,37 @@ class OfflineModeManager {
                         });
                         current++;
                         onProgress?.(current, totalChanges, `上传标签变更 [TV ${data.tvId}]`);
+                    } else if (operation.type === 'update_series_tvs') {
+                        // 上传播放列表TV更新
+                        const data = operation.data as { seriesId: number; tvs: number[] };
+                        // 解析ID（可能是临时ID）
+                        const resolvedSeriesId = offlineDataCache.resolveId(data.seriesId);
+                        await updateSeriesTVsApi({
+                            id: resolvedSeriesId,
+                            tvs: data.tvs,
+                        });
+                        current++;
+                        onProgress?.(current, totalChanges, `上传播放列表更新 [Series ${resolvedSeriesId}]`);
+                    } else if (operation.type === 'add_series') {
+                        // 上传创建播放列表
+                        const data = operation.data as { tempId: number; name: string };
+                        const response = await addSeriesApi({
+                            name: data.name,
+                        });
+                        // 获取真实ID并更新映射表
+                        await offlineDataCache.setRealId(data.tempId, response.id);
+                        current++;
+                        onProgress?.(current, totalChanges, `上传新播放列表 [${data.name}]`);
+                    } else if (operation.type === 'remove_series') {
+                        // 上传删除播放列表
+                        const data = operation.data as { seriesId: number };
+                        // 解析ID（可能是临时ID）
+                        const resolvedSeriesId = offlineDataCache.resolveId(data.seriesId);
+                        await removeSeriesApi({
+                            id: resolvedSeriesId,
+                        });
+                        current++;
+                        onProgress?.(current, totalChanges, `删除播放列表 [Series ${resolvedSeriesId}]`);
                     }
 
                     // 上传成功，删除该操作（删除第一个元素，数组自动前移）
@@ -199,6 +236,31 @@ class OfflineModeManager {
                             error: errorMsg,
                         });
                         console.error(`上传标签失败 [TV ${data.tvId}]:`, error);
+                    } else if (operation.type === 'update_series_tvs') {
+                        const data = operation.data as { seriesId: number; tvs: number[] };
+                        errors.push({
+                            type: 'update_series_tvs',
+                            seriesId: data.seriesId,
+                            error: errorMsg,
+                        });
+                        console.error(`上传播放列表更新失败 [Series ${data.seriesId}]:`, error);
+                    } else if (operation.type === 'add_series') {
+                        const data = operation.data as { tempId: number; name: string };
+                        errors.push({
+                            type: 'add_series',
+                            tempId: data.tempId,
+                            name: data.name,
+                            error: errorMsg,
+                        });
+                        console.error(`上传新播放列表失败 [${data.name}]:`, error);
+                    } else if (operation.type === 'remove_series') {
+                        const data = operation.data as { seriesId: number };
+                        errors.push({
+                            type: 'remove_series',
+                            seriesId: data.seriesId,
+                            error: errorMsg,
+                        });
+                        console.error(`删除播放列表失败 [Series ${data.seriesId}]:`, error);
                     }
 
                     // 遇到错误立即停止
@@ -222,6 +284,11 @@ class OfflineModeManager {
 
             // 3. 全部上传成功，退出离线模式
             onProgress?.(totalChanges, totalChanges, '同步完成');
+
+            // 清空所有离线数据（包括临时ID映射表）
+            // clearOfflineData 内部会自动调用 clearTempIdMapping
+            await offlineDataCache.clearOfflineData();
+
             await this.setOfflineMode(false);
 
             return { success: true, errors: [] };
@@ -250,6 +317,21 @@ class OfflineModeManager {
     // 记录 tag 变更（供离线模式下使用）
     async recordTagChange(tvId: number, tag: Tag): Promise<void> {
         await offlineDataCache.recordTagChange(tvId, tag);
+    }
+
+    // 记录更新播放列表TV操作（供离线模式下使用）
+    async recordUpdateSeriesTVs(seriesId: number, tvs: number[]): Promise<void> {
+        await offlineDataCache.recordUpdateSeriesTVs(seriesId, tvs);
+    }
+
+    // 记录创建播放列表操作（供离线模式下使用）
+    async recordAddSeries(tempId: number, name: string): Promise<void> {
+        await offlineDataCache.recordAddSeries(tempId, name);
+    }
+
+    // 记录删除播放列表操作（供离线模式下使用）
+    async recordRemoveSeries(seriesId: number): Promise<void> {
+        await offlineDataCache.recordRemoveSeries(seriesId);
     }
 
     // 获取待同步数据统计
