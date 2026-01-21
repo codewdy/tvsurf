@@ -115,7 +115,7 @@ class M3U8Downloader:
             splitext = os.path.splitext(self.dst)
             tmpname = splitext[0] + ".tmp" + splitext[1]
             await self.ffmpeg(src_m3u8_file, fragments, tmpname)
-            await aiofiles.os.rename(tmpname, self.dst)
+            await aiofiles.os.replace(tmpname, self.dst)
             self.download_tracker.update("完成", False)
 
     def get_progress(self) -> DownloadProgress:

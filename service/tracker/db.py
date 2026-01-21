@@ -11,6 +11,10 @@ class DBUnit:
         if os.path.exists(filename):
             with open(filename, "r", encoding="utf-8") as f:
                 self.data = model.model_validate_json(f.read())
+        elif os.path.exists(filename + ".tmp"):
+            with open(filename + ".tmp", "r", encoding="utf-8") as f:
+                self.data = model.model_validate_json(f.read())
+            os.replace(filename + ".tmp", filename)
         else:
             self.data = model()
             with open(filename, "w", encoding="utf-8") as f:
@@ -23,8 +27,9 @@ class DBUnit:
 
     def save(self) -> None:
         if self.dirty:
-            with open(self.filename, "w", encoding="utf-8") as f:
+            with open(self.filename + ".tmp", "w", encoding="utf-8") as f:
                 f.write(self.data.model_dump_json(indent=2))
+            os.replace(self.filename + ".tmp", self.filename)
             self.dirty = False
 
 
