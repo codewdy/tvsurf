@@ -31,6 +31,7 @@ interface HomeScreenProps {
     onNavigateToCache?: () => void;
     onNavigateToSeriesList?: () => void;
     onNavigateToAddTV?: () => void;
+    onNavigateToDownloadMonitor?: () => void;
 }
 
 export default function HomeScreen({
@@ -38,7 +39,8 @@ export default function HomeScreen({
     onTVPress,
     onNavigateToCache,
     onNavigateToSeriesList,
-    onNavigateToAddTV
+    onNavigateToAddTV,
+    onNavigateToDownloadMonitor
 }: HomeScreenProps) {
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -591,6 +593,20 @@ export default function HomeScreen({
                                 >
                                     <Text style={styles.menuItemIcon}>📦</Text>
                                     <Text style={styles.menuItemText}>缓存管理</Text>
+                                    <Text style={styles.menuItemArrow}>›</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => handleMenuItemPress(() => onNavigateToDownloadMonitor?.())}
+                                    activeOpacity={0.7}
+                                    disabled={isOffline}
+                                >
+                                    <Text style={styles.menuItemIcon}>⬇️</Text>
+                                    <Text style={[
+                                        styles.menuItemText,
+                                        isOffline && styles.menuItemTextDisabled
+                                    ]}>下载监控</Text>
                                     <Text style={styles.menuItemArrow}>›</Text>
                                 </TouchableOpacity>
 

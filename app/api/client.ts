@@ -20,7 +20,9 @@ import type {
     SearchTVRequest,
     SearchTVResponse,
     AddTVRequest,
-    AddTVResponse
+    AddTVResponse,
+    GetDownloadProgressRequest,
+    GetDownloadProgressResponse
 } from './types';
 
 // API 基础 URL 存储键
@@ -316,6 +318,24 @@ export async function addTV(
     return apiCall<AddTVRequest, AddTVResponse>(
         baseUrl,
         '/api/add_tv',
+        request,
+        token
+    );
+}
+
+// 获取下载进度 API
+export async function getDownloadProgress(
+    request: GetDownloadProgressRequest = {}
+): Promise<GetDownloadProgressResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<GetDownloadProgressRequest, GetDownloadProgressResponse>(
+        baseUrl,
+        '/api/get_download_progress',
         request,
         token
     );

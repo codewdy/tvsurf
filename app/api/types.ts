@@ -217,3 +217,30 @@ export interface AddTVRequest {
 export interface AddTVResponse {
     id: number;
 }
+
+// 下载进度相关类型定义
+
+// 下载进度
+export interface DownloadProgress {
+    status: string;
+    downloading: boolean;
+    total_size: number;
+    downloaded_size: number;
+    speed: number;
+}
+
+// 带名称的下载进度
+export interface DownloadProgressWithName {
+    name: string;
+    progress: DownloadProgress;
+}
+
+// 获取下载进度请求
+export interface GetDownloadProgressRequest {
+    // 空对象
+}
+
+// 获取下载进度响应
+export interface GetDownloadProgressResponse {
+    progress: DownloadProgressWithName[];
+}

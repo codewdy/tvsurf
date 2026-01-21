@@ -9,11 +9,12 @@ import VideoCacheScreen from './screens/VideoCacheScreen';
 import SeriesListScreen from './screens/SeriesListScreen';
 import SeriesDetailsScreen from './screens/SeriesDetailsScreen';
 import AddTVScreen from './screens/AddTVScreen';
+import DownloadMonitorScreen from './screens/DownloadMonitorScreen';
 import { getApiToken, clearApiToken } from './api/client-proxy';
 import { offlineModeManager } from './utils/offlineModeManager';
 import type { TVInfo } from './api/types';
 
-type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv';
+type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv' | 'download-monitor';
 
 interface NavigationState {
   screen: Screen;
@@ -149,6 +150,10 @@ export default function App() {
     navigateTo('add-tv');
   };
 
+  const handleNavigateToDownloadMonitor = () => {
+    navigateTo('download-monitor');
+  };
+
   const handleSeriesPress = (seriesId: number) => {
     navigateTo('series-details', { selectedSeriesId: seriesId });
   };
@@ -174,6 +179,7 @@ export default function App() {
             onNavigateToCache={handleNavigateToCache}
             onNavigateToSeriesList={handleNavigateToSeriesList}
             onNavigateToAddTV={handleNavigateToAddTV}
+            onNavigateToDownloadMonitor={handleNavigateToDownloadMonitor}
           />
         ) : currentScreen === 'cache' ? (
           <VideoCacheScreen onBack={navigateBack} />
@@ -191,6 +197,8 @@ export default function App() {
           />
         ) : currentScreen === 'add-tv' ? (
           <AddTVScreen onBack={navigateBack} />
+        ) : currentScreen === 'download-monitor' ? (
+          <DownloadMonitorScreen onBack={navigateBack} />
         ) : selectedTV ? (
           <TVDetailsScreen
             tv={selectedTV}
@@ -204,6 +212,7 @@ export default function App() {
             onNavigateToCache={handleNavigateToCache}
             onNavigateToSeriesList={handleNavigateToSeriesList}
             onNavigateToAddTV={handleNavigateToAddTV}
+            onNavigateToDownloadMonitor={handleNavigateToDownloadMonitor}
           />
         )
       ) : (

@@ -16,7 +16,8 @@ import {
     addSeries as addSeriesBase,
     removeSeries as removeSeriesBase,
     searchTV as searchTVBase,
-    addTV as addTVBase
+    addTV as addTVBase,
+    getDownloadProgress as getDownloadProgressBase
 } from './client';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { offlineDataCache } from '../utils/offlineDataCache';
@@ -44,7 +45,9 @@ import type {
     SearchTVRequest,
     SearchTVResponse,
     AddTVRequest,
-    AddTVResponse
+    AddTVResponse,
+    GetDownloadProgressRequest,
+    GetDownloadProgressResponse
 } from './types';
 
 // 离线模式错误
@@ -328,6 +331,20 @@ export async function addTV(
 
     // 在线模式：直接调用 API
     return await addTVBase(request);
+}
+
+// 获取下载进度 API（离线模式下不可用）
+export async function getDownloadProgress(
+    request: GetDownloadProgressRequest = {}
+): Promise<GetDownloadProgressResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法获取下载进度，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await getDownloadProgressBase(request);
 }
 
 // 导出离线模式错误类和离线数据缓存，供外部使用
