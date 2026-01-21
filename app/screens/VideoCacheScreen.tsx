@@ -443,7 +443,10 @@ export default function VideoCacheScreen({ onBack }: VideoCacheScreenProps) {
                                             </View>
                                             {task.status === DownloadStatus.DOWNLOADING && (
                                                 <Text style={styles.taskProgress}>
-                                                    {(task.progress * 100).toFixed(1)}% ({formatFileSize(task.downloadedBytes)}/{formatFileSize(task.totalBytes)})
+                                                    {(task.progress * 100).toFixed(1)}% (
+                                                    {formatFileSize(task.downloadedBytes)}/
+                                                    {formatFileSize(task.totalBytes)}
+                                                    )
                                                 </Text>
                                             )}
                                         </View>
@@ -551,7 +554,8 @@ export default function VideoCacheScreen({ onBack }: VideoCacheScreenProps) {
                                                                 {episodeName}
                                                             </Text>
                                                             <Text style={styles.cacheMeta}>
-                                                                {formatFileSize(cached.fileSize)} • {new Date(cached.downloadedAt).toLocaleDateString()}
+                                                                {formatFileSize(cached.fileSize)} •{' '}
+                                                                {new Date(cached.downloadedAt).toLocaleDateString()}
                                                             </Text>
                                                         </View>
                                                         <TouchableOpacity

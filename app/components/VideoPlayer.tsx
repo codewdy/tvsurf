@@ -149,26 +149,29 @@ export default function VideoPlayer({
         });
 
         // 订阅 timeUpdate 事件，在播放时定期触发
-        const timeUpdateSubscription = player.addListener('timeUpdate', (payload: { currentTime: number; currentLiveTimestamp: number | null }) => {
-            if (!readyRef.current) {
-                return;
+        const timeUpdateSubscription = player.addListener(
+            'timeUpdate',
+            (payload: { currentTime: number; currentLiveTimestamp: number | null }) => {
+                if (!readyRef.current) {
+                    return;
+                }
+                try {
+                    const current = payload.currentTime || 0;
+                    const total = player.duration || 0;
+                    const playing = player.playing;
+                    setPlaybackTime(current);
+                    setDuration(total);
+                    setIsPlaying(playing);
+                    onPlaybackState?.({
+                        currentTime: current,
+                        duration: total,
+                        isPlaying: playing,
+                    });
+                } catch (err) {
+                    console.error('Error syncing playback state (timeUpdate):', err);
+                }
             }
-            try {
-                const current = payload.currentTime || 0;
-                const total = player.duration || 0;
-                const playing = player.playing;
-                setPlaybackTime(current);
-                setDuration(total);
-                setIsPlaying(playing);
-                onPlaybackState?.({
-                    currentTime: current,
-                    duration: total,
-                    isPlaying: playing,
-                });
-            } catch (err) {
-                console.error('Error syncing playback state (timeUpdate):', err);
-            }
-        });
+        );
 
         return () => {
             endSubscription.remove();

@@ -707,7 +707,8 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                                         <Text
                                             style={[
                                                 styles.episodeName,
-                                                (!hasDownloaded && !isDownloading && !isCached) && styles.episodeNameDisabled,
+                                                (!hasDownloaded && !isDownloading && !isCached) &&
+                                                styles.episodeNameDisabled,
                                             ]}
                                             numberOfLines={2}
                                         >
@@ -972,9 +973,14 @@ export default function TVDetailsScreen({ tv, onBack }: TVDetailsScreenProps) {
                                                 {isDownloadingToLocal && (
                                                     <Text style={styles.cacheSelectorEpisodeTag}>缓存中</Text>
                                                 )}
-                                                {!hasDownloaded && !isCached && !isPending && !isDownloadingToLocal && (
-                                                    <Text style={styles.cacheSelectorEpisodeTagDisabled}>不可用</Text>
-                                                )}
+                                                {!hasDownloaded &&
+                                                    !isCached &&
+                                                    !isPending &&
+                                                    !isDownloadingToLocal && (
+                                                        <Text style={styles.cacheSelectorEpisodeTagDisabled}>
+                                                            不可用
+                                                        </Text>
+                                                    )}
                                             </View>
                                             {canCache && isSelected && (
                                                 <View style={styles.cacheSelectorCheckmark}>

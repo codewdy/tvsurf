@@ -15,7 +15,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import { getSeries, getTVInfos, getApiBaseUrl, getApiToken, addSeries, removeSeries, OfflineModeError } from '../api/client-proxy';
+import {
+    getSeries,
+    getTVInfos,
+    getApiBaseUrl,
+    getApiToken,
+    addSeries,
+    removeSeries,
+    OfflineModeError
+} from '../api/client-proxy';
 import type { Series, TVInfo } from '../api/types';
 
 interface SeriesListScreenProps {
@@ -445,7 +453,11 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
                                 <Text style={styles.modalButtonTextCancel}>取消</Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.modalButton, styles.modalButtonConfirm, isSubmitting && styles.modalButtonDisabled]}
+                                style={[
+                                    styles.modalButton,
+                                    styles.modalButtonConfirm,
+                                    isSubmitting && styles.modalButtonDisabled
+                                ]}
                                 onPress={handleAddSeries}
                                 activeOpacity={0.7}
                                 disabled={isSubmitting}

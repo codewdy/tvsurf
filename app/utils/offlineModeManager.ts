@@ -1,7 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { offlineDataCache } from './offlineDataCache';
 import { videoCache } from './videoCache';
-import { getTVInfos as getTVInfosApi, getTVDetails as getTVDetailsApi, getSeries as getSeriesApi } from '../api/client';
+import {
+    getTVInfos as getTVInfosApi,
+    getTVDetails as getTVDetailsApi,
+    getSeries as getSeriesApi
+} from '../api/client';
 import { setWatchProgress as setWatchProgressApi, setTVTag as setTVTagApi } from '../api/client';
 import type { Tag } from '../api/types';
 

@@ -371,7 +371,11 @@ class VideoCache {
 
         // 检查是否已有下载任务
         const existingTask = this.downloadTasks.get(key);
-        if (existingTask && (existingTask.status === DownloadStatus.DOWNLOADING || existingTask.status === DownloadStatus.PENDING)) {
+        if (
+            existingTask &&
+            (existingTask.status === DownloadStatus.DOWNLOADING ||
+                existingTask.status === DownloadStatus.PENDING)
+        ) {
             throw new Error('该视频正在下载中或等待中');
         }
 

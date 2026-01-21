@@ -32,7 +32,12 @@ interface HomeScreenProps {
     onNavigateToSeriesList?: () => void;
 }
 
-export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache, onNavigateToSeriesList }: HomeScreenProps) {
+export default function HomeScreen({
+    onLogout,
+    onTVPress,
+    onNavigateToCache,
+    onNavigateToSeriesList
+}: HomeScreenProps) {
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -460,7 +465,8 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache, onN
                                         </Text>
                                     </TouchableOpacity>
                                     {!collapsedTags[tag] && tvsInGroup.map((tv) => {
-                                        const unwatchedEpisodes = tv.total_episodes - tv.user_data.watch_progress.episode_id;
+                                        const unwatchedEpisodes =
+                                            tv.total_episodes - tv.user_data.watch_progress.episode_id;
                                         const hasCachedVideo = cachedTVIds.has(tv.id);
                                         return (
                                             <TouchableOpacity
@@ -595,7 +601,12 @@ export default function HomeScreen({ onLogout, onTVPress, onNavigateToCache, onN
                                     activeOpacity={0.7}
                                     disabled={isOffline}
                                 >
-                                    <Ionicons name="log-out-outline" size={22} color={isOffline ? "#999" : "#FF3B30"} style={styles.menuItemIconComponent} />
+                                    <Ionicons
+                                        name="log-out-outline"
+                                        size={22}
+                                        color={isOffline ? "#999" : "#FF3B30"}
+                                        style={styles.menuItemIconComponent}
+                                    />
                                     <Text style={[
                                         styles.menuItemText,
                                         isOffline ? styles.menuItemTextDisabled : styles.menuItemTextDanger
