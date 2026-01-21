@@ -9,6 +9,8 @@ import type {
     GetTVDetailsResponse,
     SetTVTagRequest,
     SetWatchProgressRequest,
+    SetTVTrackingRequest,
+    SetTVTrackingResponse,
     GetSeriesRequest,
     GetSeriesResponse,
     UpdateSeriesTVsRequest,
@@ -188,6 +190,24 @@ export async function setWatchProgress(
     await apiCall<SetWatchProgressRequest, void>(
         baseUrl,
         '/api/set_watch_progress',
+        request,
+        token
+    );
+}
+
+// 设置 TV 追更 API
+export async function setTVTracking(
+    request: SetTVTrackingRequest
+): Promise<SetTVTrackingResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<SetTVTrackingRequest, SetTVTrackingResponse>(
+        baseUrl,
+        '/api/set_tv_tracking',
         request,
         token
     );

@@ -19,6 +19,7 @@ interface OfflineData {
 enum OperationType {
     WATCH_PROGRESS = 'watch_progress',
     TAG_CHANGE = 'tag_change',
+    TRACKING_CHANGE = 'tracking_change',
     UPDATE_SERIES_TVS = 'update_series_tvs',
     ADD_SERIES = 'add_series',
     REMOVE_SERIES = 'remove_series',
@@ -35,6 +36,12 @@ interface WatchProgressData {
 interface TagChangeData {
     tvId: number;
     tag: Tag;
+}
+
+// 追更状态变更数据
+interface TrackingChangeData {
+    tvId: number;
+    tracking: boolean;
 }
 
 // 更新播放列表TV数据
@@ -57,7 +64,7 @@ interface RemoveSeriesData {
 // 统一操作结构
 interface Operation {
     type: OperationType;
-    data: WatchProgressData | TagChangeData | UpdateSeriesTVsData | AddSeriesData | RemoveSeriesData;
+    data: WatchProgressData | TagChangeData | TrackingChangeData | UpdateSeriesTVsData | AddSeriesData | RemoveSeriesData;
 }
 
 // 操作队列存储格式
@@ -297,6 +304,33 @@ class OfflineDataCache {
         await this.savePendingChanges();
     }
 
+    // 记录追更状态变更（删除同TV的旧操作，追加新操作）
+    async recordTrackingChange(tvId: number, tracking: boolean): Promise<void> {
+        await this.initialize();
+
+        // 用 filter 删除该TV所有旧的追更状态操作
+        this.operations = this.operations.filter(op =>
+            !(op.type === OperationType.TRACKING_CHANGE && (op.data as TrackingChangeData).tvId === tvId)
+        );
+
+        // append新操作到末尾
+        this.operations.push({
+            type: OperationType.TRACKING_CHANGE,
+            data: { tvId, tracking },
+        });
+
+        const newLastUpdate = new Date().toISOString();
+
+        // 同时更新离线数据中的追更状态
+        if (this.offlineData.tvDetails[tvId]) {
+            this.offlineData.tvDetails[tvId].tv.track.tracking = tracking;
+            this.offlineData.tvDetails[tvId].tv.track.last_update = newLastUpdate;
+        }
+
+        await this.saveOfflineData();
+        await this.savePendingChanges();
+    }
+
     // 获取所有操作（按顺序）
     async getAllOperationsInOrder(): Promise<Operation[]> {
         await this.initialize();
@@ -305,13 +339,15 @@ class OfflineDataCache {
     }
 
     // 获取待同步数据总数
-    async getPendingChangesCount(): Promise<{ watchProgress: number; tags: number; total: number }> {
+    async getPendingChangesCount(): Promise<{ watchProgress: number; tags: number; tracking: number; total: number }> {
         await this.initialize();
         const watchProgressCount = this.operations.filter(op => op.type === OperationType.WATCH_PROGRESS).length;
         const tagsCount = this.operations.filter(op => op.type === OperationType.TAG_CHANGE).length;
+        const trackingCount = this.operations.filter(op => op.type === OperationType.TRACKING_CHANGE).length;
         return {
             watchProgress: watchProgressCount,
             tags: tagsCount,
+            tracking: trackingCount,
             total: this.operations.length,
         };
     }

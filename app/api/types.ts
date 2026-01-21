@@ -133,6 +133,17 @@ export interface SetWatchProgressRequest {
     time: number;
 }
 
+// 设置 TV 追更请求
+export interface SetTVTrackingRequest {
+    tv_id: number;
+    tracking: boolean;
+}
+
+// 设置 TV 追更响应
+export interface SetTVTrackingResponse {
+    // 空响应
+}
+
 // Series API 类型定义
 
 // 播放列表

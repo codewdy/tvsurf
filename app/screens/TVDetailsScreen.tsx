@@ -17,7 +17,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import VideoPlayer from '../components/VideoPlayer';
-import { getTVDetails, setWatchProgress, setTVTag, getApiToken, getApiBaseUrl, getSeries } from '../api/client-proxy';
+import { getTVDetails, setWatchProgress, setTVTag, setTVTracking, getApiToken, getApiBaseUrl, getSeries } from '../api/client-proxy';
 import type { GetTVDetailsResponse, Tag, Series } from '../api/types';
 import { videoCache } from '../utils/videoCache';
 import { offlineModeManager } from '../utils/offlineModeManager';
@@ -66,6 +66,9 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
 
     // 离线模式状态
     const [isOffline, setIsOffline] = useState(false);
+
+    // 追更状态更新中
+    const [updatingTracking, setUpdatingTracking] = useState(false);
 
     // 存储取消订阅函数
     const unsubscribersRef = useRef<Array<() => void>>([]);
@@ -404,6 +407,27 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
             console.error('Error setting tag:', err);
         }
     }, [details]);
+
+    // 切换追更状态
+    const handleTrackingChange = useCallback(async () => {
+        if (!details || updatingTracking) return;
+
+        const newTracking = !details.tv.track.tracking;
+
+        try {
+            setUpdatingTracking(true);
+            await setTVTracking({ tv_id: details.tv.id, tracking: newTracking });
+            // 更新本地状态
+            details.tv.track.tracking = newTracking;
+            details.tv.track.last_update = new Date().toISOString();
+            setDetails({ ...details });
+        } catch (err) {
+            console.error('Error setting tracking:', err);
+            Alert.alert('错误', '更新追更状态失败，请稍后重试');
+        } finally {
+            setUpdatingTracking(false);
+        }
+    }, [details, updatingTracking]);
 
     // 批量缓存选中的剧集
     const handleBatchDownload = useCallback(async () => {
@@ -1012,21 +1036,25 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                     <TouchableOpacity
                                         style={[
                                             styles.trackingSwitch,
-                                            details?.tv.track.tracking && styles.trackingSwitchActive
+                                            details?.tv.track.tracking && styles.trackingSwitchActive,
+                                            updatingTracking && styles.trackingSwitchDisabled
                                         ]}
-                                        onPress={() => {
-                                            // 追更状态暂时只读显示，因为后端可能没有更新API
-                                            Alert.alert('提示', '追更状态暂不支持修改');
-                                        }}
+                                        onPress={handleTrackingChange}
+                                        disabled={updatingTracking}
                                     >
-                                        <Ionicons
-                                            name={details?.tv.track.tracking ? "notifications" : "notifications-off"}
-                                            size={18}
-                                            color={details?.tv.track.tracking ? "#007AFF" : "#999"}
-                                        />
+                                        {updatingTracking ? (
+                                            <ActivityIndicator size="small" color="#007AFF" />
+                                        ) : (
+                                            <Ionicons
+                                                name={details?.tv.track.tracking ? "notifications" : "notifications-off"}
+                                                size={18}
+                                                color={details?.tv.track.tracking ? "#007AFF" : "#999"}
+                                            />
+                                        )}
                                         <Text style={[
                                             styles.trackingText,
-                                            details?.tv.track.tracking && styles.trackingTextActive
+                                            details?.tv.track.tracking && styles.trackingTextActive,
+                                            updatingTracking && styles.trackingTextDisabled
                                         ]}>
                                             {details?.tv.track.tracking ? "是" : "否"}
                                         </Text>
@@ -1667,12 +1695,18 @@ const styles = StyleSheet.create({
     trackingSwitchActive: {
         // 可以添加激活状态的样式
     },
+    trackingSwitchDisabled: {
+        opacity: 0.5,
+    },
     trackingText: {
         fontSize: 16,
         color: '#999',
     },
     trackingTextActive: {
         color: '#007AFF',
+    },
+    trackingTextDisabled: {
+        opacity: 0.5,
     },
     tagDisplayContainer: {
         position: 'relative',

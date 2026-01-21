@@ -9,7 +9,7 @@ import {
     addSeries as addSeriesApi,
     removeSeries as removeSeriesApi
 } from '../api/client';
-import { setWatchProgress as setWatchProgressApi, setTVTag as setTVTagApi } from '../api/client';
+import { setWatchProgress as setWatchProgressApi, setTVTag as setTVTagApi, setTVTracking as setTVTrackingApi } from '../api/client';
 import type { Tag } from '../api/types';
 
 // 注意：这里导入的是 client 而不是 client-proxy，因为 offlineModeManager 
@@ -25,7 +25,7 @@ export interface SyncResult {
 }
 
 export interface SyncError {
-    type: 'watch_progress' | 'tag' | 'update_series_tvs' | 'add_series' | 'remove_series';
+    type: 'watch_progress' | 'tag' | 'tracking' | 'update_series_tvs' | 'add_series' | 'remove_series';
     tvId?: number;
     episodeId?: number;
     seriesId?: number;
@@ -179,6 +179,15 @@ class OfflineModeManager {
                         });
                         current++;
                         onProgress?.(current, totalChanges, `上传标签变更 [TV ${data.tvId}]`);
+                    } else if (operation.type === 'tracking_change') {
+                        // 上传追更状态变更
+                        const data = operation.data as { tvId: number; tracking: boolean };
+                        await setTVTrackingApi({
+                            tv_id: data.tvId,
+                            tracking: data.tracking,
+                        });
+                        current++;
+                        onProgress?.(current, totalChanges, `上传追更状态变更 [TV ${data.tvId}]`);
                     } else if (operation.type === 'update_series_tvs') {
                         // 上传播放列表TV更新
                         const data = operation.data as { seriesId: number; tvs: number[] };
@@ -236,6 +245,14 @@ class OfflineModeManager {
                             error: errorMsg,
                         });
                         console.error(`上传标签失败 [TV ${data.tvId}]:`, error);
+                    } else if (operation.type === 'tracking_change') {
+                        const data = operation.data as { tvId: number; tracking: boolean };
+                        errors.push({
+                            type: 'tracking',
+                            tvId: data.tvId,
+                            error: errorMsg,
+                        });
+                        console.error(`上传追更状态失败 [TV ${data.tvId}]:`, error);
                     } else if (operation.type === 'update_series_tvs') {
                         const data = operation.data as { seriesId: number; tvs: number[] };
                         errors.push({
@@ -319,6 +336,11 @@ class OfflineModeManager {
         await offlineDataCache.recordTagChange(tvId, tag);
     }
 
+    // 记录追更状态变更（供离线模式下使用）
+    async recordTrackingChange(tvId: number, tracking: boolean): Promise<void> {
+        await offlineDataCache.recordTrackingChange(tvId, tracking);
+    }
+
     // 记录更新播放列表TV操作（供离线模式下使用）
     async recordUpdateSeriesTVs(seriesId: number, tvs: number[]): Promise<void> {
         await offlineDataCache.recordUpdateSeriesTVs(seriesId, tvs);
@@ -335,7 +357,7 @@ class OfflineModeManager {
     }
 
     // 获取待同步数据统计
-    async getPendingChangesCount(): Promise<{ watchProgress: number; tags: number; total: number }> {
+    async getPendingChangesCount(): Promise<{ watchProgress: number; tags: number; tracking: number; total: number }> {
         return await offlineDataCache.getPendingChangesCount();
     }
 

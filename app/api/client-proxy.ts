@@ -10,6 +10,7 @@ import {
     getTVDetails as getTVDetailsBase,
     setWatchProgress as setWatchProgressBase,
     setTVTag as setTVTagBase,
+    setTVTracking as setTVTrackingBase,
     getSeries as getSeriesBase,
     updateSeriesTVs as updateSeriesTVsBase,
     addSeries as addSeriesBase,
@@ -29,6 +30,8 @@ import type {
     StorageEpisode,
     SetWatchProgressRequest,
     SetTVTagRequest,
+    SetTVTrackingRequest,
+    SetTVTrackingResponse,
     Tag,
     LoginRequest,
     LoginResponse,
@@ -162,6 +165,22 @@ export async function setTVTag(
 
     // 在线模式：直接调用 API
     await setTVTagBase(request);
+}
+
+// 设置 TV 追更 API（支持离线模式）
+export async function setTVTracking(
+    request: SetTVTrackingRequest
+): Promise<SetTVTrackingResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        // 离线模式：记录到待上传队列
+        await offlineModeManager.recordTrackingChange(request.tv_id, request.tracking);
+        return {};
+    }
+
+    // 在线模式：直接调用 API
+    return await setTVTrackingBase(request);
 }
 
 // 登录 API（离线模式下不可用）
