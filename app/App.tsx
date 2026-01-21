@@ -6,15 +6,17 @@ import HomeScreen from './screens/HomeScreen';
 import TVDetailsScreen from './screens/TVDetailsScreen';
 import VideoCacheScreen from './screens/VideoCacheScreen';
 import SeriesListScreen from './screens/SeriesListScreen';
+import SeriesDetailsScreen from './screens/SeriesDetailsScreen';
 import { getApiToken, clearApiToken } from './api/client-proxy';
 import type { TVInfo } from './api/types';
 
-type Screen = 'home' | 'tv-details' | 'cache' | 'series-list';
+type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details';
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [currentScreen, setCurrentScreen] = useState<Screen>('home');
   const [selectedTV, setSelectedTV] = useState<TVInfo | null>(null);
+  const [selectedSeriesId, setSelectedSeriesId] = useState<number | null>(null);
 
   useEffect(() => {
     checkLoginStatus();
@@ -44,6 +46,7 @@ export default function App() {
     setIsLoggedIn(false);
     setCurrentScreen('home');
     setSelectedTV(null);
+    setSelectedSeriesId(null);
   };
 
   const handleTVPress = (tv: TVInfo) => {
@@ -62,6 +65,16 @@ export default function App() {
 
   const handleNavigateToSeriesList = () => {
     setCurrentScreen('series-list');
+  };
+
+  const handleSeriesPress = (seriesId: number) => {
+    setSelectedSeriesId(seriesId);
+    setCurrentScreen('series-details');
+  };
+
+  const handleBackFromSeriesDetails = () => {
+    setCurrentScreen('series-list');
+    setSelectedSeriesId(null);
   };
 
   // 显示加载状态
@@ -90,6 +103,13 @@ export default function App() {
         ) : currentScreen === 'series-list' ? (
           <SeriesListScreen
             onBack={handleBackToHome}
+            onTVPress={handleTVPress}
+            onSeriesPress={handleSeriesPress}
+          />
+        ) : currentScreen === 'series-details' && selectedSeriesId !== null ? (
+          <SeriesDetailsScreen
+            seriesId={selectedSeriesId}
+            onBack={handleBackFromSeriesDetails}
             onTVPress={handleTVPress}
           />
         ) : selectedTV ? (

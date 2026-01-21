@@ -6,8 +6,8 @@ import {
     ScrollView,
     TouchableOpacity,
     ActivityIndicator,
-    RefreshControl,
     BackHandler,
+    RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image as ExpoImage } from 'expo-image';
@@ -15,27 +15,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { getSeries, getTVInfos, getApiBaseUrl, getApiToken } from '../api/client-proxy';
 import type { Series, TVInfo } from '../api/types';
 
-interface SeriesListScreenProps {
+interface SeriesDetailsScreenProps {
+    seriesId: number;
     onBack: () => void;
     onTVPress?: (tv: TVInfo) => void;
-    onSeriesPress?: (seriesId: number) => void;
 }
 
-interface SeriesWithTVs extends Series {
-    tvInfos: TVInfo[];
-}
-
-export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: SeriesListScreenProps) {
+export default function SeriesDetailsScreen({ seriesId, onBack, onTVPress }: SeriesDetailsScreenProps) {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [seriesList, setSeriesList] = useState<SeriesWithTVs[]>([]);
+    const [series, setSeries] = useState<Series | null>(null);
+    const [tvInfos, setTVInfos] = useState<TVInfo[]>([]);
     const [error, setError] = useState<string | null>(null);
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [seriesId]);
 
     // 监听 Android 后退按钮
     useEffect(() => {
@@ -57,71 +54,29 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
             setToken(apiToken);
 
             if (url && apiToken) {
-                // 获取播放列表列表
-                const seriesData = await getSeries({ ids: null });
-
-                // 收集所有 TV ID
-                const allTVIds = new Set<number>();
-                seriesData.series.forEach((series) => {
-                    series.tvs.forEach((tvId) => allTVIds.add(tvId));
-                });
+                // 获取播放列表信息
+                const seriesData = await getSeries({ ids: [seriesId] });
+                if (seriesData.series.length === 0) {
+                    setError('播放列表不存在');
+                    return;
+                }
+                const seriesInfo = seriesData.series[0];
+                setSeries(seriesInfo);
 
                 // 获取所有 TV 信息
-                const tvData = await getTVInfos({ ids: Array.from(allTVIds) });
-
-                // 创建 TV ID 到 TVInfo 的映射
-                const tvMap = new Map<number, TVInfo>();
-                tvData.tvs.forEach((tv) => {
-                    tvMap.set(tv.id, tv);
-                });
-
-                // 组合播放列表和 TV 信息
-                const seriesWithTVs: SeriesWithTVs[] = seriesData.series.map((series) => ({
-                    ...series,
-                    tvInfos: series.tvs
-                        .map((tvId) => tvMap.get(tvId))
-                        .filter((tv): tv is TVInfo => tv !== undefined)
-                        .sort((a, b) => {
-                            // 按更新时间排序，最新的在前
-                            return (
-                                new Date(b.last_update).getTime() -
-                                new Date(a.last_update).getTime()
-                            );
-                        }),
-                }));
-
-                // 根据播放列表中所有 TV 的 last_update、user_data.last_update 和 series.last_update 的最大值进行排序
-                const sortedSeries = seriesWithTVs.sort((a, b) => {
-                    const getMaxUpdateTime = (series: SeriesWithTVs): number => {
-                        const times: number[] = [];
-
-                        // 添加 series 的 last_update
-                        if (series.last_update) {
-                            times.push(new Date(series.last_update).getTime());
-                        }
-
-                        // 添加所有 TV 的 last_update 和 user_data.last_update 的最大值
-                        series.tvInfos.forEach((tv) => {
-                            const tvUpdateTime = new Date(tv.last_update).getTime();
-                            const userUpdateTime = new Date(tv.user_data.last_update).getTime();
-                            times.push(Math.max(tvUpdateTime, userUpdateTime));
-                        });
-
-                        // 如果没有时间值，返回 0
-                        return times.length === 0 ? 0 : Math.max(...times);
-                    };
-
-                    const aMaxTime = getMaxUpdateTime(a);
-                    const bMaxTime = getMaxUpdateTime(b);
-
-                    // 降序排序，最新的在前
-                    return bMaxTime - aMaxTime;
-                });
-
-                setSeriesList(sortedSeries);
+                if (seriesInfo.tvs.length > 0) {
+                    const tvData = await getTVInfos({ ids: seriesInfo.tvs });
+                    // 按 TV ID 顺序排序，保持原始顺序
+                    const sortedTVs = seriesInfo.tvs
+                        .map((tvId) => tvData.tvs.find((tv) => tv.id === tvId))
+                        .filter((tv): tv is TVInfo => tv !== undefined);
+                    setTVInfos(sortedTVs);
+                } else {
+                    setTVInfos([]);
+                }
             }
         } catch (error) {
-            console.error('Error loading series list:', error);
+            console.error('Error loading series details:', error);
             // 检查是否是401错误
             if (error && typeof error === 'object' && (error as any).status === 401) {
                 setError('未授权，请重新登录');
@@ -137,70 +92,28 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
         setRefreshing(true);
         try {
             setError(null);
-            // 获取播放列表列表
-            const seriesData = await getSeries({ ids: null });
-
-            // 收集所有 TV ID
-            const allTVIds = new Set<number>();
-            seriesData.series.forEach((series) => {
-                series.tvs.forEach((tvId) => allTVIds.add(tvId));
-            });
+            // 获取播放列表信息
+            const seriesData = await getSeries({ ids: [seriesId] });
+            if (seriesData.series.length === 0) {
+                setError('播放列表不存在');
+                return;
+            }
+            const seriesInfo = seriesData.series[0];
+            setSeries(seriesInfo);
 
             // 获取所有 TV 信息
-            const tvData = await getTVInfos({ ids: Array.from(allTVIds) });
-
-            // 创建 TV ID 到 TVInfo 的映射
-            const tvMap = new Map<number, TVInfo>();
-            tvData.tvs.forEach((tv) => {
-                tvMap.set(tv.id, tv);
-            });
-
-            // 组合播放列表和 TV 信息
-            const seriesWithTVs: SeriesWithTVs[] = seriesData.series.map((series) => ({
-                ...series,
-                tvInfos: series.tvs
-                    .map((tvId) => tvMap.get(tvId))
-                    .filter((tv): tv is TVInfo => tv !== undefined)
-                    .sort((a, b) => {
-                        // 按更新时间排序，最新的在前
-                        return (
-                            new Date(b.last_update).getTime() -
-                            new Date(a.last_update).getTime()
-                        );
-                    }),
-            }));
-
-            // 根据播放列表中所有 TV 的 last_update、user_data.last_update 和 series.last_update 的最大值进行排序
-            const sortedSeries = seriesWithTVs.sort((a, b) => {
-                const getMaxUpdateTime = (series: SeriesWithTVs): number => {
-                    const times: number[] = [];
-
-                    // 添加 series 的 last_update
-                    if (series.last_update) {
-                        times.push(new Date(series.last_update).getTime());
-                    }
-
-                    // 添加所有 TV 的 last_update 和 user_data.last_update 的最大值
-                    series.tvInfos.forEach((tv) => {
-                        const tvUpdateTime = new Date(tv.last_update).getTime();
-                        const userUpdateTime = new Date(tv.user_data.last_update).getTime();
-                        times.push(Math.max(tvUpdateTime, userUpdateTime));
-                    });
-
-                    // 如果没有时间值，返回 0
-                    return times.length === 0 ? 0 : Math.max(...times);
-                };
-
-                const aMaxTime = getMaxUpdateTime(a);
-                const bMaxTime = getMaxUpdateTime(b);
-
-                // 降序排序，最新的在前
-                return bMaxTime - aMaxTime;
-            });
-
-            setSeriesList(sortedSeries);
+            if (seriesInfo.tvs.length > 0) {
+                const tvData = await getTVInfos({ ids: seriesInfo.tvs });
+                // 按 TV ID 顺序排序，保持原始顺序
+                const sortedTVs = seriesInfo.tvs
+                    .map((tvId) => tvData.tvs.find((tv) => tv.id === tvId))
+                    .filter((tv): tv is TVInfo => tv !== undefined);
+                setTVInfos(sortedTVs);
+            } else {
+                setTVInfos([]);
+            }
         } catch (error) {
-            console.error('Error refreshing series list:', error);
+            console.error('Error refreshing series details:', error);
             // 检查是否是401错误
             if (error && typeof error === 'object' && (error as any).status === 401) {
                 setError('未授权，请重新登录');
@@ -233,6 +146,30 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
         return undefined;
     }, [token]);
 
+    // 获取标签显示文本
+    const getTagText = (tag: string): string => {
+        const tagMap: Record<string, string> = {
+            watching: '观看中',
+            wanted: '想看',
+            watched: '已看',
+            on_hold: '暂停',
+            not_tagged: '未标记',
+        };
+        return tagMap[tag] || tag;
+    };
+
+    // 获取标签颜色
+    const getTagColor = (tag: string): string => {
+        const colorMap: Record<string, string> = {
+            watching: '#4CAF50',
+            wanted: '#2196F3',
+            watched: '#9E9E9E',
+            on_hold: '#FF9800',
+            not_tagged: '#757575',
+        };
+        return colorMap[tag] || '#757575';
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -253,7 +190,9 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
                     <Ionicons name="arrow-back" size={24} color="#333" />
                 </TouchableOpacity>
                 <View style={styles.titleBarCenter}>
-                    <Text style={styles.titleBarText}>播放列表</Text>
+                    <Text style={styles.titleBarText} numberOfLines={1}>
+                        {series?.name || '播放列表详情'}
+                    </Text>
                 </View>
                 <View style={styles.titleBarPlaceholder} />
             </View>
@@ -273,29 +212,39 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
                     </View>
                 )}
 
-                {seriesList.length === 0 && !error ? (
+                {tvInfos.length === 0 && !error ? (
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>暂无播放列表</Text>
+                        <Ionicons name="list-outline" size={64} color="#999" />
+                        <Text style={styles.emptyText}>该播放列表暂无 TV</Text>
                     </View>
                 ) : (
-                    <View style={styles.seriesList}>
-                        {seriesList.map((series) => {
-                            const firstTV = series.tvInfos[0];
-                            const coverUrl = firstTV?.cover_url ? getCoverUrl(firstTV.cover_url) : null;
+                    <View style={styles.tvList}>
+                        {tvInfos.map((tv) => {
+                            const coverUrl = tv.cover_url ? getCoverUrl(tv.cover_url) : null;
+                            const tagColor = getTagColor(tv.user_data.tag);
+                            const progress = tv.user_data.watch_progress;
+                            const progressPercent =
+                                tv.total_episodes > 0
+                                    ? ((progress.episode_id + 1) / tv.total_episodes) * 100
+                                    : 0;
 
                             return (
                                 <TouchableOpacity
-                                    key={series.id}
-                                    style={styles.seriesCard}
+                                    key={tv.id}
+                                    style={styles.tvCard}
                                     activeOpacity={0.7}
-                                    onPress={() => onSeriesPress?.(series.id)}
+                                    onPress={() => {
+                                        if (onTVPress) {
+                                            onTVPress(tv);
+                                        }
+                                    }}
                                 >
                                     <View style={styles.coverContainer}>
                                         {coverUrl ? (
                                             <ExpoImage
                                                 source={{
                                                     uri: coverUrl,
-                                                    headers: requestHeaders
+                                                    headers: requestHeaders,
                                                 }}
                                                 style={styles.coverImage}
                                                 contentFit="cover"
@@ -303,17 +252,53 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
                                             />
                                         ) : (
                                             <View style={styles.coverPlaceholder}>
-                                                <Ionicons name="list" size={32} color="#999" />
+                                                <Ionicons name="tv-outline" size={32} color="#999" />
                                             </View>
                                         )}
+                                        {/* 标签指示器 */}
+                                        <View
+                                            style={[
+                                                styles.tagIndicator,
+                                                { backgroundColor: tagColor },
+                                            ]}
+                                        />
                                     </View>
-                                    <View style={styles.seriesInfo}>
-                                        <Text style={styles.seriesName} numberOfLines={2}>
-                                            {series.name}
+                                    <View style={styles.tvInfo}>
+                                        <Text style={styles.tvName} numberOfLines={2}>
+                                            {tv.name}
                                         </Text>
-                                        <Text style={styles.seriesMeta}>
-                                            包含 {series.tvInfos.length} 个 TV
-                                        </Text>
+                                        <View style={styles.tvMeta}>
+                                            <View style={styles.tagBadge}>
+                                                <View
+                                                    style={[
+                                                        styles.tagDot,
+                                                        { backgroundColor: tagColor },
+                                                    ]}
+                                                />
+                                                <Text style={styles.tagText}>
+                                                    {getTagText(tv.user_data.tag)}
+                                                </Text>
+                                            </View>
+                                        </View>
+                                        {/* 观看进度条 */}
+                                        {tv.total_episodes > 0 && (
+                                            <View style={styles.progressContainer}>
+                                                <View style={styles.progressBar}>
+                                                    <View
+                                                        style={[
+                                                            styles.progressFill,
+                                                            {
+                                                                width: `${progressPercent}%`,
+                                                                backgroundColor: tagColor,
+                                                            },
+                                                        ]}
+                                                    />
+                                                </View>
+                                                <Text style={styles.progressText}>
+                                                    {progress.episode_id + 1} / {tv.total_episodes}
+                                                </Text>
+                                            </View>
+                                        )}
                                     </View>
                                 </TouchableOpacity>
                             );
@@ -321,7 +306,7 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
                     </View>
                 )}
             </ScrollView>
-        </SafeAreaView >
+        </SafeAreaView>
     );
 }
 
@@ -404,17 +389,14 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 16,
         color: '#999',
+        marginTop: 12,
     },
-    seriesList: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
+    tvList: {
+        gap: 12,
     },
-    seriesCard: {
-        width: '48%',
+    tvCard: {
         backgroundColor: '#fff',
         borderRadius: 8,
-        marginBottom: 12,
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
@@ -424,11 +406,13 @@ const styles = StyleSheet.create({
         shadowRadius: 2,
         elevation: 2,
         overflow: 'hidden',
+        flexDirection: 'row',
     },
     coverContainer: {
-        width: '100%',
+        width: 100,
         aspectRatio: 2 / 3,
         backgroundColor: '#e0e0e0',
+        position: 'relative',
     },
     coverImage: {
         width: '100%',
@@ -441,16 +425,64 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    seriesInfo: {
-        padding: 10,
+    tagIndicator: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        width: 12,
+        height: 12,
+        borderRadius: 6,
+        borderWidth: 2,
+        borderColor: '#fff',
     },
-    seriesName: {
-        fontSize: 15,
+    tvInfo: {
+        flex: 1,
+        padding: 12,
+        justifyContent: 'space-between',
+    },
+    tvName: {
+        fontSize: 16,
         fontWeight: '600',
         color: '#333',
+        marginBottom: 8,
+    },
+    tvMeta: {
+        marginBottom: 8,
+    },
+    tagBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        alignSelf: 'flex-start',
+        backgroundColor: '#f5f5f5',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    tagDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        marginRight: 6,
+    },
+    tagText: {
+        fontSize: 12,
+        color: '#666',
+    },
+    progressContainer: {
+        marginTop: 8,
+    },
+    progressBar: {
+        height: 4,
+        backgroundColor: '#e0e0e0',
+        borderRadius: 2,
+        overflow: 'hidden',
         marginBottom: 4,
     },
-    seriesMeta: {
+    progressFill: {
+        height: '100%',
+        borderRadius: 2,
+    },
+    progressText: {
         fontSize: 12,
         color: '#666',
     },
