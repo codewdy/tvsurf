@@ -133,10 +133,9 @@ class OfflineModeManager {
         const errors: SyncError[] = [];
 
         try {
-            // 1. 获取待上传的数据
-            const pendingWatchProgress = await offlineDataCache.getPendingWatchProgress();
-            const pendingTags = await offlineDataCache.getPendingTagChanges();
-            const totalChanges = pendingWatchProgress.length + pendingTags.length;
+            // 1. 获取统一的操作队列
+            const operations = await offlineDataCache.getAllOperationsInOrder();
+            const totalChanges = operations.length;
 
             if (totalChanges === 0) {
                 // 没有待上传数据，直接退出离线模式
@@ -145,41 +144,69 @@ class OfflineModeManager {
                 return { success: true, errors: [] };
             }
 
+            // 2. 按序列顺序上传每个操作（使用 while 循环，始终处理索引 0）
             let current = 0;
+            while (operations.length > 0) {
+                const operation = operations[0]; // 始终处理第一个操作
 
-            // 2. 上传观看进度
-            onProgress?.(current, totalChanges, `上传观看进度 (0/${pendingWatchProgress.length})...`);
-
-            for (const progress of pendingWatchProgress) {
                 try {
-                    await setWatchProgressApi({
-                        tv_id: progress.tvId,
-                        episode_id: progress.episodeId,
-                        time: progress.time,
-                    });
-                    // 上传成功，删除记录
-                    await offlineDataCache.removePendingWatchProgress(progress.tvId, progress.episodeId);
-                    current++;
-                    onProgress?.(current, totalChanges, `上传观看进度 (${current - errors.length}/${pendingWatchProgress.length})...`);
+                    if (operation.type === 'watch_progress') {
+                        // 上传观看进度
+                        const data = operation.data as { tvId: number; episodeId: number; time: number };
+                        await setWatchProgressApi({
+                            tv_id: data.tvId,
+                            episode_id: data.episodeId,
+                            time: data.time,
+                        });
+                        current++;
+                        onProgress?.(current, totalChanges, `上传观看进度 [TV ${data.tvId} 第${data.episodeId}集]`);
+                    } else if (operation.type === 'tag_change') {
+                        // 上传标签变更
+                        const data = operation.data as { tvId: number; tag: Tag };
+                        await setTVTagApi({
+                            tv_id: data.tvId,
+                            tag: data.tag,
+                        });
+                        current++;
+                        onProgress?.(current, totalChanges, `上传标签变更 [TV ${data.tvId}]`);
+                    }
+
+                    // 上传成功，删除该操作（删除第一个元素，数组自动前移）
+                    await offlineDataCache.removeOperationAt(0);
+                    operations.shift(); // 同步本地副本（因为 getAllOperationsInOrder 返回的是副本）
                 } catch (error) {
                     const errorMsg = error instanceof Error ? error.message : '未知错误';
-                    errors.push({
-                        type: 'watch_progress',
-                        tvId: progress.tvId,
-                        episodeId: progress.episodeId,
-                        error: errorMsg,
-                    });
-                    console.error(`上传观看进度失败 [TV ${progress.tvId} 第${progress.episodeId}集]:`, error);
+
+                    // 记录错误
+                    if (operation.type === 'watch_progress') {
+                        const data = operation.data as { tvId: number; episodeId: number; time: number };
+                        errors.push({
+                            type: 'watch_progress',
+                            tvId: data.tvId,
+                            episodeId: data.episodeId,
+                            error: errorMsg,
+                        });
+                        console.error(`上传观看进度失败 [TV ${data.tvId} 第${data.episodeId}集]:`, error);
+                    } else if (operation.type === 'tag_change') {
+                        const data = operation.data as { tvId: number; tag: Tag };
+                        errors.push({
+                            type: 'tag',
+                            tvId: data.tvId,
+                            error: errorMsg,
+                        });
+                        console.error(`上传标签失败 [TV ${data.tvId}]:`, error);
+                    }
+
                     // 遇到错误立即停止
                     break;
                 }
             }
 
-            // 如果观看进度上传失败
+            // 如果有上传失败
             if (errors.length > 0) {
                 if (force) {
                     // 强制退出：删除所有未同步的数据
-                    onProgress?.(current, totalChanges, '强制退出：清除未同步数据...');
+                    onProgress?.(0, 0, '强制退出：清除未同步数据...');
                     await offlineDataCache.clearPendingChanges();
                     await this.setOfflineMode(false);
                     return { success: false, errors };
@@ -189,47 +216,7 @@ class OfflineModeManager {
                 }
             }
 
-            // 3. 上传 tag 变更
-            onProgress?.(current, totalChanges, `上传标签变更 (0/${pendingTags.length})...`);
-
-            for (const tagChange of pendingTags) {
-                try {
-                    await setTVTagApi({
-                        tv_id: tagChange.tvId,
-                        tag: tagChange.tag,
-                    });
-                    // 上传成功，删除记录
-                    await offlineDataCache.removePendingTagChange(tagChange.tvId);
-                    current++;
-                    onProgress?.(current, totalChanges, `上传标签变更 (${current - pendingWatchProgress.length}/${pendingTags.length})...`);
-                } catch (error) {
-                    const errorMsg = error instanceof Error ? error.message : '未知错误';
-                    errors.push({
-                        type: 'tag',
-                        tvId: tagChange.tvId,
-                        error: errorMsg,
-                    });
-                    console.error(`上传tag失败 [TV ${tagChange.tvId}]:`, error);
-                    // 遇到错误立即停止
-                    break;
-                }
-            }
-
-            // 如果有任何上传失败
-            if (errors.length > 0) {
-                if (force) {
-                    // 强制退出：删除所有未同步的数据
-                    onProgress?.(current, totalChanges, '强制退出：清除未同步数据...');
-                    await offlineDataCache.clearPendingChanges();
-                    await this.setOfflineMode(false);
-                    return { success: false, errors };
-                } else {
-                    // 正常模式：保留数据，保持离线状态
-                    return { success: false, errors };
-                }
-            }
-
-            // 4. 全部上传成功，退出离线模式
+            // 3. 全部上传成功，退出离线模式
             onProgress?.(totalChanges, totalChanges, '同步完成');
             await this.setOfflineMode(false);
 

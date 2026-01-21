@@ -13,25 +13,34 @@ interface OfflineData {
     lastSync: string; // ISO datetime string
 }
 
-// 待上传的观看进度记录
-interface PendingWatchProgress {
+// 操作类型
+enum OperationType {
+    WATCH_PROGRESS = 'watch_progress',
+    TAG_CHANGE = 'tag_change',
+}
+
+// 观看进度数据
+interface WatchProgressData {
     tvId: number;
     episodeId: number;
     time: number;
-    timestamp: number; // 记录时间戳，用于排序
 }
 
-// 待上传的 tag 变更记录
-interface PendingTagChange {
+// 标签变更数据
+interface TagChangeData {
     tvId: number;
     tag: Tag;
-    timestamp: number; // 记录时间戳，用于排序
 }
 
-// 待上传的变更（持久化格式）
-interface PendingChangesStorage {
-    watchProgress: Record<string, PendingWatchProgress>; // key: "tvId_episodeId"
-    tags: Record<number, PendingTagChange>; // key: tvId
+// 统一操作结构
+interface Operation {
+    type: OperationType;
+    data: WatchProgressData | TagChangeData;
+}
+
+// 操作队列存储格式
+interface OperationQueueStorage {
+    operations: Operation[];
 }
 
 // 离线数据缓存类
@@ -43,9 +52,8 @@ class OfflineDataCache {
         series: {},
         lastSync: '',
     };
-    // 使用 Map 存储待上传数据，自动合并重复记录
-    private pendingWatchProgress: Map<string, PendingWatchProgress> = new Map();
-    private pendingTags: Map<number, PendingTagChange> = new Map();
+    // 使用数组存储待上传操作，按顺序执行
+    private operations: Operation[] = [];
 
     // 初始化缓存系统
     async initialize(): Promise<void> {
@@ -172,51 +180,42 @@ class OfflineDataCache {
         try {
             const changesStr = await AsyncStorage.getItem(PENDING_CHANGES_KEY);
             if (changesStr) {
-                const changes: PendingChangesStorage = JSON.parse(changesStr);
-
-                // 从 Record 转换为 Map
-                this.pendingWatchProgress.clear();
-                Object.entries(changes.watchProgress || {}).forEach(([key, value]) => {
-                    this.pendingWatchProgress.set(key, value);
-                });
-
-                this.pendingTags.clear();
-                Object.entries(changes.tags || {}).forEach(([key, value]) => {
-                    this.pendingTags.set(Number(key), value);
-                });
+                const storage: OperationQueueStorage = JSON.parse(changesStr);
+                this.operations = storage.operations || [];
             }
         } catch (error) {
             console.error('加载待上传变更失败:', error);
             // 数据损坏时重置
-            this.pendingWatchProgress.clear();
-            this.pendingTags.clear();
+            this.operations = [];
         }
     }
 
     // 保存待上传变更
     private async savePendingChanges(): Promise<void> {
         try {
-            // 从 Map 转换为 Record 以便 JSON 序列化
-            const changes: PendingChangesStorage = {
-                watchProgress: Object.fromEntries(this.pendingWatchProgress),
-                tags: Object.fromEntries(this.pendingTags),
+            const storage: OperationQueueStorage = {
+                operations: this.operations,
             };
-            await AsyncStorage.setItem(PENDING_CHANGES_KEY, JSON.stringify(changes));
+            await AsyncStorage.setItem(PENDING_CHANGES_KEY, JSON.stringify(storage));
         } catch (error) {
             console.error('保存待上传变更失败:', error);
             throw error;
         }
     }
 
-    // 记录观看进度变更（自动合并重复记录）
+    // 记录观看进度变更（删除同TV的旧操作，追加新操作）
     async recordWatchProgress(tvId: number, episodeId: number, time: number): Promise<void> {
         await this.initialize();
-        const key = `${tvId}_${episodeId}`;
-        this.pendingWatchProgress.set(key, {
-            tvId,
-            episodeId,
-            time,
-            timestamp: Date.now(),
+
+        // 用 filter 删除该TV所有旧的观看进度操作
+        this.operations = this.operations.filter(op =>
+            !(op.type === OperationType.WATCH_PROGRESS && (op.data as WatchProgressData).tvId === tvId)
+        );
+
+        // append新操作到末尾
+        this.operations.push({
+            type: OperationType.WATCH_PROGRESS,
+            data: { tvId, episodeId, time },
         });
 
         const newWatchProgress = {
@@ -241,13 +240,19 @@ class OfflineDataCache {
         await this.savePendingChanges();
     }
 
-    // 记录 tag 变更（自动合并重复记录）
+    // 记录 tag 变更（删除同TV的旧操作，追加新操作）
     async recordTagChange(tvId: number, tag: Tag): Promise<void> {
         await this.initialize();
-        this.pendingTags.set(tvId, {
-            tvId,
-            tag,
-            timestamp: Date.now(),
+
+        // 用 filter 删除该TV所有旧的标签操作
+        this.operations = this.operations.filter(op =>
+            !(op.type === OperationType.TAG_CHANGE && (op.data as TagChangeData).tvId === tvId)
+        );
+
+        // append新操作到末尾
+        this.operations.push({
+            type: OperationType.TAG_CHANGE,
+            data: { tvId, tag },
         });
 
         const newLastUpdate = new Date().toISOString();
@@ -268,50 +273,76 @@ class OfflineDataCache {
         await this.savePendingChanges();
     }
 
-    // 获取所有待上传的观看进度
-    async getPendingWatchProgress(): Promise<PendingWatchProgress[]> {
+    // 获取所有操作（按顺序）
+    async getAllOperationsInOrder(): Promise<Operation[]> {
         await this.initialize();
-        return Array.from(this.pendingWatchProgress.values());
+        // 返回数组副本，避免外部直接修改内部状态
+        return [...this.operations];
     }
 
-    // 获取所有待上传的 tag 变更
-    async getPendingTagChanges(): Promise<PendingTagChange[]> {
+    // 获取所有待上传的观看进度（保留用于兼容性）
+    async getPendingWatchProgress(): Promise<WatchProgressData[]> {
         await this.initialize();
-        return Array.from(this.pendingTags.values());
+        return this.operations
+            .filter(op => op.type === OperationType.WATCH_PROGRESS)
+            .map(op => op.data as WatchProgressData);
+    }
+
+    // 获取所有待上传的 tag 变更（保留用于兼容性）
+    async getPendingTagChanges(): Promise<TagChangeData[]> {
+        await this.initialize();
+        return this.operations
+            .filter(op => op.type === OperationType.TAG_CHANGE)
+            .map(op => op.data as TagChangeData);
     }
 
     // 获取待同步数据总数
     async getPendingChangesCount(): Promise<{ watchProgress: number; tags: number; total: number }> {
         await this.initialize();
-        const watchProgressCount = this.pendingWatchProgress.size;
-        const tagsCount = this.pendingTags.size;
+        const watchProgressCount = this.operations.filter(op => op.type === OperationType.WATCH_PROGRESS).length;
+        const tagsCount = this.operations.filter(op => op.type === OperationType.TAG_CHANGE).length;
         return {
             watchProgress: watchProgressCount,
             tags: tagsCount,
-            total: watchProgressCount + tagsCount,
+            total: this.operations.length,
         };
     }
 
     // 删除已上传的观看进度记录
     async removePendingWatchProgress(tvId: number, episodeId: number): Promise<void> {
         await this.initialize();
-        const key = `${tvId}_${episodeId}`;
-        this.pendingWatchProgress.delete(key);
+        this.operations = this.operations.filter(op => {
+            if (op.type !== OperationType.WATCH_PROGRESS) return true;
+            const data = op.data as WatchProgressData;
+            return !(data.tvId === tvId && data.episodeId === episodeId);
+        });
         await this.savePendingChanges();
     }
 
     // 删除已上传的 tag 变更记录
     async removePendingTagChange(tvId: number): Promise<void> {
         await this.initialize();
-        this.pendingTags.delete(tvId);
+        this.operations = this.operations.filter(op => {
+            if (op.type !== OperationType.TAG_CHANGE) return true;
+            const data = op.data as TagChangeData;
+            return data.tvId !== tvId;
+        });
         await this.savePendingChanges();
+    }
+
+    // 按索引删除操作
+    async removeOperationAt(index: number): Promise<void> {
+        await this.initialize();
+        if (index >= 0 && index < this.operations.length) {
+            this.operations.splice(index, 1);
+            await this.savePendingChanges();
+        }
     }
 
     // 清除所有待上传变更
     async clearPendingChanges(): Promise<void> {
         await this.initialize();
-        this.pendingWatchProgress.clear();
-        this.pendingTags.clear();
+        this.operations = [];
         await this.savePendingChanges();
     }
 
