@@ -119,16 +119,43 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
     // 监听 Android 后退按钮
     useEffect(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            // 如果全屏，先退出全屏
             if (isFullscreen) {
                 setIsFullscreen(false);
                 return true;
             }
+            // 如果各种 Modal 打开，先关闭 Modal
+            if (showRedownloadModal) {
+                setShowRedownloadModal(false);
+                return true;
+            }
+            if (showSourceSelector) {
+                setShowSourceSelector(false);
+                return true;
+            }
+            if (showCacheSelector) {
+                setShowCacheSelector(false);
+                return true;
+            }
+            if (showMenu) {
+                setShowMenu(false);
+                return true;
+            }
+            if (showTagSelector) {
+                setShowTagSelector(false);
+                return true;
+            }
+            if (showDetailsModal) {
+                setShowDetailsModal(false);
+                return true;
+            }
+            // 否则返回上一页
             onBack();
             return true; // 阻止默认行为
         });
 
         return () => backHandler.remove();
-    }, [onBack, isFullscreen]);
+    }, [onBack, isFullscreen, showRedownloadModal, showSourceSelector, showCacheSelector, showMenu, showTagSelector, showDetailsModal]);
 
     // 加载 TV 详情
     useEffect(() => {

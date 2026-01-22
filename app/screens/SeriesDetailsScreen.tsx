@@ -50,12 +50,29 @@ export default function SeriesDetailsScreen({ seriesId, onBack, onTVPress }: Ser
     // 监听 Android 后退按钮
     useEffect(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            // 如果编辑模式且有未保存的更改，先取消编辑
+            if (isEditMode) {
+                if (hasChanges) {
+                    // 可以在这里添加确认对话框，但为了简单起见，直接取消编辑
+                    cancelEdit();
+                    return true;
+                }
+                cancelEdit();
+                return true;
+            }
+            // 如果添加 TV 的 Modal 打开，先关闭 Modal
+            if (showAddTVModal) {
+                setShowAddTVModal(false);
+                setSearchQuery('');
+                return true;
+            }
+            // 否则返回上一页
             onBack();
             return true; // 返回true表示已处理返回事件
         });
 
         return () => backHandler.remove();
-    }, [onBack]);
+    }, [onBack, isEditMode, hasChanges, showAddTVModal]);
 
     const loadData = async () => {
         try {

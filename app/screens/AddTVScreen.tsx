@@ -12,6 +12,7 @@ import {
     FlatList,
     Image,
     Switch,
+    BackHandler,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -68,6 +69,22 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
         loadOfflineStatus();
         fetchTVList();
     }, []);
+
+    // 监听 Android 后退按钮
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            // 如果确认对话框打开，关闭对话框
+            if (showConfirmDialog) {
+                handleCancelAdd();
+                return true; // 返回true表示已处理返回事件
+            }
+            // 否则返回上一页
+            onBack();
+            return true; // 返回true表示已处理返回事件
+        });
+
+        return () => backHandler.remove();
+    }, [onBack, showConfirmDialog]);
 
     const loadConfig = async () => {
         const url = await getApiBaseUrl();

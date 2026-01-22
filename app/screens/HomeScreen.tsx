@@ -13,6 +13,7 @@ import {
     TouchableWithoutFeedback,
     Dimensions,
     Alert,
+    BackHandler,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -76,6 +77,31 @@ export default function HomeScreen({
         loadOfflineStatus();
         loadCachedVideos();
     }, []);
+
+    // 监听 Android 后退按钮
+    useEffect(() => {
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            // 如果离线模式操作正在进行，不允许返回（防止中断操作）
+            if (offlineOperationInProgress) {
+                return true; // 返回true表示已处理返回事件，阻止返回
+            }
+            // 如果离线模式对话框打开，关闭对话框
+            if (offlineModeDialogVisible) {
+                setOfflineModeDialogVisible(false);
+                setOfflineOperationInProgress(false);
+                return true; // 返回true表示已处理返回事件
+            }
+            // 如果菜单打开，关闭菜单
+            if (menuVisible) {
+                closeMenu();
+                return true; // 返回true表示已处理返回事件
+            }
+            // 主屏幕通常不需要返回键处理，返回false让系统处理（可能会退出应用）
+            return false;
+        });
+
+        return () => backHandler.remove();
+    }, [menuVisible, offlineModeDialogVisible, offlineOperationInProgress]);
 
     // 加载离线模式状态
     const loadOfflineStatus = async () => {

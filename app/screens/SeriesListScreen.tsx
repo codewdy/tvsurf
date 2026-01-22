@@ -55,12 +55,19 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
     // 监听 Android 后退按钮
     useEffect(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            // 如果添加播放列表的 Modal 打开，先关闭 Modal
+            if (showAddModal) {
+                setShowAddModal(false);
+                setNewSeriesName('');
+                return true;
+            }
+            // 否则返回上一页
             onBack();
             return true; // 返回true表示已处理返回事件
         });
 
         return () => backHandler.remove();
-    }, [onBack]);
+    }, [onBack, showAddModal]);
 
     const loadData = async () => {
         try {
