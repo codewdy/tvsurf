@@ -124,6 +124,64 @@ jobs:
           path: dist\tvsurf-windows.zip
           retention-days: 30
 
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: app/package-lock.json
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Verify Android environment
+        run: |
+          echo "ANDROID_HOME: $ANDROID_HOME"
+          echo "JAVA_HOME: $JAVA_HOME"
+          which java
+          java -version
+
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+
+      - name: Configure EAS
+        working-directory: app
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: eas whoami || eas login --non-interactive
+
+      - name: Build Android locally
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          chmod +x tools/linux/build_android.sh
+          bash tools/linux/build_android.sh
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tvsurf-android
+          path: |
+            app/tvsurf-android.apk
+          retention-days: 30
+
   build-docker:
     name: Build and Push Docker Image
     needs: [build-linux, build-linux-arm64]
@@ -230,7 +288,7 @@ jobs:
 
   release:
     name: Create Release
-    needs: [build-linux, build-linux-arm64, build-windows]
+    needs: [build-linux, build-linux-arm64, build-windows, build-android]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -257,6 +315,12 @@ jobs:
           name: tvsurf-windows
           path: artifacts
 
+      - name: Download Android artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tvsurf-android
+          path: artifacts
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
@@ -264,6 +328,7 @@ jobs:
             artifacts/tvsurf-linux.tar.gz
             artifacts/tvsurf-linux-arm64.tar.gz
             artifacts/tvsurf-windows.zip
+            artifacts/tvsurf-android.apk
           draft: false
           prerelease: false
         env:
