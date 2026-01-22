@@ -16,10 +16,7 @@
       "supportsTablet": true
     },
     "android": {
-      "icon": {
-        "foregroundImage": "./assets/icon.png",
-        "backgroundColor": "#ffffff"
-      },
+      "icon": "./assets/icon.png",
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.codewdy.tvsurf"
