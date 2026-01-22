@@ -19,7 +19,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import VideoPlayer from '../components/VideoPlayer';
-import { getTVDetails, setWatchProgress, setTVTag, setTVTracking, getApiToken, getApiBaseUrl, getSeries, searchTV, updateTVSource, updateEpisodeSource } from '../api/client-proxy';
+import { getTVDetails, setWatchProgress, setTVTag, setTVTracking, getApiToken, getApiBaseUrl, getSeries, searchTV, updateTVSource, updateEpisodeSource, scheduleEpisodeDownload } from '../api/client-proxy';
 import type { GetTVDetailsResponse, Tag, Series, Source, SearchError } from '../api/types';
 import { videoCache } from '../utils/videoCache';
 import { offlineModeManager } from '../utils/offlineModeManager';
@@ -55,6 +55,10 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
     const [showDetailsModal, setShowDetailsModal] = useState(false);
     const [showTagDropdown, setShowTagDropdown] = useState(false);
     const [showSourceSelector, setShowSourceSelector] = useState(false);
+    const [showRedownloadModal, setShowRedownloadModal] = useState(false);
+    const [selectedEpisodesForRedownload, setSelectedEpisodesForRedownload] = useState<Set<number>>(new Set());
+    const [reschedulingDownload, setReschedulingDownload] = useState(false);
+    const [redownloadError, setRedownloadError] = useState<string | null>(null);
     const [seriesList, setSeriesList] = useState<Series[]>([]);
     const [selectedEpisodesForCache, setSelectedEpisodesForCache] = useState<Set<number>>(new Set());
     const lastUpdateTimeRef = useRef<number>(-1);
@@ -1637,7 +1641,231 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                     )}
                                 </View>
                             </View>
+
+                            {/* 重新下载 */}
+                            {!isOffline && (
+                                <View style={styles.detailsSection}>
+                                    <Text style={styles.detailsSectionTitle}>重新下载</Text>
+                                    <View style={styles.detailsSectionContent}>
+                                        <TouchableOpacity
+                                            style={styles.redownloadButton}
+                                            onPress={() => {
+                                                setSelectedEpisodesForRedownload(new Set());
+                                                setRedownloadError(null);
+                                                setShowRedownloadModal(true);
+                                            }}
+                                        >
+                                            <Ionicons name="refresh" size={18} color="#007AFF" />
+                                            <Text style={styles.redownloadButtonText}>重新下载剧集</Text>
+                                            <Ionicons name="chevron-forward" size={20} color="#999" />
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            )}
                         </ScrollView>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* 重新下载弹窗 */}
+            <Modal
+                visible={showRedownloadModal}
+                transparent
+                animationType="slide"
+                onRequestClose={() => {
+                    setShowRedownloadModal(false);
+                    setSelectedEpisodesForRedownload(new Set());
+                    setRedownloadError(null);
+                }}
+            >
+                <View style={styles.redownloadModalOverlay}>
+                    <View style={styles.redownloadModalContainer}>
+                        <View style={styles.redownloadModalHeader}>
+                            <Text style={styles.redownloadModalTitle}>重新下载</Text>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setShowRedownloadModal(false);
+                                    setSelectedEpisodesForRedownload(new Set());
+                                    setRedownloadError(null);
+                                }}
+                                style={styles.closeButton}
+                            >
+                                <Ionicons name="close" size={24} color="#333" />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView
+                            style={styles.redownloadModalContent}
+                            contentContainerStyle={styles.redownloadModalContentContainer}
+                        >
+                            <Text style={styles.redownloadDescription}>
+                                选择需要重新下载的剧集，系统将取消当前下载任务并重新开始下载
+                            </Text>
+
+                            {/* 全选checkbox */}
+                            {details && details.tv.source.episodes.length > 0 && (
+                                <TouchableOpacity
+                                    style={styles.redownloadSelectAllItem}
+                                    onPress={() => {
+                                        const allEpisodeIds = details.tv.source.episodes.map((_, index) => index);
+                                        const allSelected = allEpisodeIds.every(id => selectedEpisodesForRedownload.has(id));
+
+                                        if (allSelected) {
+                                            // 如果全部选中，则取消全选
+                                            setSelectedEpisodesForRedownload(new Set());
+                                        } else {
+                                            // 如果未全部选中，则全选
+                                            setSelectedEpisodesForRedownload(new Set(allEpisodeIds));
+                                        }
+                                    }}
+                                >
+                                    <View style={styles.redownloadEpisodeContent}>
+                                        <Ionicons
+                                            name={
+                                                details.tv.source.episodes.every((_, index) => selectedEpisodesForRedownload.has(index))
+                                                    ? "checkbox"
+                                                    : "checkbox-outline"
+                                            }
+                                            size={24}
+                                            color={
+                                                details.tv.source.episodes.every((_, index) => selectedEpisodesForRedownload.has(index))
+                                                    ? "#007AFF"
+                                                    : "#999"
+                                            }
+                                        />
+                                        <View style={styles.redownloadEpisodeInfo}>
+                                            <Text style={styles.redownloadEpisodeName}>全选</Text>
+                                            <Text style={styles.redownloadEpisodeStatus}>
+                                                已选择 {selectedEpisodesForRedownload.size} / {details.tv.source.episodes.length} 集
+                                            </Text>
+                                        </View>
+                                    </View>
+                                </TouchableOpacity>
+                            )}
+
+                            {details && details.tv.source.episodes.map((episode, index) => {
+                                const storageEp = details.tv.storage.episodes[index];
+                                const isSelected = selectedEpisodesForRedownload.has(index);
+                                const statusText =
+                                    storageEp?.status === "success"
+                                        ? "✓ 已下载"
+                                        : storageEp?.status === "running"
+                                            ? "下载中"
+                                            : storageEp?.status === "failed"
+                                                ? "失败"
+                                                : "未下载";
+
+                                return (
+                                    <TouchableOpacity
+                                        key={index}
+                                        style={[
+                                            styles.redownloadEpisodeItem,
+                                            isSelected && styles.redownloadEpisodeItemSelected
+                                        ]}
+                                        onPress={() => {
+                                            const newSelected = new Set(selectedEpisodesForRedownload);
+                                            if (isSelected) {
+                                                newSelected.delete(index);
+                                            } else {
+                                                newSelected.add(index);
+                                            }
+                                            setSelectedEpisodesForRedownload(newSelected);
+                                        }}
+                                    >
+                                        <View style={styles.redownloadEpisodeContent}>
+                                            <Ionicons
+                                                name={isSelected ? "checkbox" : "checkbox-outline"}
+                                                size={24}
+                                                color={isSelected ? "#007AFF" : "#999"}
+                                            />
+                                            <View style={styles.redownloadEpisodeInfo}>
+                                                <Text style={styles.redownloadEpisodeName}>{episode.name}</Text>
+                                                <Text style={styles.redownloadEpisodeStatus}>{statusText}</Text>
+                                            </View>
+                                        </View>
+                                    </TouchableOpacity>
+                                );
+                            })}
+
+                            {redownloadError && (
+                                <View style={styles.redownloadErrorContainer}>
+                                    <Text style={styles.redownloadErrorText}>{redownloadError}</Text>
+                                </View>
+                            )}
+                        </ScrollView>
+
+                        <View style={styles.redownloadModalFooter}>
+                            <TouchableOpacity
+                                style={[styles.redownloadFooterButton, styles.redownloadFooterButtonSecondary]}
+                                onPress={async () => {
+                                    if (!details) return;
+                                    // 找到所有失败的剧集
+                                    const failedEpisodeIds: number[] = [];
+                                    details.tv.storage.episodes.forEach((ep, index) => {
+                                        if (ep.status === "failed") {
+                                            failedEpisodeIds.push(index);
+                                        }
+                                    });
+
+                                    if (failedEpisodeIds.length === 0) {
+                                        setRedownloadError("没有失败的剧集需要重新下载");
+                                        return;
+                                    }
+
+                                    setSelectedEpisodesForRedownload(new Set(failedEpisodeIds));
+                                }}
+                                disabled={reschedulingDownload}
+                            >
+                                <Text style={styles.redownloadFooterButtonTextSecondary}>选择失败集</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.redownloadFooterButton, styles.redownloadFooterButtonPrimary]}
+                                onPress={async () => {
+                                    if (!details) return;
+
+                                    const episodeIds = Array.from(selectedEpisodesForRedownload);
+                                    if (episodeIds.length === 0) {
+                                        setRedownloadError("请选择要重新下载的剧集");
+                                        return;
+                                    }
+
+                                    setReschedulingDownload(true);
+                                    setRedownloadError(null);
+
+                                    try {
+                                        await scheduleEpisodeDownload({
+                                            tv_id: details.tv.id,
+                                            episode_ids: episodeIds,
+                                        });
+                                        // 刷新详情
+                                        await loadTVDetails();
+                                        // 关闭弹窗
+                                        setShowRedownloadModal(false);
+                                        setSelectedEpisodesForRedownload(new Set());
+                                        setShowDetailsModal(false);
+                                    } catch (err) {
+                                        setRedownloadError(
+                                            err instanceof Error
+                                                ? err.message
+                                                : "重新提交下载任务时发生错误"
+                                        );
+                                        console.error("Schedule download error:", err);
+                                    } finally {
+                                        setReschedulingDownload(false);
+                                    }
+                                }}
+                                disabled={reschedulingDownload || selectedEpisodesForRedownload.size === 0}
+                            >
+                                {reschedulingDownload ? (
+                                    <ActivityIndicator size="small" color="#fff" />
+                                ) : (
+                                    <Text style={styles.redownloadFooterButtonTextPrimary}>
+                                        重新下载 ({selectedEpisodesForRedownload.size})
+                                    </Text>
+                                )}
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -2546,6 +2774,138 @@ const styles = StyleSheet.create({
     },
     sourceNewEpisodeItemTextSelected: {
         color: '#fff',
+        fontWeight: '500',
+    },
+    // 重新下载按钮
+    redownloadButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 8,
+    },
+    redownloadButtonText: {
+        flex: 1,
+        fontSize: 16,
+        color: '#333',
+    },
+    // 重新下载弹窗
+    redownloadModalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        justifyContent: 'flex-end',
+    },
+    redownloadModalContainer: {
+        backgroundColor: '#fff',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        height: '75%',
+        flexDirection: 'column',
+    },
+    redownloadModalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    redownloadModalTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#333',
+    },
+    redownloadModalContent: {
+        flex: 1,
+    },
+    redownloadModalContentContainer: {
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        paddingBottom: 20,
+    },
+    redownloadDescription: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 16,
+        lineHeight: 20,
+    },
+    redownloadSelectAllItem: {
+        paddingVertical: 14,
+        paddingHorizontal: 12,
+        marginBottom: 12,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 8,
+    },
+    redownloadEpisodeItem: {
+        paddingVertical: 12,
+        paddingHorizontal: 12,
+        marginBottom: 8,
+        backgroundColor: '#f5f5f5',
+        borderRadius: 8,
+    },
+    redownloadEpisodeItemSelected: {
+        backgroundColor: '#e3f2fd',
+        borderWidth: 1,
+        borderColor: '#007AFF',
+    },
+    redownloadEpisodeContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    redownloadEpisodeInfo: {
+        flex: 1,
+    },
+    redownloadEpisodeName: {
+        fontSize: 16,
+        color: '#333',
+        marginBottom: 4,
+    },
+    redownloadEpisodeStatus: {
+        fontSize: 12,
+        color: '#666',
+    },
+    redownloadErrorContainer: {
+        marginTop: 12,
+        padding: 12,
+        backgroundColor: '#fee',
+        borderRadius: 8,
+    },
+    redownloadErrorText: {
+        fontSize: 14,
+        color: '#c00',
+    },
+    redownloadModalFooter: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        paddingBottom: 20,
+        borderTopWidth: 1,
+        borderTopColor: '#e0e0e0',
+        gap: 12,
+        backgroundColor: '#fff',
+    },
+    redownloadFooterButton: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    redownloadFooterButtonPrimary: {
+        backgroundColor: '#007AFF',
+    },
+    redownloadFooterButtonSecondary: {
+        backgroundColor: '#f5f5f5',
+    },
+    redownloadFooterButtonTextPrimary: {
+        color: '#fff',
+        fontSize: 16,
+        fontWeight: '500',
+    },
+    redownloadFooterButtonTextSecondary: {
+        color: '#333',
+        fontSize: 16,
         fontWeight: '500',
     },
 });

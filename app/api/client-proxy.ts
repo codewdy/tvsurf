@@ -19,7 +19,8 @@ import {
     addTV as addTVBase,
     getDownloadProgress as getDownloadProgressBase,
     updateTVSource as updateTVSourceBase,
-    updateEpisodeSource as updateEpisodeSourceBase
+    updateEpisodeSource as updateEpisodeSourceBase,
+    scheduleEpisodeDownload as scheduleEpisodeDownloadBase
 } from './client';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { offlineDataCache } from '../utils/offlineDataCache';
@@ -53,7 +54,9 @@ import type {
     UpdateTVSourceRequest,
     UpdateTVSourceResponse,
     UpdateEpisodeSourceRequest,
-    UpdateEpisodeSourceResponse
+    UpdateEpisodeSourceResponse,
+    ScheduleEpisodeDownloadRequest,
+    ScheduleEpisodeDownloadResponse
 } from './types';
 
 // 离线模式错误
@@ -379,6 +382,20 @@ export async function updateEpisodeSource(
 
     // 在线模式：直接调用 API
     return await updateEpisodeSourceBase(request);
+}
+
+// 重新调度剧集下载 API（离线模式下不可用）
+export async function scheduleEpisodeDownload(
+    request: ScheduleEpisodeDownloadRequest
+): Promise<ScheduleEpisodeDownloadResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法重新下载剧集，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await scheduleEpisodeDownloadBase(request);
 }
 
 // 导出离线模式错误类和离线数据缓存，供外部使用

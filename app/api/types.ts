@@ -267,3 +267,14 @@ export interface UpdateEpisodeSourceRequest {
 export interface UpdateEpisodeSourceResponse {
     // 空响应
 }
+
+// 重新调度剧集下载请求
+export interface ScheduleEpisodeDownloadRequest {
+    tv_id: number;
+    episode_ids: number[];
+}
+
+// 重新调度剧集下载响应
+export interface ScheduleEpisodeDownloadResponse {
+    // 空响应
+}

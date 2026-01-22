@@ -26,7 +26,9 @@ import type {
     UpdateTVSourceRequest,
     UpdateTVSourceResponse,
     UpdateEpisodeSourceRequest,
-    UpdateEpisodeSourceResponse
+    UpdateEpisodeSourceResponse,
+    ScheduleEpisodeDownloadRequest,
+    ScheduleEpisodeDownloadResponse
 } from './types';
 
 // API 基础 URL 存储键
@@ -376,6 +378,24 @@ export async function updateEpisodeSource(
     return apiCall<UpdateEpisodeSourceRequest, UpdateEpisodeSourceResponse>(
         baseUrl,
         '/api/update_episode_series',
+        request,
+        token
+    );
+}
+
+// 重新调度剧集下载 API
+export async function scheduleEpisodeDownload(
+    request: ScheduleEpisodeDownloadRequest
+): Promise<ScheduleEpisodeDownloadResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<ScheduleEpisodeDownloadRequest, ScheduleEpisodeDownloadResponse>(
+        baseUrl,
+        '/api/schedule_episode_download',
         request,
         token
     );
