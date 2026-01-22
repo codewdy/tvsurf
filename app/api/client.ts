@@ -28,7 +28,9 @@ import type {
     UpdateEpisodeSourceRequest,
     UpdateEpisodeSourceResponse,
     ScheduleEpisodeDownloadRequest,
-    ScheduleEpisodeDownloadResponse
+    ScheduleEpisodeDownloadResponse,
+    RemoveTVRequest,
+    RemoveTVResponse
 } from './types';
 
 // API 基础 URL 存储键
@@ -396,6 +398,24 @@ export async function scheduleEpisodeDownload(
     return apiCall<ScheduleEpisodeDownloadRequest, ScheduleEpisodeDownloadResponse>(
         baseUrl,
         '/api/schedule_episode_download',
+        request,
+        token
+    );
+}
+
+// 删除 TV API
+export async function removeTV(
+    request: RemoveTVRequest
+): Promise<RemoveTVResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<RemoveTVRequest, RemoveTVResponse>(
+        baseUrl,
+        '/api/remove_tv',
         request,
         token
     );

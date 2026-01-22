@@ -20,7 +20,8 @@ import {
     getDownloadProgress as getDownloadProgressBase,
     updateTVSource as updateTVSourceBase,
     updateEpisodeSource as updateEpisodeSourceBase,
-    scheduleEpisodeDownload as scheduleEpisodeDownloadBase
+    scheduleEpisodeDownload as scheduleEpisodeDownloadBase,
+    removeTV as removeTVBase
 } from './client';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { offlineDataCache } from '../utils/offlineDataCache';
@@ -56,7 +57,9 @@ import type {
     UpdateEpisodeSourceRequest,
     UpdateEpisodeSourceResponse,
     ScheduleEpisodeDownloadRequest,
-    ScheduleEpisodeDownloadResponse
+    ScheduleEpisodeDownloadResponse,
+    RemoveTVRequest,
+    RemoveTVResponse
 } from './types';
 
 // 离线模式错误
@@ -396,6 +399,20 @@ export async function scheduleEpisodeDownload(
 
     // 在线模式：直接调用 API
     return await scheduleEpisodeDownloadBase(request);
+}
+
+// 删除 TV API（离线模式下不可用）
+export async function removeTV(
+    request: RemoveTVRequest
+): Promise<RemoveTVResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法删除TV，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await removeTVBase(request);
 }
 
 // 导出离线模式错误类和离线数据缓存，供外部使用

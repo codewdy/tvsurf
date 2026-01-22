@@ -19,7 +19,7 @@ import * as ScreenOrientation from 'expo-screen-orientation';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import VideoPlayer from '../components/VideoPlayer';
-import { getTVDetails, setWatchProgress, setTVTag, setTVTracking, getApiToken, getApiBaseUrl, getSeries, searchTV, updateTVSource, updateEpisodeSource, scheduleEpisodeDownload } from '../api/client-proxy';
+import { getTVDetails, setWatchProgress, setTVTag, setTVTracking, getApiToken, getApiBaseUrl, getSeries, searchTV, updateTVSource, updateEpisodeSource, scheduleEpisodeDownload, removeTV } from '../api/client-proxy';
 import type { GetTVDetailsResponse, Tag, Series, Source, SearchError } from '../api/types';
 import { videoCache } from '../utils/videoCache';
 import { offlineModeManager } from '../utils/offlineModeManager';
@@ -59,6 +59,8 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
     const [selectedEpisodesForRedownload, setSelectedEpisodesForRedownload] = useState<Set<number>>(new Set());
     const [reschedulingDownload, setReschedulingDownload] = useState(false);
     const [redownloadError, setRedownloadError] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteConfirmName, setDeleteConfirmName] = useState('');
     const [seriesList, setSeriesList] = useState<Series[]>([]);
     const [selectedEpisodesForCache, setSelectedEpisodesForCache] = useState<Set<number>>(new Set());
     const lastUpdateTimeRef = useRef<number>(-1);
@@ -722,7 +724,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                     </View>
                     <TouchableOpacity
                         style={styles.menuButton}
-                        onPress={() => setShowMenu(true)}
+                        onPress={() => setShowDetailsModal(true)}
                     >
                         <Ionicons name="ellipsis-vertical" size={24} color="#333" />
                     </TouchableOpacity>
@@ -1603,9 +1605,11 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                                 频道: {details?.tv.source.source.channel_name || '-'}
                                             </Text>
                                         </View>
-                                        {!isOffline && (
-                                            <Ionicons name="chevron-forward" size={20} color="#999" />
-                                        )}
+                                        <Ionicons
+                                            name="chevron-forward"
+                                            size={20}
+                                            color={isOffline ? "#ccc" : "#999"}
+                                        />
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -1642,26 +1646,142 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                 </View>
                             </View>
 
-                            {/* 重新下载 */}
-                            {!isOffline && (
-                                <View style={styles.detailsSection}>
-                                    <Text style={styles.detailsSectionTitle}>重新下载</Text>
-                                    <View style={styles.detailsSectionContent}>
-                                        <TouchableOpacity
-                                            style={styles.redownloadButton}
-                                            onPress={() => {
-                                                setSelectedEpisodesForRedownload(new Set());
-                                                setRedownloadError(null);
-                                                setShowRedownloadModal(true);
-                                            }}
-                                        >
-                                            <Ionicons name="refresh" size={18} color="#007AFF" />
-                                            <Text style={styles.redownloadButtonText}>重新下载剧集</Text>
-                                            <Ionicons name="chevron-forward" size={20} color="#999" />
-                                        </TouchableOpacity>
-                                    </View>
+                            {/* 缓存 */}
+                            <View style={styles.detailsSection}>
+                                <Text style={styles.detailsSectionTitle}>缓存</Text>
+                                <View style={styles.detailsSectionContent}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.redownloadButton,
+                                            isOffline && styles.buttonDisabled
+                                        ]}
+                                        onPress={() => {
+                                            if (isOffline) {
+                                                Alert.alert('提示', '离线模式下无法添加新的缓存');
+                                                return;
+                                            }
+                                            setShowCacheSelector(true);
+                                            setSelectedEpisodesForCache(new Set());
+                                        }}
+                                        disabled={isOffline}
+                                    >
+                                        <Ionicons
+                                            name="download-outline"
+                                            size={18}
+                                            color={isOffline ? "#999" : "#007AFF"}
+                                        />
+                                        <Text style={[
+                                            styles.redownloadButtonText,
+                                            isOffline && styles.buttonTextDisabled
+                                        ]}>添加缓存</Text>
+                                        <Ionicons name="chevron-forward" size={20} color="#999" />
+                                    </TouchableOpacity>
                                 </View>
-                            )}
+                            </View>
+
+                            {/* 服务端重新下载 */}
+                            <View style={styles.detailsSection}>
+                                <Text style={styles.detailsSectionTitle}>服务端重新下载</Text>
+                                <View style={styles.detailsSectionContent}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.redownloadButton,
+                                            isOffline && styles.buttonDisabled
+                                        ]}
+                                        onPress={() => {
+                                            if (isOffline) {
+                                                Alert.alert('提示', '离线模式下无法重新下载剧集，请先退出离线模式');
+                                                return;
+                                            }
+                                            setSelectedEpisodesForRedownload(new Set());
+                                            setRedownloadError(null);
+                                            setShowRedownloadModal(true);
+                                        }}
+                                        disabled={isOffline}
+                                    >
+                                        <Ionicons
+                                            name="refresh"
+                                            size={18}
+                                            color={isOffline ? "#999" : "#007AFF"}
+                                        />
+                                        <Text style={[
+                                            styles.redownloadButtonText,
+                                            isOffline && styles.buttonTextDisabled
+                                        ]}>服务端重新下载剧集</Text>
+                                        <Ionicons name="chevron-forward" size={20} color="#999" />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {/* 删除 */}
+                            <View style={styles.detailsSection}>
+                                <Text style={styles.detailsSectionTitle}>删除</Text>
+                                <View style={styles.detailsSectionContent}>
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.redownloadButton,
+                                            styles.deleteButton,
+                                            (isOffline || deleting) && styles.buttonDisabled
+                                        ]}
+                                        onPress={() => {
+                                            if (isOffline) {
+                                                Alert.alert('提示', '离线模式下无法删除TV，请先退出离线模式');
+                                                return;
+                                            }
+                                            if (!details) return;
+                                            Alert.alert(
+                                                '确认删除',
+                                                `确定要删除《${details.tv.name}》吗？此操作不可恢复。`,
+                                                [
+                                                    {
+                                                        text: '取消',
+                                                        style: 'cancel',
+                                                    },
+                                                    {
+                                                        text: '删除',
+                                                        style: 'destructive',
+                                                        onPress: async () => {
+                                                            setDeleting(true);
+                                                            try {
+                                                                await removeTV({ id: details.tv.id });
+                                                                // 删除成功后返回
+                                                                setShowDetailsModal(false);
+                                                                onBack();
+                                                            } catch (err) {
+                                                                Alert.alert(
+                                                                    '删除失败',
+                                                                    err instanceof Error ? err.message : '删除时发生错误'
+                                                                );
+                                                                console.error('Remove TV error:', err);
+                                                            } finally {
+                                                                setDeleting(false);
+                                                            }
+                                                        },
+                                                    },
+                                                ]
+                                            );
+                                        }}
+                                        disabled={isOffline || deleting}
+                                    >
+                                        {deleting ? (
+                                            <ActivityIndicator size="small" color="#f44336" />
+                                        ) : (
+                                            <Ionicons
+                                                name="trash-outline"
+                                                size={18}
+                                                color={isOffline ? "#999" : "#f44336"}
+                                            />
+                                        )}
+                                        <Text style={[
+                                            styles.redownloadButtonText,
+                                            styles.deleteButtonText,
+                                            isOffline && styles.buttonTextDisabled
+                                        ]}>
+                                            {deleting ? '删除中...' : '删除剧集'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
                         </ScrollView>
                     </View>
                 </View>
@@ -1681,7 +1801,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                 <View style={styles.redownloadModalOverlay}>
                     <View style={styles.redownloadModalContainer}>
                         <View style={styles.redownloadModalHeader}>
-                            <Text style={styles.redownloadModalTitle}>重新下载</Text>
+                            <Text style={styles.redownloadModalTitle}>服务端重新下载</Text>
                             <TouchableOpacity
                                 onPress={() => {
                                     setShowRedownloadModal(false);
@@ -1699,7 +1819,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                             contentContainerStyle={styles.redownloadModalContentContainer}
                         >
                             <Text style={styles.redownloadDescription}>
-                                选择需要重新下载的剧集，系统将取消当前下载任务并重新开始下载
+                                选择需要服务端重新下载的剧集，系统将取消当前下载任务并重新开始下载
                             </Text>
 
                             {/* 全选checkbox */}
@@ -1808,7 +1928,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                     });
 
                                     if (failedEpisodeIds.length === 0) {
-                                        setRedownloadError("没有失败的剧集需要重新下载");
+                                        setRedownloadError("没有失败的剧集需要服务端重新下载");
                                         return;
                                     }
 
@@ -1826,7 +1946,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
 
                                     const episodeIds = Array.from(selectedEpisodesForRedownload);
                                     if (episodeIds.length === 0) {
-                                        setRedownloadError("请选择要重新下载的剧集");
+                                        setRedownloadError("请选择要服务端重新下载的剧集");
                                         return;
                                     }
 
@@ -1848,7 +1968,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                         setRedownloadError(
                                             err instanceof Error
                                                 ? err.message
-                                                : "重新提交下载任务时发生错误"
+                                                : "服务端重新提交下载任务时发生错误"
                                         );
                                         console.error("Schedule download error:", err);
                                     } finally {
@@ -1861,7 +1981,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                     <ActivityIndicator size="small" color="#fff" />
                                 ) : (
                                     <Text style={styles.redownloadFooterButtonTextPrimary}>
-                                        重新下载 ({selectedEpisodesForRedownload.size})
+                                        服务端重新下载 ({selectedEpisodesForRedownload.size})
                                     </Text>
                                 )}
                             </TouchableOpacity>
@@ -2131,7 +2251,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#fff',
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
-        height: '80%',
+        height: '75%',
         paddingBottom: 20,
     },
     cacheSelectorHeader: {
@@ -2787,6 +2907,18 @@ const styles = StyleSheet.create({
         flex: 1,
         fontSize: 16,
         color: '#333',
+    },
+    deleteButton: {
+        borderColor: '#f44336',
+    },
+    deleteButtonText: {
+        color: '#f44336',
+    },
+    buttonDisabled: {
+        opacity: 0.5,
+    },
+    buttonTextDisabled: {
+        color: '#999',
     },
     // 重新下载弹窗
     redownloadModalOverlay: {
