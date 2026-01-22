@@ -500,7 +500,10 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
             >
                 <View style={styles.modalOverlay}>
                     <View style={styles.modalContent}>
-                        <ScrollView style={styles.modalScrollView}>
+                        <ScrollView
+                            style={styles.modalScrollView}
+                            contentContainerStyle={styles.modalScrollViewContent}
+                        >
                             {/* 名称编辑 */}
                             <View style={styles.modalSection}>
                                 <Text style={styles.modalLabel}>名称</Text>
@@ -659,29 +662,29 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                                     </View>
                                 )}
                             </View>
-
-                            {/* 按钮 */}
-                            <View style={styles.modalButtons}>
-                                <TouchableOpacity
-                                    style={styles.modalButtonCancel}
-                                    onPress={handleCancelAdd}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text style={styles.modalButtonCancelText}>取消</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[
-                                        styles.modalButtonConfirm,
-                                        (!confirmName.trim() || nameExists) && styles.modalButtonConfirmDisabled
-                                    ]}
-                                    onPress={handleConfirmAdd}
-                                    disabled={!confirmName.trim() || nameExists}
-                                    activeOpacity={0.7}
-                                >
-                                    <Text style={styles.modalButtonConfirmText}>确认添加</Text>
-                                </TouchableOpacity>
-                            </View>
                         </ScrollView>
+
+                        {/* 按钮 */}
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity
+                                style={styles.modalButtonCancel}
+                                onPress={handleCancelAdd}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.modalButtonCancelText}>取消</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.modalButtonConfirm,
+                                    (!confirmName.trim() || nameExists) && styles.modalButtonConfirmDisabled
+                                ]}
+                                onPress={handleConfirmAdd}
+                                disabled={!confirmName.trim() || nameExists}
+                                activeOpacity={0.7}
+                            >
+                                <Text style={styles.modalButtonConfirmText}>确认添加</Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </Modal>
@@ -950,9 +953,14 @@ const styles = StyleSheet.create({
         width: '90%',
         maxHeight: '90%',
         overflow: 'hidden',
+        flexDirection: 'column',
     },
     modalScrollView: {
-        maxHeight: '90%',
+        height: '90%',
+    },
+    modalScrollViewContent: {
+        flex: 1,
+        paddingBottom: 20,
     },
     modalSection: {
         padding: 16,
@@ -1092,9 +1100,11 @@ const styles = StyleSheet.create({
     modalButtons: {
         flexDirection: 'row',
         padding: 16,
+        paddingBottom: 20,
         gap: 12,
         borderTopWidth: 1,
         borderTopColor: '#f0f0f0',
+        backgroundColor: '#fff',
     },
     modalButtonCancel: {
         flex: 1,
