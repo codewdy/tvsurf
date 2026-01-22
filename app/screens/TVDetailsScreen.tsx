@@ -1152,31 +1152,29 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                             {sourceType === 'episode' && details && (
                                 <View style={styles.sourceEpisodeSelector}>
                                     <Text style={styles.sourceEpisodeSelectorLabel}>选择要更换的剧集</Text>
-                                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                        <View style={styles.sourceEpisodeList}>
-                                            {details.tv.source.episodes.map((episode, index) => (
-                                                <TouchableOpacity
-                                                    key={index}
-                                                    style={[
-                                                        styles.sourceEpisodeItem,
-                                                        selectedEpisodeForSource === index && styles.sourceEpisodeItemSelected
-                                                    ]}
-                                                    onPress={() => {
-                                                        setSelectedEpisodeForSource(index);
-                                                        setSelectedSourceIndex(null);
-                                                        setSelectedEpisodeInNewSource(0);
-                                                    }}
-                                                >
-                                                    <Text style={[
-                                                        styles.sourceEpisodeItemText,
-                                                        selectedEpisodeForSource === index && styles.sourceEpisodeItemTextSelected
-                                                    ]} numberOfLines={1}>
-                                                        {episode.name || `第${index + 1}集`}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            ))}
-                                        </View>
-                                    </ScrollView>
+                                    <View style={styles.sourceEpisodeList}>
+                                        {details.tv.source.episodes.map((episode, index) => (
+                                            <TouchableOpacity
+                                                key={index}
+                                                style={[
+                                                    styles.sourceEpisodeItem,
+                                                    selectedEpisodeForSource === index && styles.sourceEpisodeItemSelected
+                                                ]}
+                                                onPress={() => {
+                                                    setSelectedEpisodeForSource(index);
+                                                    setSelectedSourceIndex(null);
+                                                    setSelectedEpisodeInNewSource(0);
+                                                }}
+                                            >
+                                                <Text style={[
+                                                    styles.sourceEpisodeItemText,
+                                                    selectedEpisodeForSource === index && styles.sourceEpisodeItemTextSelected
+                                                ]} numberOfLines={1}>
+                                                    {episode.name || `第${index + 1}集`}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
                                 </View>
                             )}
 
@@ -1254,7 +1252,8 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                             const isSelected = selectedSourceIndex === index;
                                             const isCurrentSource =
                                                 details?.tv.source.source.source_key === source.source.source_key &&
-                                                details?.tv.source.source.channel_name === source.source.channel_name;
+                                                details?.tv.source.source.channel_name === source.source.channel_name &&
+                                                details?.tv.source.source.url === source.source.url;
 
                                             return (
                                                 <TouchableOpacity
@@ -1306,7 +1305,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                                         )}
                                                         {isSelected && !isCurrentSource && (
                                                             <View style={styles.sourceResultSelectedBadge}>
-                                                                <Ionicons name="checkmark-circle" size={20} color="#007AFF" />
+                                                                <Ionicons name="checkmark-circle" size={16} color="#007AFF" />
                                                             </View>
                                                         )}
                                                     </View>
@@ -1330,27 +1329,25 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                     <Text style={styles.sourceNewEpisodeSelectorLabel}>
                                         选择新源中的剧集（当前要更换的剧集：{details.tv.source.episodes[selectedEpisodeForSource]?.name || `第${selectedEpisodeForSource + 1}集`}）
                                     </Text>
-                                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                                        <View style={styles.sourceNewEpisodeList}>
-                                            {sourceSearchResults[selectedSourceIndex].episodes.map((episode, index) => (
-                                                <TouchableOpacity
-                                                    key={index}
-                                                    style={[
-                                                        styles.sourceNewEpisodeItem,
-                                                        selectedEpisodeInNewSource === index && styles.sourceNewEpisodeItemSelected
-                                                    ]}
-                                                    onPress={() => setSelectedEpisodeInNewSource(index)}
-                                                >
-                                                    <Text style={[
-                                                        styles.sourceNewEpisodeItemText,
-                                                        selectedEpisodeInNewSource === index && styles.sourceNewEpisodeItemTextSelected
-                                                    ]} numberOfLines={1}>
-                                                        {episode.name || `第${index + 1}集`}
-                                                    </Text>
-                                                </TouchableOpacity>
-                                            ))}
-                                        </View>
-                                    </ScrollView>
+                                    <View style={styles.sourceNewEpisodeList}>
+                                        {sourceSearchResults[selectedSourceIndex].episodes.map((episode, index) => (
+                                            <TouchableOpacity
+                                                key={index}
+                                                style={[
+                                                    styles.sourceNewEpisodeItem,
+                                                    selectedEpisodeInNewSource === index && styles.sourceNewEpisodeItemSelected
+                                                ]}
+                                                onPress={() => setSelectedEpisodeInNewSource(index)}
+                                            >
+                                                <Text style={[
+                                                    styles.sourceNewEpisodeItemText,
+                                                    selectedEpisodeInNewSource === index && styles.sourceNewEpisodeItemTextSelected
+                                                ]} numberOfLines={1}>
+                                                    {episode.name || `第${index + 1}集`}
+                                                </Text>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
                                 </View>
                             )}
                         </ScrollView>
@@ -2699,12 +2696,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
     },
     sourceResultCard: {
-        width: 280,
+        width: 200,
         backgroundColor: '#f5f5f5',
-        borderRadius: 8,
+        borderRadius: 6,
         borderWidth: 2,
         borderColor: '#e0e0e0',
-        marginRight: 12,
+        marginRight: 10,
         overflow: 'hidden',
     },
     sourceResultCardSelected: {
@@ -2717,52 +2714,52 @@ const styles = StyleSheet.create({
     },
     sourceResultCover: {
         width: '100%',
-        height: 160,
+        height: 100,
         backgroundColor: '#e0e0e0',
     },
     sourceResultCoverPlaceholder: {
         width: '100%',
-        height: 160,
+        height: 100,
         backgroundColor: '#e0e0e0',
         justifyContent: 'center',
         alignItems: 'center',
     },
     sourceResultCoverPlaceholderText: {
-        fontSize: 12,
+        fontSize: 10,
         color: '#999',
     },
     sourceResultInfo: {
-        padding: 12,
+        padding: 8,
     },
     sourceResultName: {
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: '500',
         color: '#333',
-        marginBottom: 6,
-        minHeight: 36,
+        marginBottom: 4,
+        minHeight: 32,
     },
     sourceResultMeta: {
-        fontSize: 12,
+        fontSize: 10,
         color: '#666',
-        marginBottom: 2,
+        marginBottom: 1,
     },
     sourceResultCurrentBadge: {
-        marginTop: 8,
-        paddingVertical: 4,
-        paddingHorizontal: 8,
+        marginTop: 4,
+        paddingVertical: 2,
+        paddingHorizontal: 6,
         backgroundColor: '#34C759',
-        borderRadius: 4,
+        borderRadius: 3,
         alignSelf: 'flex-start',
     },
     sourceResultCurrentBadgeText: {
-        fontSize: 10,
+        fontSize: 9,
         color: '#fff',
         fontWeight: '500',
     },
     sourceResultSelectedBadge: {
         position: 'absolute',
-        top: 8,
-        right: 8,
+        top: 6,
+        right: 6,
     },
     sourceEmptyContainer: {
         flex: 1,
@@ -2862,6 +2859,7 @@ const styles = StyleSheet.create({
     },
     sourceEpisodeList: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: 8,
     },
     sourceEpisodeItem: {
@@ -2901,6 +2899,7 @@ const styles = StyleSheet.create({
     },
     sourceNewEpisodeList: {
         flexDirection: 'row',
+        flexWrap: 'wrap',
         gap: 8,
     },
     sourceNewEpisodeItem: {
