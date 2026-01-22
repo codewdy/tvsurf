@@ -63,6 +63,7 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isOffline, setIsOffline] = useState(false);
+    const [episodesDetailIndex, setEpisodesDetailIndex] = useState<number | null>(null);
 
     useEffect(() => {
         loadConfig();
@@ -340,6 +341,20 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
         confirmSeries.includes(series.id)
     );
 
+    const getEpisodesPreview = (episodes: Source['episodes']): string => {
+        if (!episodes || episodes.length === 0) return '';
+        const total = episodes.length;
+        if (total <= 4) {
+            // 如果总集数少于等于4集，全部显示
+            return episodes.map(ep => ep.name).join('、');
+        } else {
+            // 显示前两集和最后两集
+            const firstTwo = episodes.slice(0, 2).map(ep => ep.name).join('、');
+            const lastTwo = episodes.slice(-2).map(ep => ep.name).join('、');
+            return `${firstTwo} ... ${lastTwo}（长按查看更多）`;
+        }
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.titleBar}>
@@ -406,7 +421,7 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                 {results.length > 0 && (
                     <View style={styles.resultsContainer}>
                         <Text style={styles.resultsTitle}>找到 {results.length} 个结果</Text>
-                        <View style={styles.resultsGrid}>
+                        <View style={styles.resultsList}>
                             {results.map((source, index) => {
                                 const isAdding = addingIds.has(index);
                                 const isAdded = addedIds.has(index);
@@ -424,6 +439,11 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                                         onPress={() => {
                                             if (!isAdded && !isAdding) {
                                                 handleAddTV(source, index);
+                                            }
+                                        }}
+                                        onLongPress={() => {
+                                            if (source.episodes && source.episodes.length > 0) {
+                                                setEpisodesDetailIndex(index);
                                             }
                                         }}
                                         disabled={isAdded || isAdding}
@@ -453,18 +473,25 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                                             )}
                                         </View>
                                         <View style={styles.resultCardInfo}>
-                                            <Text style={styles.resultCardName} numberOfLines={2}>
+                                            <Text style={styles.resultCardName} numberOfLines={1}>
                                                 {source.name}
                                             </Text>
-                                            <Text style={styles.resultCardSource}>
-                                                来源: {source.source.source_name}
-                                            </Text>
-                                            <Text style={styles.resultCardChannel}>
-                                                频道: {source.source.channel_name}
-                                            </Text>
+                                            <View style={styles.resultCardDetails}>
+                                                <Text style={styles.resultCardSource}>
+                                                    来源: {source.source.source_name}
+                                                </Text>
+                                                <Text style={styles.resultCardChannel}>
+                                                    频道: {source.source.channel_name}
+                                                </Text>
+                                                {source.episodes && source.episodes.length > 0 && (
+                                                    <Text style={styles.resultCardEpisodes}>
+                                                        {source.episodes.length} 集
+                                                    </Text>
+                                                )}
+                                            </View>
                                             {source.episodes && source.episodes.length > 0 && (
-                                                <Text style={styles.resultCardEpisodes}>
-                                                    {source.episodes.length} 集
+                                                <Text style={styles.resultCardEpisodesPreview} numberOfLines={1}>
+                                                    {getEpisodesPreview(source.episodes)}
                                                 </Text>
                                             )}
                                         </View>
@@ -705,6 +732,98 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                     </View>
                 </View>
             </Modal>
+
+            {/* 集名字详情对话框 */}
+            <Modal
+                visible={episodesDetailIndex !== null}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setEpisodesDetailIndex(null)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.episodesModalContent}>
+                        <View style={styles.episodesModalHeader}>
+                            <Text style={styles.episodesModalTitle}>详细信息</Text>
+                            <TouchableOpacity
+                                style={styles.episodesModalCloseButton}
+                                onPress={() => setEpisodesDetailIndex(null)}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="close" size={24} color="#333" />
+                            </TouchableOpacity>
+                        </View>
+                        <ScrollView style={styles.episodesModalScrollView}>
+                            {episodesDetailIndex !== null && results[episodesDetailIndex] && (
+                                <>
+                                    {/* TV信息区域 */}
+                                    <View style={styles.episodesModalInfoSection}>
+                                        <View style={styles.episodesModalCoverContainer}>
+                                            {results[episodesDetailIndex].cover_url ? (
+                                                <ExpoImage
+                                                    source={{
+                                                        uri: getCoverUrl(results[episodesDetailIndex].cover_url),
+                                                        headers: requestHeaders
+                                                    }}
+                                                    style={styles.episodesModalCover}
+                                                    contentFit="cover"
+                                                    cachePolicy="disk"
+                                                />
+                                            ) : (
+                                                <View style={styles.episodesModalCoverPlaceholder}>
+                                                    <Ionicons name="tv-outline" size={40} color="#999" />
+                                                </View>
+                                            )}
+                                        </View>
+                                        <View style={styles.episodesModalInfo}>
+                                            <Text style={styles.episodesModalName}>
+                                                {results[episodesDetailIndex].name}
+                                            </Text>
+                                            <View style={styles.episodesModalMeta}>
+                                                <View style={styles.episodesModalMetaItem}>
+                                                    <Ionicons name="library-outline" size={16} color="#666" />
+                                                    <Text style={styles.episodesModalMetaText}>
+                                                        {results[episodesDetailIndex].source.source_name}
+                                                    </Text>
+                                                </View>
+                                                <View style={styles.episodesModalMetaItem}>
+                                                    <Ionicons name="tv-outline" size={16} color="#666" />
+                                                    <Text style={styles.episodesModalMetaText}>
+                                                        {results[episodesDetailIndex].source.channel_name}
+                                                    </Text>
+                                                </View>
+                                                {results[episodesDetailIndex].episodes && results[episodesDetailIndex].episodes.length > 0 && (
+                                                    <View style={styles.episodesModalMetaItem}>
+                                                        <Ionicons name="list-outline" size={16} color="#666" />
+                                                        <Text style={styles.episodesModalMetaText}>
+                                                            {results[episodesDetailIndex].episodes.length} 集
+                                                        </Text>
+                                                    </View>
+                                                )}
+                                            </View>
+                                        </View>
+                                    </View>
+
+                                    {/* 剧集列表 */}
+                                    {results[episodesDetailIndex].episodes && results[episodesDetailIndex].episodes.length > 0 && (
+                                        <View style={styles.episodesModalEpisodesSection}>
+                                            <Text style={styles.episodesModalEpisodesTitle}>剧集列表</Text>
+                                            <View style={styles.episodesList}>
+                                                {results[episodesDetailIndex].episodes.map((episode, epIndex) => (
+                                                    <View key={epIndex} style={styles.episodeCapsule}>
+                                                        <Text style={styles.episodeCapsuleText}>
+                                                            {episode.name}
+                                                        </Text>
+                                                    </View>
+                                                ))}
+                                            </View>
+                                        </View>
+                                    )}
+                                </>
+                            )}
+                        </ScrollView>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -838,13 +957,10 @@ const styles = StyleSheet.create({
         color: '#333',
         marginBottom: 12,
     },
-    resultsGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 12,
+    resultsList: {
     },
     resultCard: {
-        width: '47%',
+        width: '100%',
         backgroundColor: '#fff',
         borderRadius: 8,
         overflow: 'hidden',
@@ -853,6 +969,8 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 2,
         elevation: 2,
+        flexDirection: 'row',
+        marginBottom: 8,
     },
     resultCardExists: {
         borderWidth: 2,
@@ -862,10 +980,11 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     resultCardImageContainer: {
-        width: '100%',
+        width: 80,
         aspectRatio: 2 / 3,
         backgroundColor: '#e0e0e0',
         position: 'relative',
+        flexShrink: 0,
     },
     resultCardImage: {
         width: '100%',
@@ -879,66 +998,89 @@ const styles = StyleSheet.create({
     },
     resultCardImagePlaceholderText: {
         color: '#999',
-        fontSize: 12,
+        fontSize: 10,
     },
     existsBadge: {
         position: 'absolute',
-        top: 8,
-        right: 8,
+        top: 4,
+        right: 4,
         backgroundColor: '#34C759',
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 6,
-        paddingVertical: 4,
-        borderRadius: 4,
-        gap: 4,
+        paddingHorizontal: 4,
+        paddingVertical: 2,
+        borderRadius: 3,
+        gap: 2,
     },
     existsBadgeText: {
         color: '#fff',
-        fontSize: 10,
+        fontSize: 9,
         fontWeight: '600',
     },
     resultCardInfo: {
+        flex: 1,
         padding: 8,
+        justifyContent: 'center',
     },
     resultCardName: {
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: '600',
         color: '#333',
-        marginBottom: 4,
+        marginBottom: 6,
+    },
+    resultCardDetails: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        alignItems: 'center',
     },
     resultCardSource: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#666',
-        marginBottom: 2,
+        marginRight: 8,
     },
     resultCardChannel: {
-        fontSize: 11,
+        fontSize: 12,
         color: '#666',
-        marginBottom: 2,
+        marginRight: 8,
     },
     resultCardEpisodes: {
-        fontSize: 11,
-        color: '#007AFF',
-        marginTop: 4,
-    },
-    addingIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 8,
-        gap: 8,
-    },
-    addingText: {
         fontSize: 12,
         color: '#007AFF',
     },
+    resultCardEpisodesPreview: {
+        fontSize: 11,
+        color: '#999',
+        marginTop: 4,
+    },
+    addingIndicator: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        borderRadius: 8,
+    },
+    addingText: {
+        fontSize: 11,
+        color: '#007AFF',
+    },
     errorIndicator: {
-        padding: 8,
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: 6,
         backgroundColor: '#ffebee',
+        borderBottomLeftRadius: 8,
+        borderBottomRightRadius: 8,
     },
     errorIndicatorText: {
-        fontSize: 11,
+        fontSize: 10,
         color: '#c62828',
     },
     loadingContainer: {
@@ -1150,5 +1292,113 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#fff',
         fontWeight: '600',
+    },
+    episodesModalContent: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        width: '90%',
+        maxHeight: '80%',
+        overflow: 'hidden',
+    },
+    episodesModalHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        padding: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    episodesModalTitle: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#333',
+        flex: 1,
+    },
+    episodesModalCloseButton: {
+        width: 32,
+        height: 32,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    episodesModalScrollView: {
+        maxHeight: 500,
+    },
+    episodesModalInfoSection: {
+        flexDirection: 'row',
+        padding: 16,
+        backgroundColor: '#f9f9f9',
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    episodesModalCoverContainer: {
+        width: 100,
+        aspectRatio: 2 / 3,
+        borderRadius: 8,
+        overflow: 'hidden',
+        backgroundColor: '#e0e0e0',
+        marginRight: 16,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    episodesModalCover: {
+        width: '100%',
+        height: '100%',
+    },
+    episodesModalCoverPlaceholder: {
+        width: '100%',
+        height: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#e0e0e0',
+    },
+    episodesModalInfo: {
+        flex: 1,
+        justifyContent: 'center',
+    },
+    episodesModalName: {
+        fontSize: 18,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 12,
+    },
+    episodesModalMeta: {
+    },
+    episodesModalMetaItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    episodesModalMetaText: {
+        fontSize: 14,
+        color: '#666',
+        marginLeft: 6,
+    },
+    episodesModalEpisodesSection: {
+        padding: 16,
+    },
+    episodesModalEpisodesTitle: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#333',
+        marginBottom: 12,
+    },
+    episodesList: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+    },
+    episodeCapsule: {
+        backgroundColor: '#f0f0f0',
+        borderRadius: 16,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        marginRight: 8,
+        marginBottom: 8,
+    },
+    episodeCapsuleText: {
+        fontSize: 13,
+        color: '#333',
     },
 });
