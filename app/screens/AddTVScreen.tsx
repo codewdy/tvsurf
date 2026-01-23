@@ -20,18 +20,11 @@ import { Image as ExpoImage } from 'expo-image';
 import { searchTV, addTV, getSeries, addSeries, setTVTag, getTVInfos, getApiBaseUrl, getApiToken } from '../api/client-proxy';
 import type { Source, SearchError, Tag, Series, TVInfo } from '../api/types';
 import { offlineModeManager } from '../utils/offlineModeManager';
+import { TAG_NAMES } from '../constants/tagNames';
 
 interface AddTVScreenProps {
     onBack: () => void;
 }
-
-const TAG_NAMES: Record<Tag, string> = {
-    watching: '观看中',
-    wanted: '想看',
-    watched: '已看',
-    on_hold: '暂停',
-    not_tagged: '未标记',
-};
 
 export default function AddTVScreen({ onBack }: AddTVScreenProps) {
     const [keyword, setKeyword] = useState('');

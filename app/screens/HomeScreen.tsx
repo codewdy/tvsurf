@@ -22,6 +22,7 @@ import { getTVInfos, getApiBaseUrl, getApiToken } from '../api/client-proxy';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { videoCache } from '../utils/videoCache';
 import type { TVInfo, Tag } from '../api/types';
+import { getTagName } from '../constants/tagNames';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const MENU_WIDTH = Math.min(280, SCREEN_WIDTH * 0.75);
@@ -699,17 +700,6 @@ export default function HomeScreen({
     );
 }
 
-// 获取标签名称
-function getTagName(tag: string): string {
-    const tagNames: Record<string, string> = {
-        watching: '在看',
-        wanted: '想看',
-        watched: '看完',
-        on_hold: '搁置',
-        not_tagged: '未标记',
-    };
-    return tagNames[tag] || tag;
-}
 
 // 获取标签样式
 function getTagStyle(tag: string) {

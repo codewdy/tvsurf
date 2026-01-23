@@ -5,10 +5,10 @@ export type Tag = "watching" | "wanted" | "watched" | "on_hold" | "not_tagged";
 
 // Tag 显示名称映射
 export const TAG_NAMES: Record<Tag, string> = {
-  watching: "观看中",
+  watching: "在看",
   wanted: "想看",
-  watched: "已看",
-  on_hold: "暂停",
+  watched: "看完",
+  on_hold: "搁置",
   not_tagged: "未标记",
 };
 

@@ -23,6 +23,7 @@ import { getTVDetails, setWatchProgress, setTVTag, setTVTracking, getApiToken, g
 import type { GetTVDetailsResponse, Tag, Series, Source, SearchError } from '../api/types';
 import { videoCache } from '../utils/videoCache';
 import { offlineModeManager } from '../utils/offlineModeManager';
+import { getTagName, TAG_NAMES } from '../constants/tagNames';
 
 interface TVDetailsScreenProps {
     tv: {
@@ -1501,11 +1502,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                             onPress={() => setShowTagDropdown(!showTagDropdown)}
                                         >
                                             <Text style={styles.tagDisplayText}>
-                                                {details?.info.user_data.tag === 'watching' ? '在看' :
-                                                    details?.info.user_data.tag === 'wanted' ? '想看' :
-                                                        details?.info.user_data.tag === 'watched' ? '看过' :
-                                                            details?.info.user_data.tag === 'on_hold' ? '搁置' :
-                                                                '未标记'}
+                                                {getTagName(details?.info.user_data.tag || 'not_tagged')}
                                             </Text>
                                             <Ionicons
                                                 name={showTagDropdown ? "chevron-up" : "chevron-down"}
@@ -1525,7 +1522,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                                     <Text style={[
                                                         styles.tagDropdownItemText,
                                                         details?.info.user_data.tag === 'watching' && styles.tagDropdownItemTextSelected
-                                                    ]}>在看</Text>
+                                                    ]}>{TAG_NAMES.watching}</Text>
                                                     {details?.info.user_data.tag === 'watching' && (
                                                         <Ionicons name="checkmark" size={18} color="#007AFF" />
                                                     )}
@@ -1540,7 +1537,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                                     <Text style={[
                                                         styles.tagDropdownItemText,
                                                         details?.info.user_data.tag === 'wanted' && styles.tagDropdownItemTextSelected
-                                                    ]}>想看</Text>
+                                                    ]}>{TAG_NAMES.wanted}</Text>
                                                     {details?.info.user_data.tag === 'wanted' && (
                                                         <Ionicons name="checkmark" size={18} color="#007AFF" />
                                                     )}
@@ -1555,7 +1552,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                                     <Text style={[
                                                         styles.tagDropdownItemText,
                                                         details?.info.user_data.tag === 'watched' && styles.tagDropdownItemTextSelected
-                                                    ]}>看过</Text>
+                                                    ]}>{TAG_NAMES.watched}</Text>
                                                     {details?.info.user_data.tag === 'watched' && (
                                                         <Ionicons name="checkmark" size={18} color="#007AFF" />
                                                     )}
@@ -1570,7 +1567,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                                     <Text style={[
                                                         styles.tagDropdownItemText,
                                                         details?.info.user_data.tag === 'on_hold' && styles.tagDropdownItemTextSelected
-                                                    ]}>搁置</Text>
+                                                    ]}>{TAG_NAMES.on_hold}</Text>
                                                     {details?.info.user_data.tag === 'on_hold' && (
                                                         <Ionicons name="checkmark" size={18} color="#007AFF" />
                                                     )}
@@ -1586,7 +1583,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                                     <Text style={[
                                                         styles.tagDropdownItemText,
                                                         details?.info.user_data.tag === 'not_tagged' && styles.tagDropdownItemTextSelected
-                                                    ]}>未标记</Text>
+                                                    ]}>{TAG_NAMES.not_tagged}</Text>
                                                     {details?.info.user_data.tag === 'not_tagged' && (
                                                         <Ionicons name="checkmark" size={18} color="#007AFF" />
                                                     )}

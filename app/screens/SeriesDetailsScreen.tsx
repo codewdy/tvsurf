@@ -18,6 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
 import { getSeries, getTVInfos, getApiBaseUrl, getApiToken, updateSeriesTVs } from '../api/client-proxy';
 import type { Series, TVInfo } from '../api/types';
+import { getTagName } from '../constants/tagNames';
 
 interface SeriesDetailsScreenProps {
     seriesId: number;
@@ -176,17 +177,6 @@ export default function SeriesDetailsScreen({ seriesId, onBack, onTVPress }: Ser
         return undefined;
     }, [token]);
 
-    // 获取标签显示文本
-    const getTagText = (tag: string): string => {
-        const tagMap: Record<string, string> = {
-            watching: '观看中',
-            wanted: '想看',
-            watched: '已看',
-            on_hold: '暂停',
-            not_tagged: '未标记',
-        };
-        return tagMap[tag] || tag;
-    };
 
     // 获取标签颜色
     const getTagColor = (tag: string): string => {
@@ -320,7 +310,7 @@ export default function SeriesDetailsScreen({ seriesId, onBack, onTVPress }: Ser
                                 ]}
                             />
                             <Text style={styles.tagText}>
-                                {getTagText(tv.user_data.tag)}
+                                {getTagName(tv.user_data.tag)}
                             </Text>
                         </View>
                     </View>
