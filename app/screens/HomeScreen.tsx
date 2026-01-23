@@ -220,6 +220,21 @@ export default function HomeScreen({
             }
         });
 
+        // 对每个组进行排序：按 TV 更新时间和 User 更新时间较大值排序
+        Object.keys(groups).forEach((tag) => {
+            groups[tag as Tag].sort((a, b) => {
+                const aMaxTime = Math.max(
+                    new Date(a.last_update).getTime(),
+                    new Date(a.user_data.last_update).getTime()
+                );
+                const bMaxTime = Math.max(
+                    new Date(b.last_update).getTime(),
+                    new Date(b.user_data.last_update).getTime()
+                );
+                return bMaxTime - aMaxTime; // 降序，最新的在前
+            });
+        });
+
         return groups;
     }, [tvs]);
 

@@ -6,7 +6,7 @@ import type { Tag } from "../api/types";
 import { TAG_NAMES } from "../api/types";
 
 // Tag 顺序
-const TAG_ORDER: Tag[] = ["watching", "wanted", "on_hold", "watched", "not_tagged"];
+const TAG_ORDER: Tag[] = ["watching", "wanted", "watched", "on_hold", "not_tagged"];
 
 export function meta({ }: Route.MetaArgs) {
   return [
