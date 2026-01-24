@@ -565,9 +565,9 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                             </View>
 
                             {/* 追更选项 */}
-                            <View style={styles.modalSection}>
-                                <View style={styles.modalSwitchRow}>
-                                    <Text style={styles.modalLabel}>追更</Text>
+                            <View style={[styles.modalSection, { paddingVertical: 10 }]}>
+                                <View style={[styles.modalSwitchRow, { marginBottom: 0 }]}>
+                                    <Text style={[styles.modalLabel, { marginBottom: 0 }]}>追更</Text>
                                     <Switch
                                         value={confirmTracking}
                                         onValueChange={setConfirmTracking}
@@ -575,9 +575,6 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                                         thumbColor={confirmTracking ? '#007AFF' : '#f4f3f4'}
                                     />
                                 </View>
-                                <Text style={styles.modalHint}>
-                                    开启后，系统会自动检测该TV的新剧集更新，并在有新剧集时自动下载。
-                                </Text>
                             </View>
 
                             {/* Tag选择 */}
@@ -610,9 +607,6 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                             {/* 播放列表选择 */}
                             <View style={styles.modalSection}>
                                 <Text style={styles.modalLabel}>选择播放列表</Text>
-                                <Text style={styles.modalHint}>
-                                    播放列表用于管理一系列番剧或电视剧，可以将相关的TV归类到同一个播放列表中，方便统一管理和查看。
-                                </Text>
 
                                 {loadingSeries ? (
                                     <ActivityIndicator size="small" color="#007AFF" style={styles.modalLoading} />
@@ -1108,11 +1102,11 @@ const styles = StyleSheet.create({
         flexDirection: 'column',
     },
     modalScrollView: {
-        height: '90%',
+        width: '100%',
+        flexShrink: 1,
     },
     modalScrollViewContent: {
-        flex: 1,
-        paddingBottom: 20,
+        flexGrow: 1,
     },
     modalSection: {
         padding: 16,
@@ -1159,8 +1153,8 @@ const styles = StyleSheet.create({
         gap: 8,
     },
     tagOption: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         borderRadius: 20,
         backgroundColor: '#f5f5f5',
         borderWidth: 1,
@@ -1171,7 +1165,7 @@ const styles = StyleSheet.create({
         borderColor: '#007AFF',
     },
     tagOptionText: {
-        fontSize: 14,
+        fontSize: 12,
         color: '#333',
     },
     tagOptionTextSelected: {
