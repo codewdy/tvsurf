@@ -43,7 +43,8 @@ def main():
 
     tag = get_latest_tag()
     new_tag = advance_version(tag, type)
-    print(new_tag)
+    print("New tag: ", new_tag)
+    push_tag(new_tag)
 
 
 if __name__ == "__main__":
