@@ -18,9 +18,11 @@ import {
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTVInfos, getApiBaseUrl, getApiToken, getMonitor } from '../api/client-proxy';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { videoCache } from '../utils/videoCache';
+import { checkUpdate, downloadApk, installApk } from '../utils/autoUpdate';
 import type { TVInfo, Tag } from '../api/types';
 import { getTagName } from '../constants/tagNames';
 
@@ -72,6 +74,10 @@ export default function HomeScreen({
     const [cachedTVIds, setCachedTVIds] = useState<Set<number>>(new Set());
     // 错误数量
     const [errorCount, setErrorCount] = useState(0);
+    // 检查更新 / 下载更新
+    const [updateCheckInProgress, setUpdateCheckInProgress] = useState(false);
+    const [updateDownloadVisible, setUpdateDownloadVisible] = useState(false);
+    const [updateDownloadProgress, setUpdateDownloadProgress] = useState(0);
 
     // 菜单动画
     const slideAnim = useRef(new Animated.Value(-MENU_WIDTH)).current;
@@ -82,6 +88,7 @@ export default function HomeScreen({
         loadOfflineStatus();
         loadCachedVideos();
         loadErrorCount();
+        handleCheckUpdate(true);
     }, []);
 
     // 监听 Android 后退按钮
@@ -90,6 +97,10 @@ export default function HomeScreen({
             // 如果离线模式操作正在进行，不允许返回（防止中断操作）
             if (offlineOperationInProgress) {
                 return true; // 返回true表示已处理返回事件，阻止返回
+            }
+            // 如果更新下载正在进行，不允许返回
+            if (updateDownloadVisible) {
+                return true;
             }
             // 如果离线模式对话框打开，关闭对话框
             if (offlineModeDialogVisible) {
@@ -107,7 +118,7 @@ export default function HomeScreen({
         });
 
         return () => backHandler.remove();
-    }, [menuVisible, offlineModeDialogVisible, offlineOperationInProgress]);
+    }, [menuVisible, offlineModeDialogVisible, offlineOperationInProgress, updateDownloadVisible]);
 
     // 加载离线模式状态
     const loadOfflineStatus = async () => {
@@ -451,6 +462,82 @@ export default function HomeScreen({
         );
     };
 
+    // 检查更新（仅 Android）
+    const handleCheckUpdate = async (isAutoCheck = false) => {
+        if (Platform.OS !== 'android') return;
+
+        // 如果是自动检查，重新获取一次离线状态，确保准确
+        let currentIsOffline = isOffline;
+        if (isAutoCheck) {
+            try {
+                currentIsOffline = await offlineModeManager.getOfflineMode();
+            } catch { /* ignore */ }
+        }
+
+        if (currentIsOffline) {
+            if (!isAutoCheck) {
+                Alert.alert('提示', '离线模式下无法检查更新，请先退出离线模式');
+            }
+            return;
+        }
+        setUpdateCheckInProgress(true);
+        try {
+            const result = await checkUpdate();
+            if (result.available) {
+                // 如果是自动检查，且该版本已提示过，则跳过
+                if (isAutoCheck) {
+                    const lastPrompted = await AsyncStorage.getItem('last_prompted_update_version');
+                    if (lastPrompted === result.latestVersion) {
+                        return;
+                    }
+                }
+
+                Alert.alert(
+                    '发现新版本',
+                    `当前版本 ${result.currentVersion}，服务器版本 ${result.latestVersion}，是否下载更新？`,
+                    [
+                        {
+                            text: '取消',
+                            style: 'cancel',
+                            onPress: () => {
+                                // 自动检查时点击取消，记录该版本已提示，避免重复弹窗
+                                if (isAutoCheck) {
+                                    AsyncStorage.setItem('last_prompted_update_version', result.latestVersion);
+                                }
+                            }
+                        },
+                        {
+                            text: '立即更新',
+                            onPress: () => {
+                                setUpdateDownloadVisible(true);
+                                setUpdateDownloadProgress(0);
+                                downloadApk((p) => setUpdateDownloadProgress(p))
+                                    .then((uri) => {
+                                        setUpdateDownloadVisible(false);
+                                        return installApk(uri);
+                                    })
+                                    .catch((err) => {
+                                        setUpdateDownloadVisible(false);
+                                        Alert.alert('更新失败', err instanceof Error ? err.message : '下载或安装失败');
+                                    });
+                            },
+                        },
+                    ]
+                );
+            } else {
+                if (!isAutoCheck) {
+                    Alert.alert('检查更新', `当前已是最新版本（${result.currentVersion}）`);
+                }
+            }
+        } catch (err) {
+            if (!isAutoCheck) {
+                Alert.alert('检查更新失败', err instanceof Error ? err.message : '获取版本信息失败');
+            }
+        } finally {
+            setUpdateCheckInProgress(false);
+        }
+    };
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -694,6 +781,24 @@ export default function HomeScreen({
                                     <Text style={styles.menuItemArrow}>›</Text>
                                 </TouchableOpacity>
 
+                                {Platform.OS === 'android' && (
+                                    <TouchableOpacity
+                                        style={[styles.menuItem, isOffline && styles.menuItemDisabled]}
+                                        onPress={() => handleMenuItemPress(() => handleCheckUpdate(false))}
+                                        activeOpacity={0.7}
+                                        disabled={isOffline || updateCheckInProgress}
+                                    >
+                                        <Text style={styles.menuItemIcon}>🔄</Text>
+                                        <Text style={[
+                                            styles.menuItemText,
+                                            (isOffline || updateCheckInProgress) && styles.menuItemTextDisabled
+                                        ]}>
+                                            {updateCheckInProgress ? '检查中...' : '检查版本'}
+                                        </Text>
+                                        <Text style={styles.menuItemArrow}>›</Text>
+                                    </TouchableOpacity>
+                                )}
+
                                 <TouchableOpacity
                                     style={[
                                         styles.menuItem,
@@ -735,6 +840,19 @@ export default function HomeScreen({
                         <Text style={styles.progressMessage}>{offlineOperationProgress.message}</Text>
                         <Text style={styles.progressText}>
                             {offlineOperationProgress.current} / {offlineOperationProgress.total}
+                        </Text>
+                    </View>
+                </View>
+            </Modal>
+
+            {/* 更新下载进度对话框 */}
+            <Modal visible={updateDownloadVisible} transparent animationType="fade">
+                <View style={styles.progressDialogOverlay}>
+                    <View style={styles.progressDialogContainer}>
+                        <Text style={styles.progressDialogTitle}>正在下载更新</Text>
+                        <ActivityIndicator size="large" color="#007AFF" style={styles.progressIndicator} />
+                        <Text style={styles.progressMessage}>
+                            {Math.round(updateDownloadProgress * 100)}%
                         </Text>
                     </View>
                 </View>
