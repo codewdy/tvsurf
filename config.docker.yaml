@@ -4,3 +4,5 @@ data_dir: 'data'
 port: 9399
 # local: 本地服务, 只服务本机，不对外开放端口; online: 在线服务，对外开放端口
 server_type: online
+# 包目录，如果是相对路径，将根据配置文件的目录作为基准
+package_dir: 'package'

@@ -56,6 +56,14 @@ class App:
                 self.tracker.token_validate,
             )
         )
+        if self.config.package_dir is not None:
+            self.app.add_routes(
+                resource_routes(
+                    "/package",
+                    self.config.package_dir,
+                    self.tracker.token_validate,
+                )
+            )
 
         self.app.on_startup.append(lambda app: self.on_startup())
         self.app.on_cleanup.append(lambda app: self.on_cleanup())
