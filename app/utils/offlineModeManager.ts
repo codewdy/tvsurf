@@ -4,6 +4,7 @@ import { videoCache } from './videoCache';
 import {
     getTVInfos as getTVInfosApi,
     getTVDetails as getTVDetailsApi,
+    getMultipleTVDetails as getMultipleTVDetailsApi,
     getSeries as getSeriesApi,
     updateSeriesTVs as updateSeriesTVsApi,
     addSeries as addSeriesApi,
@@ -110,14 +111,11 @@ class OfflineModeManager {
             // 3. 提取所有 TV ID
             const tvIds = tvInfos.map(tv => tv.id);
 
-            // 4. 顺序下载这些 TV 的 TVDetails（任何一个失败都会导致整个操作失败）
-            const tvDetailsResults = [];
-            for (let i = 0; i < tvIds.length; i++) {
-                const tvId = tvIds[i];
-                onProgress?.(3, 4, `下载TV详情 (${i + 1}/${tvIds.length})...`);
-                const details = await getTVDetailsApi({ id: tvId });
-                tvDetailsResults.push(details);
-            }
+            // 4. 批量下载这些 TV 的 TVDetails
+            onProgress?.(3, 4, '下载TV详情...');
+            // 使用批量接口一次性获取所有详情，比循环调用更高效
+            const multipleDetailsResponse = await getMultipleTVDetailsApi({ ids: tvIds });
+            const tvDetailsResults = multipleDetailsResponse.tv_details;
 
             await offlineDataCache.saveTVDetails(tvDetailsResults);
 

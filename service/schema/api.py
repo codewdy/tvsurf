@@ -11,6 +11,7 @@ from .config import Config
 __all__ = [
     "UserInfo",
     "TVInfo",
+    "TVDetails",
     "Echo",
     "SearchTV",
     "AddTV",
@@ -19,6 +20,7 @@ __all__ = [
     "UpdateEpisodeSeries",
     "GetTVInfos",
     "GetTVDetails",
+    "GetMultipleTVDetails",
     "GetDownloadProgress",
     "GetErrors",
     "RemoveErrors",
@@ -58,6 +60,13 @@ class TVInfo(BaseModel):
     last_update: datetime
     total_episodes: int
     user_data: UserTVData
+
+
+class TVDetails(BaseModel):
+    id: int
+    tv: TV
+    info: TVInfo
+    episodes: list[Optional[str]]
 
 
 class Echo:
@@ -131,6 +140,14 @@ class GetTVDetails(BaseModel):
         tv: TV
         info: TVInfo
         episodes: list[Optional[str]]
+
+
+class GetMultipleTVDetails(BaseModel):
+    class Request(BaseModel):
+        ids: Optional[list[int]] = None
+
+    class Response(BaseModel):
+        tv_details: list[TVDetails]
 
 
 class GetDownloadProgress(BaseModel):

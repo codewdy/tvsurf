@@ -120,6 +120,24 @@ export interface GetTVDetailsResponse {
     episodes: (string | null)[];
 }
 
+// TV 详情聚合对象（用于批量获取）
+export interface TVDetails {
+    id: number;
+    tv: TV;
+    info: TVInfo;
+    episodes: (string | null)[];
+}
+
+// 批量获取 TV 详情请求
+export interface GetMultipleTVDetailsRequest {
+    ids: number[] | null;
+}
+
+// 批量获取 TV 详情响应
+export interface GetMultipleTVDetailsResponse {
+    tv_details: TVDetails[];
+}
+
 // 设置 TV 标签请求
 export interface SetTVTagRequest {
     tv_id: number;

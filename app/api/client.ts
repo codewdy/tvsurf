@@ -7,6 +7,8 @@ import type {
     GetTVInfosResponse,
     GetTVDetailsRequest,
     GetTVDetailsResponse,
+    GetMultipleTVDetailsRequest,
+    GetMultipleTVDetailsResponse,
     SetTVTagRequest,
     SetWatchProgressRequest,
     SetTVTrackingRequest,
@@ -170,6 +172,24 @@ export async function getTVDetails(
     return apiCall<GetTVDetailsRequest, GetTVDetailsResponse>(
         baseUrl,
         '/api/get_tv_details',
+        request,
+        token
+    );
+}
+
+// 批量获取 TV 详情 API
+export async function getMultipleTVDetails(
+    request: GetMultipleTVDetailsRequest = { ids: null }
+): Promise<GetMultipleTVDetailsResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<GetMultipleTVDetailsRequest, GetMultipleTVDetailsResponse>(
+        baseUrl,
+        '/api/get_multiple_tv_details',
         request,
         token
     );

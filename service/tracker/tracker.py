@@ -177,13 +177,9 @@ class Tracker:
                 ]
             )
 
-    @api("user")
-    async def get_tv_details(
-        self, user: User, request: GetTVDetails.Request
-    ) -> GetTVDetails.Response:
-        user_data = self.user_data_manager.get_user_data(user.username)
-        tv = self.local_manager.get_tv(request.id)
-        return GetTVDetails.Response(
+    def build_tv_details(self, user_data: UserData, tv: TV) -> TVDetails:
+        return TVDetails(
+            id=tv.id,
             tv=tv,
             info=self.build_tv_info(user_data, tv),
             episodes=[
@@ -195,6 +191,37 @@ class Tracker:
                 for episode in tv.storage.episodes
             ],
         )
+
+    @api("user")
+    async def get_tv_details(
+        self, user: User, request: GetTVDetails.Request
+    ) -> GetTVDetails.Response:
+        user_data = self.user_data_manager.get_user_data(user.username)
+        tv = self.local_manager.get_tv(request.id)
+        tv_details = self.build_tv_details(user_data, tv)
+        return GetTVDetails.Response(
+            tv=tv_details.tv, info=tv_details.info, episodes=tv_details.episodes
+        )
+
+    @api("user")
+    async def get_multiple_tv_details(
+        self, user: User, request: GetMultipleTVDetails.Request
+    ) -> GetMultipleTVDetails.Response:
+        user_data = self.user_data_manager.get_user_data(user.username)
+        if request.ids is not None:
+            return GetMultipleTVDetails.Response(
+                tv_details=[
+                    self.build_tv_details(user_data, self.local_manager.get_tv(id))
+                    for id in request.ids
+                ]
+            )
+        else:
+            return GetMultipleTVDetails.Response(
+                tv_details=[
+                    self.build_tv_details(user_data, tv)
+                    for tv in self.local_manager.get_tvs()
+                ]
+            )
 
     @api("user")
     async def get_download_progress(
