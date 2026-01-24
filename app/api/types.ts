@@ -301,3 +301,37 @@ export interface GetMonitorResponse {
     download_count: number;
     error_count: number;
 }
+
+// 错误管理相关类型定义
+
+// 错误类型
+export type ErrorType = "error" | "critical";
+
+// 错误信息
+export interface Error {
+    id: number;
+    timestamp: string; // ISO datetime string
+    title: string;
+    description: string;
+    type: ErrorType;
+}
+
+// 获取错误列表请求
+export interface GetErrorsRequest {
+    // 空对象
+}
+
+// 获取错误列表响应
+export interface GetErrorsResponse {
+    errors: Error[];
+}
+
+// 删除错误请求
+export interface RemoveErrorsRequest {
+    ids: number[];
+}
+
+// 删除错误响应
+export interface RemoveErrorsResponse {
+    // 空响应
+}

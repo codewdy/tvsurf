@@ -10,11 +10,12 @@ import SeriesListScreen from './screens/SeriesListScreen';
 import SeriesDetailsScreen from './screens/SeriesDetailsScreen';
 import AddTVScreen from './screens/AddTVScreen';
 import DownloadMonitorScreen from './screens/DownloadMonitorScreen';
+import ErrorManagementScreen from './screens/ErrorManagementScreen';
 import { getApiToken, clearApiToken } from './api/client-proxy';
 import { offlineModeManager } from './utils/offlineModeManager';
 import type { TVInfo } from './api/types';
 
-type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv' | 'download-monitor';
+type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv' | 'download-monitor' | 'error-management';
 
 interface NavigationState {
   screen: Screen;
@@ -154,6 +155,10 @@ export default function App() {
     navigateTo('download-monitor');
   };
 
+  const handleNavigateToErrorManagement = () => {
+    navigateTo('error-management');
+  };
+
   const handleSeriesPress = (seriesId: number) => {
     navigateTo('series-details', { selectedSeriesId: seriesId });
   };
@@ -180,6 +185,7 @@ export default function App() {
             onNavigateToSeriesList={handleNavigateToSeriesList}
             onNavigateToAddTV={handleNavigateToAddTV}
             onNavigateToDownloadMonitor={handleNavigateToDownloadMonitor}
+            onNavigateToErrorManagement={handleNavigateToErrorManagement}
           />
         ) : currentScreen === 'cache' ? (
           <VideoCacheScreen onBack={navigateBack} />
@@ -199,6 +205,8 @@ export default function App() {
           <AddTVScreen onBack={navigateBack} />
         ) : currentScreen === 'download-monitor' ? (
           <DownloadMonitorScreen onBack={navigateBack} />
+        ) : currentScreen === 'error-management' ? (
+          <ErrorManagementScreen onBack={navigateBack} />
         ) : selectedTV ? (
           <TVDetailsScreen
             tv={selectedTV}
@@ -213,6 +221,7 @@ export default function App() {
             onNavigateToSeriesList={handleNavigateToSeriesList}
             onNavigateToAddTV={handleNavigateToAddTV}
             onNavigateToDownloadMonitor={handleNavigateToDownloadMonitor}
+            onNavigateToErrorManagement={handleNavigateToErrorManagement}
           />
         )
       ) : (

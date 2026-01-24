@@ -32,7 +32,11 @@ import type {
     RemoveTVRequest,
     RemoveTVResponse,
     GetMonitorRequest,
-    GetMonitorResponse
+    GetMonitorResponse,
+    GetErrorsRequest,
+    GetErrorsResponse,
+    RemoveErrorsRequest,
+    RemoveErrorsResponse
 } from './types';
 
 // API 基础 URL 存储键
@@ -436,6 +440,42 @@ export async function getMonitor(
     return apiCall<GetMonitorRequest, GetMonitorResponse>(
         baseUrl,
         '/api/get_monitor',
+        request,
+        token
+    );
+}
+
+// 获取错误列表 API
+export async function getErrors(
+    request: GetErrorsRequest = {}
+): Promise<GetErrorsResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<GetErrorsRequest, GetErrorsResponse>(
+        baseUrl,
+        '/api/get_errors',
+        request,
+        token
+    );
+}
+
+// 删除错误 API
+export async function removeErrors(
+    request: RemoveErrorsRequest
+): Promise<RemoveErrorsResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<RemoveErrorsRequest, RemoveErrorsResponse>(
+        baseUrl,
+        '/api/remove_errors',
         request,
         token
     );

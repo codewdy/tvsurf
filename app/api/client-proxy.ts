@@ -22,7 +22,9 @@ import {
     updateEpisodeSource as updateEpisodeSourceBase,
     scheduleEpisodeDownload as scheduleEpisodeDownloadBase,
     removeTV as removeTVBase,
-    getMonitor as getMonitorBase
+    getMonitor as getMonitorBase,
+    getErrors as getErrorsBase,
+    removeErrors as removeErrorsBase
 } from './client';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { offlineDataCache } from '../utils/offlineDataCache';
@@ -62,7 +64,11 @@ import type {
     RemoveTVRequest,
     RemoveTVResponse,
     GetMonitorRequest,
-    GetMonitorResponse
+    GetMonitorResponse,
+    GetErrorsRequest,
+    GetErrorsResponse,
+    RemoveErrorsRequest,
+    RemoveErrorsResponse
 } from './types';
 
 // 离线模式错误
@@ -431,6 +437,34 @@ export async function getMonitor(
 
     // 在线模式：直接调用 API
     return await getMonitorBase(request);
+}
+
+// 获取错误列表 API（离线模式下不可用）
+export async function getErrors(
+    request: GetErrorsRequest = {}
+): Promise<GetErrorsResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法获取错误列表，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await getErrorsBase(request);
+}
+
+// 删除错误 API（离线模式下不可用）
+export async function removeErrors(
+    request: RemoveErrorsRequest
+): Promise<RemoveErrorsResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法删除错误，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await removeErrorsBase(request);
 }
 
 // 导出离线模式错误类和离线数据缓存，供外部使用

@@ -34,6 +34,7 @@ interface HomeScreenProps {
     onNavigateToSeriesList?: () => void;
     onNavigateToAddTV?: () => void;
     onNavigateToDownloadMonitor?: () => void;
+    onNavigateToErrorManagement?: () => void;
 }
 
 export default function HomeScreen({
@@ -42,7 +43,8 @@ export default function HomeScreen({
     onNavigateToCache,
     onNavigateToSeriesList,
     onNavigateToAddTV,
-    onNavigateToDownloadMonitor
+    onNavigateToDownloadMonitor,
+    onNavigateToErrorManagement
 }: HomeScreenProps) {
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -480,10 +482,14 @@ export default function HomeScreen({
                         </View>
                     )}
                     {errorCount > 0 && !isOffline && (
-                        <View style={styles.errorBadge}>
+                        <TouchableOpacity
+                            style={styles.errorBadge}
+                            onPress={() => onNavigateToErrorManagement?.()}
+                            activeOpacity={0.7}
+                        >
                             <Ionicons name="warning" size={14} color="#FF3B30" />
                             <Text style={styles.errorBadgeText}>{errorCount}</Text>
-                        </View>
+                        </TouchableOpacity>
                     )}
                 </View>
                 <View style={styles.titleBarPlaceholder} />
