@@ -6,10 +6,10 @@ import sys
 
 def update_app_version(version: str):
     filepath = os.path.join(os.path.dirname(__file__), "..", "..", "app", "app.json")
-    with open(filepath, "r") as f:
+    with open(filepath, "r", encoding="utf-8") as f:
         app_json = json.load(f)
     app_json["expo"]["version"] = version
-    with open(filepath, "w") as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         json.dump(app_json, f, indent=2, ensure_ascii=False)
 
 
@@ -18,7 +18,7 @@ def update_package(version: str):
         os.path.dirname(__file__), "..", "..", "package", "package.json"
     )
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
-    with open(filepath, "w") as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         json.dump({"version": version}, f, indent=2, ensure_ascii=False)
 
 
