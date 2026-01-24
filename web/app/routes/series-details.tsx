@@ -355,7 +355,6 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
           {showAddTVModal && (
             <div
               className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-              onClick={() => setShowAddTVModal(false)}
             >
               <div
                 className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] flex flex-col"
