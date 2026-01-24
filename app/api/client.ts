@@ -30,7 +30,9 @@ import type {
     ScheduleEpisodeDownloadRequest,
     ScheduleEpisodeDownloadResponse,
     RemoveTVRequest,
-    RemoveTVResponse
+    RemoveTVResponse,
+    GetMonitorRequest,
+    GetMonitorResponse
 } from './types';
 
 // API 基础 URL 存储键
@@ -416,6 +418,24 @@ export async function removeTV(
     return apiCall<RemoveTVRequest, RemoveTVResponse>(
         baseUrl,
         '/api/remove_tv',
+        request,
+        token
+    );
+}
+
+// 获取监控信息 API
+export async function getMonitor(
+    request: GetMonitorRequest = {}
+): Promise<GetMonitorResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<GetMonitorRequest, GetMonitorResponse>(
+        baseUrl,
+        '/api/get_monitor',
         request,
         token
     );

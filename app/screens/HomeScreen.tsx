@@ -18,7 +18,7 @@ import {
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { getTVInfos, getApiBaseUrl, getApiToken } from '../api/client-proxy';
+import { getTVInfos, getApiBaseUrl, getApiToken, getMonitor } from '../api/client-proxy';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { videoCache } from '../utils/videoCache';
 import type { TVInfo, Tag } from '../api/types';
@@ -68,6 +68,8 @@ export default function HomeScreen({
     const [offlineOperationInProgress, setOfflineOperationInProgress] = useState(false);
     // 存储有缓存视频的 TV ID 集合
     const [cachedTVIds, setCachedTVIds] = useState<Set<number>>(new Set());
+    // 错误数量
+    const [errorCount, setErrorCount] = useState(0);
 
     // 菜单动画
     const slideAnim = useRef(new Animated.Value(-MENU_WIDTH)).current;
@@ -77,6 +79,7 @@ export default function HomeScreen({
         loadData();
         loadOfflineStatus();
         loadCachedVideos();
+        loadErrorCount();
     }, []);
 
     // 监听 Android 后退按钮
@@ -131,6 +134,17 @@ export default function HomeScreen({
         }
     };
 
+    // 加载错误数量
+    const loadErrorCount = async () => {
+        try {
+            const monitor = await getMonitor({});
+            setErrorCount(monitor.error_count);
+        } catch (error) {
+            console.error('加载错误数量失败:', error);
+            setErrorCount(0);
+        }
+    };
+
     const loadData = async () => {
         try {
             setLoading(true);
@@ -168,6 +182,8 @@ export default function HomeScreen({
 
             // 刷新缓存信息
             await loadCachedVideos();
+            // 刷新错误数量
+            await loadErrorCount();
         } catch (error) {
             console.error('Error refreshing TV list:', error);
             // 检查是否是401错误
@@ -461,6 +477,12 @@ export default function HomeScreen({
                     {isOffline && (
                         <View style={styles.offlineBadge}>
                             <Ionicons name="airplane" size={14} color="#FF9500" />
+                        </View>
+                    )}
+                    {errorCount > 0 && !isOffline && (
+                        <View style={styles.errorBadge}>
+                            <Ionicons name="warning" size={14} color="#FF3B30" />
+                            <Text style={styles.errorBadgeText}>{errorCount}</Text>
                         </View>
                     )}
                 </View>
@@ -787,6 +809,21 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    errorBadge: {
+        marginLeft: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 6,
+        paddingVertical: 4,
+        backgroundColor: '#FFEBEE',
+        borderRadius: 12,
+    },
+    errorBadgeText: {
+        marginLeft: 4,
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#FF3B30',
     },
     titleBarPlaceholder: {
         width: 40,

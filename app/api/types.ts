@@ -288,3 +288,16 @@ export interface RemoveTVRequest {
 export interface RemoveTVResponse {
     // 空响应
 }
+
+// 监控信息相关类型定义
+
+// 获取监控信息请求
+export interface GetMonitorRequest {
+    // 空对象
+}
+
+// 获取监控信息响应
+export interface GetMonitorResponse {
+    download_count: number;
+    error_count: number;
+}
