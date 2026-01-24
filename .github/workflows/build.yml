@@ -277,7 +277,7 @@ jobs:
           rm -rf dist/tvsurf
           cp -r dist/tvsurf-amd64 dist/tvsurf
           cp -r package dist/tvsurf/package
-          cp dist/app/tvsurf-android.apk dist/tvsurf/package/tvsurf-android.apk
+          cp dist/tvsurf-android.apk dist/tvsurf/package/tvsurf-android.apk
 
       - name: Build and push Docker image for amd64
         uses: docker/build-push-action@v5
@@ -296,7 +296,7 @@ jobs:
           rm -rf dist/tvsurf
           cp -r dist/tvsurf-arm64 dist/tvsurf
           cp -r package dist/tvsurf/package
-          cp dist/app/tvsurf-android.apk dist/tvsurf/package/tvsurf-android.apk
+          cp dist/tvsurf-android.apk dist/tvsurf/package/tvsurf-android.apk
 
       - name: Build and push Docker image for arm64
         uses: docker/build-push-action@v5
