@@ -7,7 +7,24 @@ interface TVCardProps {
   showBadge?: boolean;
 }
 
+function getWatchedLabel(
+  episodeId: number,
+  time: number,
+  totalEpisodes: number
+): string {
+  const total = totalEpisodes;
+  const suffix = ` / 共 ${total} 集`;
+  if (episodeId === 0 && time === 0) {
+    return "未观看" + suffix;
+  }
+  if (episodeId >= total) {
+    return "已看完" + suffix;
+  }
+  return `第 ${episodeId + 1} 集` + suffix;
+}
+
 export default function TVCard({ tv, showBadge = false }: TVCardProps) {
+  const { episode_id, time } = tv.user_data.watch_progress;
   const unwatchedEpisodes =
     tv.total_episodes - tv.user_data.watch_progress.episode_id;
 
@@ -40,9 +57,7 @@ export default function TVCard({ tv, showBadge = false }: TVCardProps) {
           {tv.name}
         </h3>
         <p className="text-xs text-gray-500 dark:text-gray-400">
-          {tv.user_data.watch_progress.episode_id > 0
-            ? `第 ${tv.user_data.watch_progress.episode_id} 集 / 共 ${tv.total_episodes} 集`
-            : `未观看 / 共 ${tv.total_episodes} 集`}
+          {getWatchedLabel(episode_id, time, tv.total_episodes)}
         </p>
       </div>
     </a>

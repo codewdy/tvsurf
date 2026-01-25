@@ -29,6 +29,13 @@ import { getTagName } from '../constants/tagNames';
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const MENU_WIDTH = Math.min(280, SCREEN_WIDTH * 0.75);
 
+function getWatchedLabel(episodeId: number, time: number, totalEpisodes: number): string {
+    const suffix = ` / 共 ${totalEpisodes} 集`;
+    if (episodeId === 0 && time === 0) return '未观看' + suffix;
+    if (episodeId >= totalEpisodes) return '已看完' + suffix;
+    return `第 ${episodeId + 1} 集` + suffix;
+}
+
 interface HomeScreenProps {
     onLogout: () => void;
     onTVPress?: (tv: TVInfo) => void;
@@ -651,7 +658,11 @@ export default function HomeScreen({
                                                     </Text>
                                                     <View style={styles.tvMetaRow}>
                                                         <Text style={styles.tvMeta}>
-                                                            {tv.user_data.watch_progress.episode_id} / {tv.total_episodes} 集
+                                                            {getWatchedLabel(
+                                                                tv.user_data.watch_progress.episode_id,
+                                                                tv.user_data.watch_progress.time,
+                                                                tv.total_episodes
+                                                            )}
                                                         </Text>
                                                         {hasCachedVideo && (
                                                             <View style={styles.cacheIndicator}>
