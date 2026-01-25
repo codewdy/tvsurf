@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import type {
   GetTVDetailsResponse,
   Source,
@@ -53,6 +53,51 @@ export default function TVSettingsModal({
   } | null>(null);
   // 错误信息状态
   const [errorMessage, setErrorMessage] = useState<string>("");
+  // 用于标记是否已经自动搜索过
+  const [hasAutoSearched, setHasAutoSearched] = useState(false);
+
+  // 执行搜索的通用函数
+  const performSearch = useCallback(async (keyword: string, updateKeyword: boolean = false) => {
+    const trimmedKeyword = keyword.trim();
+    if (!trimmedKeyword) return;
+
+    if (updateKeyword) {
+      setSourceSearchKeyword(trimmedKeyword);
+    }
+    setSourceSearchLoading(true);
+    setSourceSearchResults([]);
+    setSourceSearchErrors([]);
+
+    try {
+      const data = await searchTV({ keyword: trimmedKeyword });
+      setSourceSearchResults(data.source || []);
+      setSourceSearchErrors(data.search_error || []);
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "搜索时发生错误");
+      console.error("Search error:", err);
+    } finally {
+      setSourceSearchLoading(false);
+    }
+  }, []);
+
+  // 当切换到换源标签页时，自动搜索TV名称
+  useEffect(() => {
+    if (show && activeTab === "source" && !hasAutoSearched && details?.tv?.name) {
+      const tvName = details.tv.name.trim().split(/\s+/)[0];
+      if (tvName) {
+        performSearch(tvName, true).then(() => {
+          setHasAutoSearched(true);
+        });
+      }
+    }
+  }, [show, activeTab, hasAutoSearched, details, performSearch]);
+
+  // 当模态框关闭时，重置自动搜索标记
+  useEffect(() => {
+    if (!show) {
+      setHasAutoSearched(false);
+    }
+  }, [show]);
 
   const handleClose = () => {
     setShowConfirmDialog(false);
@@ -68,6 +113,7 @@ export default function TVSettingsModal({
     setDeleteConfirmName("");
     setActiveTab("general");
     setErrorMessage("");
+    setHasAutoSearched(false);
     onClose();
   };
 
@@ -445,22 +491,7 @@ export default function TVSettingsModal({
                   <form
                     onSubmit={async (e) => {
                       e.preventDefault();
-                      if (!sourceSearchKeyword.trim()) return;
-
-                      setSourceSearchLoading(true);
-                      setSourceSearchResults([]);
-                      setSourceSearchErrors([]);
-
-                      try {
-                        const data = await searchTV({ keyword: sourceSearchKeyword.trim() });
-                        setSourceSearchResults(data.source || []);
-                        setSourceSearchErrors(data.search_error || []);
-                      } catch (err) {
-                        setErrorMessage(err instanceof Error ? err.message : "搜索时发生错误");
-                        console.error("Search error:", err);
-                      } finally {
-                        setSourceSearchLoading(false);
-                      }
+                      await performSearch(sourceSearchKeyword, false);
                     }}
                     className="flex gap-2"
                   >
@@ -555,11 +586,7 @@ export default function TVSettingsModal({
                               {/* 信息 */}
                               <div className="flex-1 p-3 flex flex-col justify-between overflow-hidden">
                                 <div>
-                                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2 overflow-hidden" style={{
-                                    display: "-webkit-box",
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: "vertical",
-                                  }}>
+                                  <div className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                                     {source.name}
                                   </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">

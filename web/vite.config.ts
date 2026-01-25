@@ -19,11 +19,11 @@ export default defineConfig({
   server: {
     proxy: {
       "/api": {
-        target: "http://localhost:9399",
+        target: "http://localhost:9398",
         changeOrigin: true,
       },
       "/resource": {
-        target: "http://localhost:9399",
+        target: "http://localhost:9398",
         changeOrigin: true,
       },
     },
