@@ -17,6 +17,7 @@ class Searcher:
         self.channel_searcher = create_channel_searcher(config["channel_searcher"])
         self.resource_searcher = create_resource_searcher(config["resource_searcher"])
         self.semaphore = asyncio.Semaphore(config.get("max_concurrent_requests", 3))
+        self.has_ad = config["has_ad"]
 
     async def search_channels(self, url: str) -> list[Channel]:
         async with self.semaphore:

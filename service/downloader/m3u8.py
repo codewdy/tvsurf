@@ -20,6 +20,7 @@ class M3U8Downloader:
         self.dst = dst
         self.download_tracker = DownloadTracker()
         self.ad_block = M3U8AdBlocker()
+        self.ad_detected = False
 
     def select_sub_list(self, lines):
         r = re.compile(r"RESOLUTION=([0-9]+)x([0-9]+)")
@@ -72,6 +73,9 @@ class M3U8Downloader:
                     current_fragment += 1
 
         newlines = await self.ad_block.process_lines(newlines)
+        self.ad_detected = len(
+            [line for line in newlines if not line.startswith("#")]
+        ) != len([line for line in lines if not line.startswith("#")])
 
         with open(src_m3u8, "w") as f:
             f.writelines(newlines)

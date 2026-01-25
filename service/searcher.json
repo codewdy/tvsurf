@@ -23,6 +23,7 @@
             "resource_searcher": {
                 "type": "browser"
             },
+            "has_ad": false,
             "self_test": {
                 "keyword": "三月的狮子"
             }
@@ -49,6 +50,7 @@
             "resource_searcher": {
                 "type": "raw"
             },
+            "has_ad": true,
             "self_test": {
                 "keyword": "生活大爆炸"
             }
@@ -73,6 +75,7 @@
             "resource_searcher": {
                 "type": "browser"
             },
+            "has_ad": true,
             "self_test": {
                 "keyword": "生活大爆炸"
             }
@@ -100,6 +103,7 @@
             "resource_searcher": {
                 "type": "browser"
             },
+            "has_ad": true,
             "self_test": {
                 "keyword": "掟上今日子的备忘录"
             }

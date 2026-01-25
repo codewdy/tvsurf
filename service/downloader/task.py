@@ -15,6 +15,7 @@ class DownloadTask:
     metadata: Any
     on_finished: Optional[Callable[[], None]]
     on_error: Optional[Callable[[Exception], None]]
+    on_ad_detected: Optional[Callable[[bool], None]]
     task: Optional[asyncio.Task] = None
     downloader: Optional["TaskDownloader"] = None
 
@@ -74,6 +75,9 @@ class TaskDownloader:
             self.downloader = M3U8Downloader(url, self.task.dst)
             await self.downloader.run()
             self.status = "下载完成"
+            if self.task.on_ad_detected:
+                with Context.handle_error(f"on_ad_detected {self.task.name} 错误"):
+                    self.task.on_ad_detected(self.downloader.ad_detected)  # type: ignore
         finally:
             self.downloader = None
 
@@ -97,6 +101,7 @@ class TaskDownloadManager:
         metadata: Any,
         on_finished: Optional[Callable[[], None]],
         on_error: Optional[Callable[[Exception], None]],
+        on_ad_detected: Optional[Callable[[bool], None]],
     ) -> None:
         task = DownloadTask(
             url=url,
@@ -105,6 +110,7 @@ class TaskDownloadManager:
             metadata=metadata,
             on_finished=on_finished,
             on_error=on_error,
+            on_ad_detected=on_ad_detected,
         )
         self.tasks.append(task)
         downloader = TaskDownloader(task)

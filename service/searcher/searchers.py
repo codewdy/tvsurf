@@ -44,6 +44,9 @@ class Searchers:
     async def get_resource(self, source: SourceUrl) -> str:
         return await self.searcher_dict[source.source_key].get_resource(source.url)
 
+    def has_ad(self, source_key: str) -> bool:
+        return self.searcher_dict[source_key].has_ad
+
 
 if __name__ == "__main__":
     import json

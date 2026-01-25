@@ -46,6 +46,7 @@ class TVDownloadManager:
             {"tv_id": tv_id, "episode_id": episode_id},
             lambda: self.on_download_finished(tv_id, episode_id),
             lambda error: self.on_download_error(tv_id, episode_id, error),
+            lambda ad_detected: self.on_ad_detected(tv_id, episode_id, ad_detected),
         )
 
     def submit_episodes(self, tv_id: int, ep_start: int) -> None:
@@ -76,6 +77,21 @@ class TVDownloadManager:
         tv = self.tvdb.tvs[tv_id]
         tv.storage.episodes[episode_id].status = DownloadStatus.FAILED
         self.tvdb.commit()
+
+    def on_ad_detected(self, tv_id: int, episode_id: int, ad_detected: bool) -> None:
+        tv = self.tvdb.tvs[tv_id]
+        with Context.handle_error(
+            title=f"ad not found: {tv.name} - {tv.source.episodes[episode_id].name} "
+            f"source: {tv.source.episodes[episode_id].source.source_name}"
+        ):
+            if (
+                self.searchers.has_ad(tv.source.episodes[episode_id].source.source_key)
+                and not ad_detected
+            ):
+                raise ValueError(
+                    f"ad not found: {tv.name} - {tv.source.episodes[episode_id].name} "
+                    f"source: {tv.source.episodes[episode_id].source.source_name}"
+                )
 
     def get_download_count(self) -> int:
         return self.task_manager.get_download_count()
