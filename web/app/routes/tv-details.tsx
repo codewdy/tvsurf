@@ -37,7 +37,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   const lastProgressUpdateRef = useRef<number>(0);
   const playerRef = useRef<Player | null>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
-  const isInitialLoadRef = useRef<boolean>(true);
+  const readyRef = useRef<boolean>(false);
   // 编辑模态框相关状态
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -95,7 +95,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
 
   useEffect(() => {
     if (details) {
-      isInitialLoadRef.current = true;
+      readyRef.current = false;
       setSelectedEpisode(details.info.user_data.watch_progress.episode_id);
       // 其他初始化逻辑会在初始化 xgplayer 时执行
 
@@ -137,25 +137,17 @@ export default function TVDetails({ params }: Route.ComponentProps) {
 
     playerRef.current = player;
 
-    // 只在初始加载时恢复播放进度
-    const shouldRestoreProgress = isInitialLoadRef.current &&
-      details.info.user_data.watch_progress.episode_id === selectedEpisode;
 
-    if (shouldRestoreProgress) {
-      const savedTime = details.info.user_data.watch_progress.time;
-      if (savedTime > 0) {
-        player.once("canplay", () => {
-          player.currentTime = savedTime;
-          // 恢复进度后，标记初始加载完成
-          isInitialLoadRef.current = false;
-        });
-      } else {
-        // 如果没有保存的进度，直接标记初始加载完成
-        isInitialLoadRef.current = false;
-      }
+    if (!readyRef.current) {
+      const savedTime = details.info.user_data.watch_progress.episode_id === selectedEpisode ?
+        details.info.user_data.watch_progress.time : 0;
+      player.once("canplay", () => {
+        player.currentTime = savedTime;
+        readyRef.current = true;
+      });
+      lastProgressUpdateRef.current = savedTime;
     } else {
-      // 如果不是需要恢复进度的情况，标记初始加载完成
-      isInitialLoadRef.current = false;
+      lastProgressUpdateRef.current = 0;
     }
 
     // 监听播放事件
@@ -179,21 +171,12 @@ export default function TVDetails({ params }: Route.ComponentProps) {
         const currentTime = playerRef.current.currentTime;
         setVideoTime(currentTime);
 
-        // 每5秒更新一次播放进度
-        const now = Date.now();
-        if (now - lastProgressUpdateRef.current >= 5000) {
+        // 每秒更新一次播放进度
+        const now = currentTime;
+        if (Math.abs(now - lastProgressUpdateRef.current) >= 1) {
           updateWatchProgress(selectedEpisode, currentTime);
           lastProgressUpdateRef.current = now;
         }
-      }
-    });
-
-    // 监听跳转完成事件
-    player.on("seeked", () => {
-      if (playerRef.current) {
-        updateWatchProgress(selectedEpisode, playerRef.current.currentTime);
-        const now = Date.now();
-        lastProgressUpdateRef.current = now;
       }
     });
 
