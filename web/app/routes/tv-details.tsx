@@ -34,6 +34,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [updatingTag, setUpdatingTag] = useState(false);
   const [seriesList, setSeriesList] = useState<Series[]>([]);
+  const [autoPlay, setAutoPlay] = useState(false);
   const lastProgressUpdateRef = useRef<number>(0);
   const playerRef = useRef<Player | null>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -45,6 +46,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     if (!details) return;
 
     try {
+      lastProgressUpdateRef.current = time;
       await setWatchProgress({
         tv_id: details.tv.id,
         episode_id: episodeId,
@@ -55,7 +57,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     }
   }, [details]);
 
-  const handleEpisodeSelect = useCallback((episodeIndex: number, autoPlay: boolean = false) => {
+  const handleEpisodeSelect = useCallback((episodeIndex: number, _autoPlay: boolean = false) => {
     if (details) {
       updateWatchProgress(episodeIndex, 0);
     }
@@ -67,15 +69,8 @@ export default function TVDetails({ params }: Route.ComponentProps) {
       // 更新播放器视频源
       playerRef.current.src = newVideoUrl;
       setVideoTime(0);
-      const now = Date.now();
-      lastProgressUpdateRef.current = now; // 重置更新时间
-      if (autoPlay) {
-        playerRef.current.once("canplay", () => {
-          playerRef.current?.play().catch((err: unknown) => {
-            console.error('自动播放失败:', err);
-          });
-        });
-      }
+      lastProgressUpdateRef.current = 0; // 重置更新时间
+      setAutoPlay(_autoPlay);
     } else if (!newVideoUrl && playerRef.current) {
       // 如果下一集没有视频（下载中、下载失败或未下载），停止并清空播放器
       playerRef.current.pause();
@@ -96,11 +91,8 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   useEffect(() => {
     if (details) {
       readyRef.current = false;
+      lastProgressUpdateRef.current = details.info.user_data.watch_progress.time;
       setSelectedEpisode(details.info.user_data.watch_progress.episode_id);
-      // 其他初始化逻辑会在初始化 xgplayer 时执行
-
-      // 同步 ref
-      lastProgressUpdateRef.current = Date.now();
     }
   }, [details]);
 
@@ -127,12 +119,13 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     const player = new Player({
       el: playerContainerRef.current,
       url: currentVideoUrl,
-      autoplay: false,
+      autoplay: autoPlay,
       volume: 0.6,
       playbackRate: [0.5, 0.75, 1, 1.25, 1.5, 2],
       defaultPlaybackRate: 1,
       fluid: true,
       lang: "zh-cn",
+      seekedStatus: 'auto',
     });
 
     playerRef.current = player;
@@ -160,8 +153,6 @@ export default function TVDetails({ params }: Route.ComponentProps) {
       setIsPlaying(false);
       if (playerRef.current) {
         updateWatchProgress(selectedEpisode, playerRef.current.currentTime);
-        const now = Date.now();
-        lastProgressUpdateRef.current = now;
       }
     });
 
@@ -172,10 +163,9 @@ export default function TVDetails({ params }: Route.ComponentProps) {
         setVideoTime(currentTime);
 
         // 每秒更新一次播放进度
-        const now = currentTime;
-        if (Math.abs(now - lastProgressUpdateRef.current) >= 1) {
+        if (Math.abs(currentTime - lastProgressUpdateRef.current) >= 1) {
           updateWatchProgress(selectedEpisode, currentTime);
-          lastProgressUpdateRef.current = now;
+          lastProgressUpdateRef.current = currentTime;
         }
       }
     });
@@ -185,8 +175,6 @@ export default function TVDetails({ params }: Route.ComponentProps) {
       // 播放完成后，更新为下一集的第0秒
       const nextEpisode = selectedEpisode + 1;
       updateWatchProgress(nextEpisode, 0);
-      const now = Date.now();
-      lastProgressUpdateRef.current = now;
 
       handleEpisodeSelect(nextEpisode, true);
     });
@@ -198,7 +186,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
         playerRef.current = null;
       }
     };
-  }, [details, selectedEpisode, updateWatchProgress, handleEpisodeSelect]);
+  }, [details, selectedEpisode, autoPlay, updateWatchProgress, handleEpisodeSelect]);
 
   const fetchTVDetails = async (tvId: number) => {
     setError(null);
