@@ -34,9 +34,8 @@ class M3U8AdBlocker:
                 continue
             ts.append(i)
 
-        loop = asyncio.get_running_loop()
-        finger_prints = await loop.run_in_executor(
-            None, self.get_finger_prints, [lines[t].strip() for t in ts]
+        finger_prints = await asyncio.gather(
+            *[asyncio.to_thread(self.get_finger_print, lines[t].strip()) for t in ts]
         )
 
         parse_error_count = sum([1 if fp.parse_error else 0 for fp in finger_prints])
