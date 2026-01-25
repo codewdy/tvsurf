@@ -83,7 +83,7 @@ export default function TVSettingsModal({
   // 当切换到换源标签页时，自动搜索TV名称
   useEffect(() => {
     if (show && activeTab === "source" && !hasAutoSearched && details?.tv?.name) {
-      const tvName = details.tv.name.trim().split(/\s+/)[0];
+      const tvName = details.tv.name.trim();
       if (tvName) {
         performSearch(tvName, true).then(() => {
           setHasAutoSearched(true);
