@@ -3,7 +3,7 @@ import platform
 import subprocess
 
 
-async def run_cmd(*cmd):
+async def run_cmd(*cmd) -> tuple[str, str]:
     creationflags = 0
     if platform.system() == "Windows":
         creationflags = subprocess.CREATE_NO_WINDOW  # type: ignore
