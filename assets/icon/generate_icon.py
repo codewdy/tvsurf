@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
 """
 生成 tvsurf 图标
-生成 1024x1024 PNG 和 48x48 ICO 格式
+- 1024x1024 PNG 和 48x48 ICO（应用/任务栏）
+- macOS 菜单栏托盘用模板图标：22pt @1x、22pt @2x（单色透明，由系统着色）
 """
 
 from PIL import Image, ImageDraw, ImageFont
 import os
+
+# macOS 托盘图标尺寸（pt）：菜单栏高度 22pt，提供 1x/2x
+MAC_TRAY_SIZES = (22, 44)
+MAC_TRAY_DESIGN_SIZE = 176  # 在较大画布上绘制再缩放，保证小尺寸清晰
 
 
 def generate_icon():
@@ -125,9 +130,77 @@ def generate_icon():
     print(f"已生成: {ico_path}")
 
 
+def _find_cjk_font(size):
+    """返回可用于绘制「追」的 TrueType 字体，优先粗体。"""
+    font_paths = [
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Black.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Medium.ttc",
+        "/System/Library/Fonts/PingFang.ttc",
+        "/System/Library/Fonts/STHeiti Medium.ttc",
+        "C:/Windows/Fonts/msyhbd.ttf",
+        "C:/Windows/Fonts/simhei.ttf",
+    ]
+    for p in font_paths:
+        if os.path.exists(p):
+            try:
+                return ImageFont.truetype(p, size)
+            except Exception:
+                continue
+    return None
+
+
+def generate_mac_tray_icon():
+    """
+    生成适合 macOS 菜单栏的托盘图标（模板图）。
+    - 单色黑 + 透明，系统会按深浅色模式自动着色。
+    - 输出 22x22 @1x、44x44 @2x 的 PNG。
+    """
+    base = os.path.dirname(__file__)
+    size = MAC_TRAY_DESIGN_SIZE
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    font = _find_cjk_font(int(size * 0.58))
+    if not font:
+        # 回退：简单几何图标「电视屏 + 播放三角」，保证任何环境可生成
+        pad = int(size * 0.12)
+        w, h = size - 2 * pad, size - 2 * pad
+        draw.rounded_rectangle([pad, pad, pad + w, pad + h], radius=int(size * 0.1), outline=(0, 0, 0, 255), width=max(1, size // 44))
+        cx, cy = size // 2, size // 2
+        r = int(size * 0.12)
+        draw.polygon([
+            (cx - r, cy - r), (cx - r, cy + r), (cx + r, cy),
+        ], fill=(0, 0, 0, 255))
+    else:
+        text = "追"
+        bbox = draw.textbbox((0, 0), text, font=font)
+        tw = bbox[2] - bbox[0]
+        th = bbox[3] - bbox[1]
+        x = (size - tw) // 2 - bbox[0]
+        y = (size - th) // 2 - bbox[1]
+        draw.text((x, y), text, font=font, fill=(0, 0, 0, 255))
+
+    # 转为模板图：仅保留 alpha，色改为黑（系统会着色）
+    pixels = img.load()
+    for j in range(size):
+        for i in range(size):
+            r, g, b, a = pixels[i, j]
+            if a > 0:
+                # 半透明边缘保留，主体为纯黑
+                pixels[i, j] = (0, 0, 0, a)
+
+    for pt in MAC_TRAY_SIZES:
+        out = img.resize((pt, pt), resample=Image.Resampling.LANCZOS)
+        out_path = os.path.join(base, f"mac_tray_{pt}.png")
+        out.save(out_path, "PNG")
+        print(f"已生成: {out_path}")
+
+
 if __name__ == "__main__":
     try:
         generate_icon()
+        generate_mac_tray_icon()
         print("图标生成完成！")
     except ImportError:
         print("错误: 需要安装 Pillow 库")
