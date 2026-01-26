@@ -36,7 +36,9 @@ def default_config_path():
                 )
             return os.path.join(data_dir, "config.yaml")
         else:
-            return os.path.join(os.path.dirname(sys.argv[0]), "..", "..", "config.yaml")
+            return os.path.join(
+                os.path.dirname(sys.argv[0]), "..", "..", "..", "config.yaml"
+            )
     elif hasattr(sys, "_MEIPASS"):
         return os.path.join(os.path.dirname(sys.argv[0]), "config.yaml")
     else:
