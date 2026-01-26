@@ -6,19 +6,21 @@ Windows系统托盘应用程序
 """
 
 import os
-import time
-import webbrowser
-import pystray
-import sys
-from PIL import Image
 import platform
+import subprocess
+import sys
+import time
+
+import pystray
+from PIL import Image
 
 
 class TrayApp:
-    def __init__(self, open_service_callback):
+    def __init__(self, open_service_callback, data_dir: str = "data"):
         self.icon = None
         self.running = True
         self.open_service_callback = open_service_callback
+        self.data_dir = os.path.abspath(data_dir)
         self.last_click_time = 0
         self.double_click_threshold = 0.5  # 双击时间间隔阈值（秒）
 
@@ -57,6 +59,15 @@ class TrayApp:
             # 超过阈值，视为新的单击，更新时间戳
             self.last_click_time = current_time
 
+    def open_data_folder(self, icon=None, item=None):
+        """在资源管理器中打开数据文件夹"""
+        os.makedirs(self.data_dir, exist_ok=True)
+        if platform.system() == "Windows":
+            subprocess.run(["explorer", self.data_dir], check=False)
+        else:
+            cmd = "open" if platform.system() == "Darwin" else "xdg-open"
+            subprocess.run([cmd, self.data_dir], check=False)
+
     def quit_app(self, icon, item):
         """退出应用程序"""
         print("正在退出应用程序...")
@@ -69,6 +80,7 @@ class TrayApp:
         # 在Windows上，双击图标会触发默认菜单项
         menu = pystray.Menu(
             pystray.MenuItem("打开服务", self.open_service),
+            pystray.MenuItem("打开数据文件夹", self.open_data_folder),
             pystray.MenuItem("退出", self.quit_app),
             pystray.MenuItem(
                 "双击打开", self.handle_icon_click, default=True, visible=False

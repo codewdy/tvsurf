@@ -44,7 +44,7 @@ def main():
         app.wait_start()
         open_service()
 
-        tray_app = TrayApp(open_service)
+        tray_app = TrayApp(open_service, app.config.data_dir)
         tray_app.run()
     finally:
         # 确保释放单实例检测资源
