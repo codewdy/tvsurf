@@ -51,14 +51,27 @@ def download_ffmpeg_windows(directory: str):
     print(f"ffmpeg 下载完成")
 
 
+def download_ffmpeg_mac(directory: str):
+    print("下载 ffmpeg 中, 请稍候...")
+    url = "https://evermeet.cx/ffmpeg/ffmpeg-8.0.1.zip"
+    pretty_download("ffmpeg", url, f"{directory}/ffmpeg-mac.zip")
+    print(f"解压 ffmpeg 中, 请稍候...")
+    os.makedirs(f"{directory}/ffmpeg", exist_ok=True)
+    shutil.unpack_archive(f"{directory}/ffmpeg-mac.zip", f"{directory}/ffmpeg")
+    os.remove(f"{directory}/ffmpeg-mac.zip")
+    print(f"ffmpeg 下载完成")
+
+
 def download_ffmpeg(directory: str):
     if platform.system() == "Linux":
         download_ffmpeg_linux(directory)
     elif platform.system() == "Windows":
         download_ffmpeg_windows(directory)
+    elif platform.system() == "Darwin":
+        download_ffmpeg_mac(directory)
     else:
         raise ValueError(f"不支持的操作系统: {platform.system()}")
 
 
 if __name__ == "__main__":
-    download_ffmpeg_linux(sys.argv[-1])
+    download_ffmpeg_mac(sys.argv[-1])
