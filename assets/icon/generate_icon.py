@@ -166,12 +166,22 @@ def generate_mac_tray_icon():
         # 回退：简单几何图标「电视屏 + 播放三角」，保证任何环境可生成
         pad = int(size * 0.12)
         w, h = size - 2 * pad, size - 2 * pad
-        draw.rounded_rectangle([pad, pad, pad + w, pad + h], radius=int(size * 0.1), outline=(0, 0, 0, 255), width=max(1, size // 44))
+        draw.rounded_rectangle(
+            [pad, pad, pad + w, pad + h],
+            radius=int(size * 0.1),
+            outline=(0, 0, 0, 255),
+            width=max(1, size // 44),
+        )
         cx, cy = size // 2, size // 2
         r = int(size * 0.12)
-        draw.polygon([
-            (cx - r, cy - r), (cx - r, cy + r), (cx + r, cy),
-        ], fill=(0, 0, 0, 255))
+        draw.polygon(
+            [
+                (cx - r, cy - r),
+                (cx - r, cy + r),
+                (cx + r, cy),
+            ],
+            fill=(0, 0, 0, 255),
+        )
     else:
         text = "追"
         bbox = draw.textbbox((0, 0), text, font=font)
@@ -179,7 +189,7 @@ def generate_mac_tray_icon():
         th = bbox[3] - bbox[1]
         x = (size - tw) // 2 - bbox[0]
         y = (size - th) // 2 - bbox[1]
-        draw.text((x, y), text, font=font, fill=(0, 0, 0, 255))
+        draw.text((x, y), text, font=font, fill=(255, 255, 255, 255))
 
     # 转为模板图：仅保留 alpha，色改为黑（系统会着色）
     pixels = img.load()
@@ -188,7 +198,7 @@ def generate_mac_tray_icon():
             r, g, b, a = pixels[i, j]
             if a > 0:
                 # 半透明边缘保留，主体为纯黑
-                pixels[i, j] = (0, 0, 0, a)
+                pixels[i, j] = (255, 255, 255, a)
 
     for pt in MAC_TRAY_SIZES:
         out = img.resize((pt, pt), resample=Image.Resampling.LANCZOS)

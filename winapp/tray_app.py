@@ -34,15 +34,15 @@ class TrayApp:
     def handle_icon_click(self, icon, item):
         """处理图标点击事件，检测是否为双击"""
         current_time = time.time()
-        
+
         # 如果这是第一次点击，记录时间并返回
         if self.last_click_time == 0:
             self.last_click_time = current_time
             return
-        
+
         # 计算距离上次点击的时间间隔
         time_since_last_click = current_time - self.last_click_time
-        
+
         if time_since_last_click <= self.double_click_threshold:
             # 在阈值时间内再次点击，视为双击，打开服务
             self.open_service_callback()
@@ -65,7 +65,9 @@ class TrayApp:
         menu = pystray.Menu(
             pystray.MenuItem("打开服务", self.open_service),
             pystray.MenuItem("退出", self.quit_app),
-            pystray.MenuItem("双击打开", self.handle_icon_click, default=True, visible=False),
+            pystray.MenuItem(
+                "双击打开", self.handle_icon_click, default=True, visible=False
+            ),
         )
         return menu
 
@@ -76,9 +78,9 @@ class TrayApp:
 
         # 创建托盘图标
         self.icon = pystray.Icon(
-            "TrayApp",
+            "tvsurf",
             icon_image,
-            "系统托盘应用",
+            "tvsurf",
             self.setup_menu(),
         )
 
