@@ -6,6 +6,7 @@ winapp = Analysis(
     binaries=[
     ],
     datas=[
+        ('../../deps', 'deps'),
         ("../../web/build/client", "web"),
         ("../../service/searcher.json", "searcher"),
         ("../../winapp/icon.ico", "assets"),
