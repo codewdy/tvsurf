@@ -95,8 +95,14 @@ class App:
     def port(self):
         return self.config.port
 
-    def run(self):
-        web.run_app(self.app, sock=self.sock, loop=self.loop, shutdown_timeout=1)
+    def run(self, handle_signals=True):
+        web.run_app(
+            self.app,
+            sock=self.sock,
+            loop=self.loop,
+            shutdown_timeout=1,
+            handle_signals=handle_signals,
+        )
 
     def serve(self):
         self.prepare()
@@ -107,7 +113,7 @@ class App:
 
     def thread_serve(self):
         self.prepare()
-        self.thread = threading.Thread(target=self.run)
+        self.thread = threading.Thread(target=self.run, args=(False,))
         self.thread.start()
         self.stoped = False
 
