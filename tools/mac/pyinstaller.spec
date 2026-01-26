@@ -11,6 +11,7 @@ winapp = Analysis(
         ("../../service/searcher.json", "searcher"),
         ("../../winapp/icon.ico", "assets"),
         ("../../winapp/mac_icon.ico", "assets"),
+        ("../../config.yaml", "assets"),
         ],
     hiddenimports=[],
     hookspath=[],

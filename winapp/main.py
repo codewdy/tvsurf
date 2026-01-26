@@ -12,10 +12,32 @@ from winapp.tray_app import TrayApp
 import argparse
 import sys
 import os
+import platform
+import shutil
 
 
 def default_config_path():
-    if hasattr(sys, "_MEIPASS"):
+    if (
+        platform.system() == "Darwin"
+        and hasattr(sys, "_MEIPASS")
+        and ".app" in sys.argv[0]
+    ):
+        if sys.argv[0].startswith("/Applications/"):
+            user_home = os.path.expanduser("~")
+            data_dir = os.path.join(
+                user_home, "Library", "Application Support", "com.codewdy.tvsurf"
+            )
+            if not os.path.exists(data_dir):
+                os.makedirs(data_dir)
+            if not os.path.exists(os.path.join(data_dir, "config.yaml")):
+                shutil.copy(
+                    os.path.join(sys._MEIPASS, "assets", "config.yaml"),  # type: ignore[attr-defined]
+                    os.path.join(data_dir, "config.yaml"),
+                )
+            return os.path.join(data_dir, "config.yaml")
+        else:
+            return os.path.join(os.path.dirname(sys.argv[0]), "..", "..", "config.yaml")
+    elif hasattr(sys, "_MEIPASS"):
         return os.path.join(os.path.dirname(sys.argv[0]), "config.yaml")
     else:
         return "config.yaml"
