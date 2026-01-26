@@ -32,17 +32,23 @@ class Tracker:
         self.user_data_manager = UserDataManager()
 
     async def start(self) -> None:
-        print("Tracker started")
-        await self.context.__aenter__()
-        with Context.handle_error("tracker start failed", rethrow=True):
-            self.db.start()
-            Context.set_config(self.db.manage("config", Config))  # type: ignore
-            Context.set_data("db", self.db)
-            await self.error_db.start()
-            await self.local_manager.start()
-            await self.series_manager.start()
-            await self.user_manager.start()
+        try:
+            self.exception = None
+            print("Tracker started")
+            await self.context.__aenter__()
+            with Context.handle_error("tracker start failed", rethrow=True):
+                self.db.start()
+                Context.set_config(self.db.manage("config", Config))  # type: ignore
+                Context.set_data("db", self.db)
+                await self.error_db.start()
+                await self.local_manager.start()
+                await self.series_manager.start()
+                await self.user_manager.start()
+                self.start_event.set()
+        except Exception as e:
+            self.exception = e
             self.start_event.set()
+            raise e
 
     async def stop(self) -> None:
         print("Tracker stopped")
@@ -59,6 +65,8 @@ class Tracker:
 
     def wait_start(self) -> None:
         self.start_event.wait()
+        if self.exception is not None:
+            raise self.exception
 
     def need_system_setup(self) -> bool:
         return not self.user_manager.has_user()
