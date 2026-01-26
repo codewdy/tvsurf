@@ -32,6 +32,14 @@ def winapp_mac_tray_icon():
     return os.path.join(os.path.dirname(__file__), "..", "..", "winapp", "mac_icon.ico")
 
 
+def icon_icns():
+    return os.path.join(os.path.dirname(__file__), "icon.icns")
+
+
+def winapp_icon_icns():
+    return os.path.join(os.path.dirname(__file__), "..", "..", "winapp", "icon.icns")
+
+
 def app_icon():
     return os.path.join(
         os.path.dirname(__file__), "..", "..", "app", "assets", "icon.png"
@@ -43,3 +51,4 @@ if __name__ == "__main__":
     copy_file(icon_48_ico(), winapp_icon())
     copy_file(icon_1024_png(), app_icon())
     copy_file(icon_mac_tray_44_png(), winapp_mac_tray_icon())
+    copy_file(icon_icns(), winapp_icon_icns())

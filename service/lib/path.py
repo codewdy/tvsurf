@@ -31,6 +31,10 @@ def chromium_path():
             ),
             os.path.join(deps_path(), "chrome-linux", "headless_shell"),
         )
+    elif platform.system() == "Darwin":
+        return os.path.join(
+            deps_path(), "chrome-headless-shell-mac-arm64", "chrome-headless-shell"
+        )
     else:
         return None
 
@@ -47,6 +51,8 @@ def ffmpeg_path():
     if platform.system() == "Windows":
         return os.path.join(deps_path(), "ffmpeg", "ffmpeg.exe")
     elif platform.system() == "Linux":
+        return os.path.join(deps_path(), "ffmpeg", "ffmpeg")
+    elif platform.system() == "Darwin":
         return os.path.join(deps_path(), "ffmpeg", "ffmpeg")
     else:
         return "ffmpeg"

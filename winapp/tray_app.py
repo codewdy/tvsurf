@@ -11,6 +11,7 @@ import webbrowser
 import pystray
 import sys
 from PIL import Image
+import platform
 
 
 class TrayApp:
@@ -23,10 +24,14 @@ class TrayApp:
 
     def load_icon(self):
         """加载图标文件，如果不存在则使用默认图像"""
-        if hasattr(sys, "_MEIPASS"):
-            return Image.open(os.path.join(sys._MEIPASS, "assets", "icon.ico"))  # type: ignore[attr-defined]
+        if platform.system() == "Darwin":
+            filename = "mac_icon.ico"
         else:
-            return Image.open(os.path.join(os.path.dirname(__file__), "icon.ico"))
+            filename = "icon.ico"
+        if hasattr(sys, "_MEIPASS"):
+            return Image.open(os.path.join(sys._MEIPASS, "assets", filename))  # type: ignore[attr-defined]
+        else:
+            return Image.open(os.path.join(os.path.dirname(__file__), filename))
 
     def open_service(self, icon=None, item=None):
         self.open_service_callback()

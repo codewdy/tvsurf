@@ -2,11 +2,14 @@
 """
 生成 tvsurf 图标
 - 1024x1024 PNG 和 48x48 ICO（应用/任务栏）
+- macOS .icns（应用包图标，依赖 icnsutil）
 - macOS 菜单栏托盘用模板图标：22pt @1x、22pt @2x（单色透明，由系统着色）
 """
 
 from PIL import Image, ImageDraw, ImageFont
 import os
+import tempfile
+import shutil
 
 # macOS 托盘图标尺寸（pt）：菜单栏高度 22pt，提供 1x/2x
 MAC_TRAY_SIZES = (22, 44)
@@ -130,6 +133,54 @@ def generate_icon():
     print(f"已生成: {ico_path}")
 
 
+# macOS .icns 使用标准 iconset 命名：(文件名, 像素尺寸)
+# @2x 表示 retina，文件名里的尺寸是“逻辑尺寸”，实际像素为 2 倍
+MAC_ICNS_ICONSET = [
+    ("icon_16x16.png", 16),
+    ("icon_16x16@2x.png", 32),
+    ("icon_32x32.png", 32),
+    ("icon_32x32@2x.png", 64),
+    ("icon_128x128.png", 128),
+    ("icon_128x128@2x.png", 256),
+    ("icon_256x256.png", 256),
+    ("icon_256x256@2x.png", 512),
+    ("icon_512x512.png", 512),
+    ("icon_512x512@2x.png", 1024),
+]
+
+
+def generate_mac_icns():
+    """
+    从 icon_1024.png 生成 macOS 应用包图标 icon.icns。
+    需要先执行 generate_icon()，且需安装: pip install icnsutil
+    """
+    try:
+        import icnsutil
+    except ImportError:
+        print("跳过 Mac .icns：未安装 icnsutil，可选执行: pip install icnsutil")
+        return
+
+    base = os.path.dirname(__file__)
+    png_1024 = os.path.join(base, "icon_1024.png")
+    if not os.path.exists(png_1024):
+        print("跳过 Mac .icns：未找到 icon_1024.png，请先运行 generate_icon()")
+        return
+
+    img = Image.open(png_1024).convert("RGBA")
+    tmp = tempfile.mkdtemp(prefix="tvsurf_icns_")
+    try:
+        icns_obj = icnsutil.IcnsFile()
+        for name, size in MAC_ICNS_ICONSET:
+            path = os.path.join(tmp, name)
+            img.resize((size, size), Image.Resampling.LANCZOS).save(path, "PNG")
+            icns_obj.add_media(file=path)
+        out_path = os.path.join(base, "icon.icns")
+        icns_obj.write(out_path)
+        print(f"已生成: {out_path}")
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
 def _find_cjk_font(size):
     """返回可用于绘制「追」的 TrueType 字体，优先粗体。"""
     font_paths = [
@@ -210,6 +261,7 @@ def generate_mac_tray_icon():
 if __name__ == "__main__":
     try:
         generate_icon()
+        generate_mac_icns()
         generate_mac_tray_icon()
         print("图标生成完成！")
     except ImportError:
