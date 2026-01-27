@@ -18,6 +18,10 @@
 
 [Windows 安装文档](doc/install/windows.md)
 
+### Mac:
+
+[Mac 安装文档](doc/install/mac.md)
+
 ### Nas：
 
 [群晖](doc/install/synology.md)
@@ -29,11 +33,13 @@
 [其他 nas 使用 docker 安装](doc/install/docker.md)
 
 ### Linux:
+
 [docker 安装](doc/install/docker.md)
 
 [直接安装二进制](doc/install/linux.md)
 
 ### Android:
+
 在 [github release](https://github.com/codewdy/tvsurf/releases) 里面有一个 apk 可以下载，这个 apk 可以用来连接 nas 上的服务，自身不具备下载功能。
 
 # 安全声明
