@@ -145,6 +145,48 @@ jobs:
           path: dist\tvsurf-windows.zip
           retention-days: 30
 
+  build-mac:
+    name: Build macOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Update version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          python tools/version/update-version.py ${{ github.ref_name }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Build
+        run: |
+          chmod +x tools/mac/build.sh
+          chmod +x tools/mac/prepare_env.sh
+          bash tools/mac/build.sh
+
+      - name: Create archive for macOS
+        run: |
+          cd dist
+          zip -r tvsurf-mac.zip tvsurf
+
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: tvsurf-mac
+          path: dist/tvsurf-mac.zip
+          retention-days: 30
+
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
@@ -334,7 +376,7 @@ jobs:
 
   release:
     name: Create Release
-    needs: [build-linux, build-linux-arm64, build-windows, build-android]
+    needs: [build-linux, build-linux-arm64, build-windows, build-mac, build-android]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -361,6 +403,12 @@ jobs:
           name: tvsurf-windows
           path: artifacts
 
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: tvsurf-mac
+          path: artifacts
+
       - name: Download Android artifacts
         uses: actions/download-artifact@v4
         with:
@@ -374,6 +422,7 @@ jobs:
             artifacts/tvsurf-linux.tar.gz
             artifacts/tvsurf-linux-arm64.tar.gz
             artifacts/tvsurf-windows.zip
+            artifacts/tvsurf-mac.zip
             artifacts/tvsurf-android.apk
           draft: false
           prerelease: false
