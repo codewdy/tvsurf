@@ -12,6 +12,8 @@
 
 通常来说，对于 mac 用户，使用单用户模式足够便捷，默认的不对外服务，也可以保护你的隐私不被网络上其他人获取。
 
+你也可以把这个 tvsurf.app 拖到应用程序文件夹，这样你就可以通过 App 页面快速打开 tvsurf。
+
 # 配置
 
 注意，数据默认存储于 `/User/你的用户名/Library/Application Support/com.codewdy.tvsurf/data` 文件夹下，不褪尽进行修改，因为 mac 的 sandbox 限制，你的修改可能会无法生效。
