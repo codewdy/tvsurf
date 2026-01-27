@@ -38,7 +38,7 @@ class Tracker:
             await self.context.__aenter__()
             with Context.handle_error("tracker start failed", rethrow=True):
                 self.db.start()
-                Context.set_config(self.db.manage("config", Config))  # type: ignore
+                await Context.update_config(self.db.manage("config", Config))  # type: ignore
                 Context.set_data("db", self.db)
                 await self.error_db.start()
                 await self.local_manager.start()
@@ -334,8 +334,7 @@ class Tracker:
     async def set_config(
         self, user: User, request: SetConfig.Request
     ) -> SetConfig.Response:
-        Context.config.merge_from(request.config)
-        Context.config.commit()
+        await Context.update_config(request.config)
         return SetConfig.Response()
 
     @api("user")

@@ -5,7 +5,7 @@ import aiohttp
 from .path import chromium_path
 from .error_handler import ErrorHandler
 from .logger import get_logger
-from service.schema.config import Config
+from service.schema.config import Config, NetworkConfig
 from service.schema.app_config import AppConfig
 import os
 import ssl
@@ -61,8 +61,8 @@ class ContextMeta(type):
     def set_data(cls, name: str, d: Any) -> None:
         cls.current.data[name] = d
 
-    def set_config(cls, config: Config) -> None:
-        cls.current.config = config
+    async def update_config(cls, config: Config) -> None:
+        await cls.current.update_config_impl(config)
 
     @property
     def config(cls) -> Config:
@@ -109,12 +109,7 @@ class Context(metaclass=ContextMeta):
             chromium_sandbox=False,
         )
 
-        # aiohttp
-        ssl_context = ssl.create_default_context(cafile=certifi.where())
-        self.client = aiohttp.ClientSession(
-            timeout=aiohttp.ClientTimeout(total=30),
-            connector=aiohttp.TCPConnector(ssl=ssl_context),
-        )  # type: ignore
+        self.client = self.create_client(self.config.network)
         await self.client.__aenter__()
 
         return self
@@ -140,3 +135,37 @@ class Context(metaclass=ContextMeta):
         except Exception:
             pass
         del self._current_holder.context
+
+    def create_client(self, config: NetworkConfig) -> aiohttp.ClientSession:
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        resolver = aiohttp.AsyncResolver(nameservers=config.nameservers)
+        return aiohttp.ClientSession(
+            timeout=aiohttp.ClientTimeout(total=30),
+            connector=aiohttp.TCPConnector(ssl=ssl_context, resolver=resolver),
+        )  # type: ignore
+
+    async def test_network(self, client: aiohttp.ClientSession):
+        await client.get("https://www.baidu.com")
+
+    async def reset_network(self, config: NetworkConfig) -> None:
+        client = self.create_client(config)
+        await client.__aenter__()
+        try:
+            await self.test_network(client)
+        except Exception:
+            await client.__aexit__(None, None, None)
+            raise
+        try:
+            await self.client.__aexit__(None, None, None)
+        except Exception:
+            pass
+        self.client = client
+
+    async def update_config_impl(self, config: Config) -> None:
+        if self.config.network != config.network:
+            await self.reset_network(config.network)
+        self.config.merge_from(config)
+        if config._commit is not None:
+            self.config._commit = config._commit
+        else:
+            self.config.commit()

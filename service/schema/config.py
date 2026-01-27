@@ -22,7 +22,12 @@ class UpdaterConfig(BaseModel):
     update_parallel: int = 10
 
 
+class NetworkConfig(BaseModel):
+    nameservers: list[str] = ["8.8.8.8", "8.8.4.4"]
+
+
 class Config(BaseModel):
     updater: UpdaterConfig = UpdaterConfig()
     download: DownloadConfig = DownloadConfig()
     db: DBConfig = DBConfig()
+    network: NetworkConfig = NetworkConfig()
