@@ -16,7 +16,7 @@
 
 # 配置
 
-注意，数据默认存储于 `/User/你的用户名/Library/Application Support/com.codewdy.tvsurf/data` 文件夹下，不褪尽进行修改，因为 mac 的 sandbox 限制，你的修改可能会无法生效。
+注意，数据默认存储于 `/User/你的用户名/Library/Application Support/com.codewdy.tvsurf/data` 文件夹下，不推荐进行修改，因为 mac 的 sandbox 限制，你的修改可能会无法生效。
 
 如果你一定要修改，就打开`/User/你的用户名/Library/Application Support/com.codewdy.tvsurf/config.yaml` 就行了。
 
