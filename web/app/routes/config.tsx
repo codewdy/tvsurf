@@ -171,6 +171,7 @@ export default function Config() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [dnsInput, setDnsInput] = useState<string>("");
 
   const fetchConfig = async () => {
     try {
@@ -181,6 +182,10 @@ export default function Config() {
       const data: GetConfigResponse = await getConfig({});
       // 转换TimeDelta和ByteSize为可读格式
       const normalizedConfig = normalizeConfig(data.config);
+      // 确保 network 字段存在
+      if (!normalizedConfig.network) {
+        normalizedConfig.network = { nameservers: [] };
+      }
       setConfigState(normalizedConfig);
     } catch (err) {
       console.error("Fetch config error:", err);
@@ -239,6 +244,42 @@ export default function Config() {
     }
 
     setConfigState(newConfig);
+  };
+
+  const removeNameserver = (index: number) => {
+    if (!config) return;
+    const newConfig = JSON.parse(JSON.stringify(config));
+    if (!newConfig.network || !Array.isArray(newConfig.network.nameservers)) {
+      return;
+    }
+    newConfig.network.nameservers.splice(index, 1);
+    setConfigState(newConfig);
+  };
+
+  const addNameserverFromInput = () => {
+    if (!config) return;
+    const value = dnsInput.trim();
+    if (!value) return;
+
+    const newConfig = JSON.parse(JSON.stringify(config));
+    if (!newConfig.network) {
+      newConfig.network = { nameservers: [] };
+    }
+
+    // 去重：如果已存在则不重复添加
+    if (!newConfig.network.nameservers.includes(value)) {
+      newConfig.network.nameservers.push(value);
+      setConfigState(newConfig);
+    }
+
+    setDnsInput("");
+  };
+
+  const handleDnsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addNameserverFromInput();
+    }
   };
 
   useEffect(() => {
@@ -486,6 +527,59 @@ export default function Config() {
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="1m"
                 />
+              </div>
+            </div>
+          </div>
+          {/* 网络配置 */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+              网络配置 (Network)
+            </h2>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  DNS 服务器
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {(config.network?.nameservers ?? []).length === 0 && (
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      暂未配置 DNS，可在下方输入后回车添加。
+                    </span>
+                  )}
+                  {(config.network?.nameservers ?? []).map((ns, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-700"
+                    >
+                      <span className="mr-1">{ns}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeNameserver(index)}
+                        className="ml-1 text-blue-500 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-100"
+                        aria-label="删除 DNS"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={dnsInput}
+                    onChange={(e) => setDnsInput(e.target.value)}
+                    onKeyDown={handleDnsKeyDown}
+                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="输入 DNS 地址后按回车或点击添加，例如: 8.8.8.8"
+                  />
+                  <button
+                    type="button"
+                    onClick={addNameserverFromInput}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors whitespace-nowrap"
+                  >
+                    添加
+                  </button>
+                </div>
               </div>
             </div>
           </div>

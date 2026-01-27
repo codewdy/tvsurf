@@ -327,6 +327,12 @@ export interface DBConfig {
   save_interval: string; // TimeDelta格式，如 "1m"
 }
 
+// 网络配置
+export interface NetworkConfig {
+  // DNS 服务器列表，例如 ["8.8.8.8", "8.8.4.4"]
+  nameservers: string[];
+}
+
 // 更新器配置
 export interface UpdaterConfig {
   update_interval: string; // TimeDelta格式，如 "1d"
@@ -339,6 +345,7 @@ export interface Config {
   updater: UpdaterConfig;
   download: DownloadConfig;
   db: DBConfig;
+  network: NetworkConfig;
 }
 
 // 获取配置请求
