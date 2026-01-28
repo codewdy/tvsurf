@@ -490,7 +490,8 @@ export interface SetUserPasswordResponse {
 
 // 设置我的密码请求
 export interface SetMyPasswordRequest {
-    password_hash: string;
+    original_password_hash: string;
+    new_password_hash: string;
 }
 
 // 设置我的密码响应

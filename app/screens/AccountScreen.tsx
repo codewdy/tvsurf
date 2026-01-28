@@ -97,12 +97,14 @@ export default function AccountScreen({ onBack, onLogout }: AccountScreenProps) 
 
         setChangingPassword(true);
         try {
-            // 生成新密码的哈希
+            // 生成原始密码和新密码的哈希
+            const originalPasswordHash = await hashPassword(oldPassword, userInfo?.user?.username || '');
             const newPasswordHash = await hashPassword(newPassword, userInfo?.user?.username || '');
 
             // 调用修改密码 API
             await setMyPassword({
-                password_hash: newPasswordHash,
+                original_password_hash: originalPasswordHash,
+                new_password_hash: newPasswordHash,
             });
 
             Alert.alert('成功', '密码修改成功', [

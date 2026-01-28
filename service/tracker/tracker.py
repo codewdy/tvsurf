@@ -341,7 +341,9 @@ class Tracker:
     async def set_my_password(
         self, user: User, request: SetMyPassword.Request
     ) -> SetMyPassword.Response:
-        self.user_manager.set_user_password(user.username, request.password_hash)
+        if user.password_hash != request.original_password_hash:
+            raise Exception("原始密码不正确")
+        self.user_manager.set_user_password(user.username, request.new_password_hash)
         return SetMyPassword.Response()
 
     @api("admin")
@@ -373,6 +375,8 @@ class Tracker:
     async def set_user_password(
         self, user: User, request: SetUserPassword.Request
     ) -> SetUserPassword.Response:
+        if user.username == request.username:
+            raise Exception("不能修改当前用户密码")
         self.user_manager.set_user_password(request.username, request.password_hash)
         return SetUserPassword.Response()
 

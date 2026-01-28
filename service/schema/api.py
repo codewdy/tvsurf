@@ -299,7 +299,8 @@ class SetConfig(BaseModel):
 
 class SetMyPassword(BaseModel):
     class Request(BaseModel):
-        password_hash: str
+        original_password_hash: str
+        new_password_hash: str
 
     class Response(BaseModel):
         pass

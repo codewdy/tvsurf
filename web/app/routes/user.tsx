@@ -20,6 +20,7 @@ export default function User() {
   const [error, setError] = useState<string | null>(null);
 
   // 修改密码相关状态
+  const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordError, setPasswordError] = useState<string | null>(null);
@@ -51,6 +52,11 @@ export default function User() {
     setPasswordSuccess(null);
 
     // 验证输入
+    if (!oldPassword) {
+      setPasswordError("请输入原始密码");
+      return;
+    }
+
     if (!newPassword) {
       setPasswordError("请输入新密码");
       return;
@@ -66,23 +72,23 @@ export default function User() {
       return;
     }
 
-    // 确认操作
-    if (!confirm("确定要修改密码吗？")) {
-      return;
-    }
-
     setChangingPassword(true);
 
     try {
-      // 使用新密码和用户名生成密码哈希
-      const passwordHash = await hashPassword(newPassword, userInfo.user.username);
+      // 生成原始密码和新密码的哈希
+      const originalPasswordHash = await hashPassword(oldPassword, userInfo.user.username);
+      const newPasswordHash = await hashPassword(newPassword, userInfo.user.username);
 
       // 调用 API
-      const request: SetMyPasswordRequest = { password_hash: passwordHash };
+      const request: SetMyPasswordRequest = {
+        original_password_hash: originalPasswordHash,
+        new_password_hash: newPasswordHash,
+      };
       await setMyPassword(request);
 
       setPasswordSuccess("密码修改成功！");
       // 清空表单
+      setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
       // 3秒后清除成功消息
@@ -230,6 +236,24 @@ export default function User() {
           )}
 
           <form onSubmit={handlePasswordChange} className="space-y-4">
+            <div>
+              <label
+                htmlFor="oldPassword"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+              >
+                原始密码
+              </label>
+              <input
+                id="oldPassword"
+                type="password"
+                value={oldPassword}
+                onChange={(e) => setOldPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="请输入原始密码"
+                disabled={changingPassword}
+              />
+            </div>
+
             <div>
               <label
                 htmlFor="newPassword"
