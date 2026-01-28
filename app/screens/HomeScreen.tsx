@@ -736,7 +736,12 @@ export default function HomeScreen({
                                     activeOpacity={0.7}
                                     disabled={isOffline}
                                 >
-                                    <Text style={styles.menuItemIcon}>➕</Text>
+                                    <Ionicons 
+                                        name="add-circle-outline" 
+                                        size={22} 
+                                        color={isOffline ? '#999' : '#007AFF'} 
+                                        style={styles.menuItemIconComponent}
+                                    />
                                     <Text style={[
                                         styles.menuItemText,
                                         isOffline && styles.menuItemTextDisabled
@@ -749,7 +754,12 @@ export default function HomeScreen({
                                     onPress={() => handleMenuItemPress(() => onNavigateToSeriesList?.())}
                                     activeOpacity={0.7}
                                 >
-                                    <Text style={styles.menuItemIcon}>📋</Text>
+                                    <Ionicons 
+                                        name="list-outline" 
+                                        size={22} 
+                                        color="#007AFF" 
+                                        style={styles.menuItemIconComponent}
+                                    />
                                     <Text style={styles.menuItemText}>播放列表</Text>
                                     <Text style={styles.menuItemArrow}>›</Text>
                                 </TouchableOpacity>
@@ -759,7 +769,12 @@ export default function HomeScreen({
                                     onPress={() => handleMenuItemPress(() => onNavigateToCache?.())}
                                     activeOpacity={0.7}
                                 >
-                                    <Text style={styles.menuItemIcon}>📦</Text>
+                                    <Ionicons 
+                                        name="folder-outline" 
+                                        size={22} 
+                                        color="#007AFF" 
+                                        style={styles.menuItemIconComponent}
+                                    />
                                     <Text style={styles.menuItemText}>缓存管理</Text>
                                     <Text style={styles.menuItemArrow}>›</Text>
                                 </TouchableOpacity>
@@ -770,7 +785,12 @@ export default function HomeScreen({
                                     activeOpacity={0.7}
                                     disabled={isOffline}
                                 >
-                                    <Text style={styles.menuItemIcon}>⬇️</Text>
+                                    <Ionicons 
+                                        name="download-outline" 
+                                        size={22} 
+                                        color={isOffline ? '#999' : '#007AFF'} 
+                                        style={styles.menuItemIconComponent}
+                                    />
                                     <Text style={[
                                         styles.menuItemText,
                                         isOffline && styles.menuItemTextDisabled
@@ -783,7 +803,12 @@ export default function HomeScreen({
                                     onPress={() => handleMenuItemPress(handleToggleOfflineMode)}
                                     activeOpacity={0.7}
                                 >
-                                    <Text style={styles.menuItemIcon}>✈️</Text>
+                                    <Ionicons 
+                                        name="airplane-outline" 
+                                        size={22} 
+                                        color="#007AFF" 
+                                        style={styles.menuItemIconComponent}
+                                    />
                                     <View style={styles.menuItemContent}>
                                         <Text style={styles.menuItemText}>
                                             {isOffline ? '退出离线模式' : '进入离线模式'}
@@ -800,7 +825,12 @@ export default function HomeScreen({
                                             activeOpacity={0.7}
                                             disabled={isOffline}
                                         >
-                                            <Text style={styles.menuItemIcon}>⚙️</Text>
+                                            <Ionicons 
+                                                name="settings-outline" 
+                                                size={22} 
+                                                color={isOffline ? '#999' : '#007AFF'} 
+                                                style={styles.menuItemIconComponent}
+                                            />
                                             <View style={styles.menuItemContent}>
                                                 <Text style={[
                                                     styles.menuItemText,
@@ -816,7 +846,12 @@ export default function HomeScreen({
                                                 activeOpacity={0.7}
                                                 disabled={isOffline}
                                             >
-                                                <Text style={styles.menuItemIcon}>👥</Text>
+                                                <Ionicons 
+                                                    name="people-outline" 
+                                                    size={22} 
+                                                    color={isOffline ? '#999' : '#007AFF'} 
+                                                    style={styles.menuItemIconComponent}
+                                                />
                                                 <View style={styles.menuItemContent}>
                                                     <Text style={[
                                                         styles.menuItemText,
@@ -836,7 +871,12 @@ export default function HomeScreen({
                                         activeOpacity={0.7}
                                         disabled={isOffline || updateCheckInProgress}
                                     >
-                                        <Text style={styles.menuItemIcon}>🔄</Text>
+                                        <Ionicons 
+                                            name="refresh-outline" 
+                                            size={22} 
+                                            color={(isOffline || updateCheckInProgress) ? '#999' : '#007AFF'} 
+                                            style={styles.menuItemIconComponent}
+                                        />
                                         <Text style={[
                                             styles.menuItemText,
                                             (isOffline || updateCheckInProgress) && styles.menuItemTextDisabled
@@ -852,7 +892,12 @@ export default function HomeScreen({
                                     onPress={() => handleMenuItemPress(() => onNavigateToAccount?.())}
                                     activeOpacity={0.7}
                                 >
-                                    <Text style={styles.menuItemIcon}>👤</Text>
+                                    <Ionicons 
+                                        name="person-outline" 
+                                        size={22} 
+                                        color="#007AFF" 
+                                        style={styles.menuItemIconComponent}
+                                    />
                                     <Text style={styles.menuItemText}>我的账户</Text>
                                     <Text style={styles.menuItemArrow}>›</Text>
                                 </TouchableOpacity>
@@ -1217,12 +1262,10 @@ const styles = StyleSheet.create({
     menuItemDisabled: {
         opacity: 0.5,
     },
-    menuItemIcon: {
-        fontSize: 22,
-        marginRight: 12,
-    },
     menuItemIconComponent: {
         marginRight: 12,
+        width: 22,
+        textAlign: 'center',
     },
     menuItemText: {
         flex: 1,
