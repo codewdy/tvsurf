@@ -12,11 +12,12 @@ import AddTVScreen from './screens/AddTVScreen';
 import DownloadMonitorScreen from './screens/DownloadMonitorScreen';
 import ErrorManagementScreen from './screens/ErrorManagementScreen';
 import ConfigScreen from './screens/ConfigScreen';
+import UserManagementScreen from './screens/UserManagementScreen';
 import { getApiToken, clearApiToken, whoami } from './api/client-proxy';
 import { offlineModeManager } from './utils/offlineModeManager';
 import type { TVInfo, WhoamiResponse } from './api/types';
 
-type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv' | 'download-monitor' | 'error-management' | 'config';
+type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv' | 'download-monitor' | 'error-management' | 'config' | 'user-management';
 
 interface NavigationState {
   screen: Screen;
@@ -193,6 +194,15 @@ export default function App() {
     navigateTo('config');
   };
 
+  const handleNavigateToUserManagement = async () => {
+    // 检查用户是否是admin
+    if (!isAdmin) {
+      Alert.alert('权限不足', '只有管理员可以访问用户管理页面');
+      return;
+    }
+    navigateTo('user-management');
+  };
+
   const handleSeriesPress = (seriesId: number) => {
     navigateTo('series-details', { selectedSeriesId: seriesId });
   };
@@ -221,6 +231,7 @@ export default function App() {
             onNavigateToDownloadMonitor={handleNavigateToDownloadMonitor}
             onNavigateToErrorManagement={handleNavigateToErrorManagement}
             onNavigateToConfig={handleNavigateToConfig}
+            onNavigateToUserManagement={handleNavigateToUserManagement}
           />
         ) : currentScreen === 'cache' ? (
           <VideoCacheScreen onBack={navigateBack} />
@@ -255,6 +266,23 @@ export default function App() {
               onNavigateToDownloadMonitor={handleNavigateToDownloadMonitor}
               onNavigateToErrorManagement={handleNavigateToErrorManagement}
               onNavigateToConfig={handleNavigateToConfig}
+              onNavigateToUserManagement={handleNavigateToUserManagement}
+            />
+          )
+        ) : currentScreen === 'user-management' ? (
+          isAdmin ? (
+            <UserManagementScreen onBack={navigateBack} />
+          ) : (
+            <HomeScreen
+              onLogout={handleLogout}
+              onTVPress={handleTVPress}
+              onNavigateToCache={handleNavigateToCache}
+              onNavigateToSeriesList={handleNavigateToSeriesList}
+              onNavigateToAddTV={handleNavigateToAddTV}
+              onNavigateToDownloadMonitor={handleNavigateToDownloadMonitor}
+              onNavigateToErrorManagement={handleNavigateToErrorManagement}
+              onNavigateToConfig={handleNavigateToConfig}
+              onNavigateToUserManagement={handleNavigateToUserManagement}
             />
           )
         ) : selectedTV ? (
@@ -273,6 +301,7 @@ export default function App() {
             onNavigateToDownloadMonitor={handleNavigateToDownloadMonitor}
             onNavigateToErrorManagement={handleNavigateToErrorManagement}
             onNavigateToConfig={handleNavigateToConfig}
+            onNavigateToUserManagement={handleNavigateToUserManagement}
           />
         )
       ) : (

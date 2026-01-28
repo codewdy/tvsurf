@@ -430,3 +430,60 @@ export interface WhoamiResponse {
     user: UserInfo;
     single_user_mode: boolean;
 }
+
+// 用户管理相关类型定义
+
+// 获取用户列表请求
+export interface GetUsersRequest {
+    // 空对象
+}
+
+// 获取用户列表响应
+export interface GetUsersResponse {
+    users: UserInfo[];
+    single_user_mode: boolean;
+}
+
+// 添加用户请求
+export interface AddUserRequest {
+    username: string;
+    password_hash: string;
+    group: string[];
+}
+
+// 添加用户响应
+export interface AddUserResponse {
+    // 空响应
+}
+
+// 删除用户请求
+export interface RemoveUserRequest {
+    username: string;
+}
+
+// 删除用户响应
+export interface RemoveUserResponse {
+    // 空响应
+}
+
+// 更新用户组请求
+export interface UpdateUserGroupRequest {
+    username: string;
+    group: string[];
+}
+
+// 更新用户组响应
+export interface UpdateUserGroupResponse {
+    // 空响应
+}
+
+// 设置用户密码请求
+export interface SetUserPasswordRequest {
+    username: string;
+    password_hash: string;
+}
+
+// 设置用户密码响应
+export interface SetUserPasswordResponse {
+    // 空响应
+}

@@ -27,7 +27,12 @@ import {
     removeErrors as removeErrorsBase,
     getConfig as getConfigBase,
     setConfig as setConfigBase,
-    whoami as whoamiBase
+    whoami as whoamiBase,
+    getUsers as getUsersBase,
+    addUser as addUserBase,
+    removeUser as removeUserBase,
+    updateUserGroup as updateUserGroupBase,
+    setUserPassword as setUserPasswordBase
 } from './client';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { offlineDataCache } from '../utils/offlineDataCache';
@@ -77,7 +82,17 @@ import type {
     SetConfigRequest,
     SetConfigResponse,
     WhoamiRequest,
-    WhoamiResponse
+    WhoamiResponse,
+    GetUsersRequest,
+    GetUsersResponse,
+    AddUserRequest,
+    AddUserResponse,
+    RemoveUserRequest,
+    RemoveUserResponse,
+    UpdateUserGroupRequest,
+    UpdateUserGroupResponse,
+    SetUserPasswordRequest,
+    SetUserPasswordResponse
 } from './types';
 
 // 离线模式错误
@@ -521,6 +536,76 @@ export async function whoami(
 
     // 在线模式：直接调用 API
     return await whoamiBase(request);
+}
+
+// 获取用户列表 API（离线模式下不可用）
+export async function getUsers(
+    request: GetUsersRequest = {}
+): Promise<GetUsersResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法获取用户列表，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await getUsersBase(request);
+}
+
+// 添加用户 API（离线模式下不可用）
+export async function addUser(
+    request: AddUserRequest
+): Promise<AddUserResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法添加用户，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await addUserBase(request);
+}
+
+// 删除用户 API（离线模式下不可用）
+export async function removeUser(
+    request: RemoveUserRequest
+): Promise<RemoveUserResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法删除用户，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await removeUserBase(request);
+}
+
+// 更新用户组 API（离线模式下不可用）
+export async function updateUserGroup(
+    request: UpdateUserGroupRequest
+): Promise<UpdateUserGroupResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法更新用户组，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await updateUserGroupBase(request);
+}
+
+// 设置用户密码 API（离线模式下不可用）
+export async function setUserPassword(
+    request: SetUserPasswordRequest
+): Promise<SetUserPasswordResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法设置用户密码，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await setUserPasswordBase(request);
 }
 
 // 导出离线模式错误类和离线数据缓存，供外部使用

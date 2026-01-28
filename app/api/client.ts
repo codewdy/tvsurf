@@ -44,7 +44,17 @@ import type {
     SetConfigRequest,
     SetConfigResponse,
     WhoamiRequest,
-    WhoamiResponse
+    WhoamiResponse,
+    GetUsersRequest,
+    GetUsersResponse,
+    AddUserRequest,
+    AddUserResponse,
+    RemoveUserRequest,
+    RemoveUserResponse,
+    UpdateUserGroupRequest,
+    UpdateUserGroupResponse,
+    SetUserPasswordRequest,
+    SetUserPasswordResponse
 } from './types';
 
 // API 基础 URL 存储键
@@ -556,6 +566,96 @@ export async function whoami(
     return apiCall<WhoamiRequest, WhoamiResponse>(
         baseUrl,
         '/api/whoami',
+        request,
+        token
+    );
+}
+
+// 获取用户列表 API
+export async function getUsers(
+    request: GetUsersRequest = {}
+): Promise<GetUsersResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<GetUsersRequest, GetUsersResponse>(
+        baseUrl,
+        '/api/get_users',
+        request,
+        token
+    );
+}
+
+// 添加用户 API
+export async function addUser(
+    request: AddUserRequest
+): Promise<AddUserResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<AddUserRequest, AddUserResponse>(
+        baseUrl,
+        '/api/add_user',
+        request,
+        token
+    );
+}
+
+// 删除用户 API
+export async function removeUser(
+    request: RemoveUserRequest
+): Promise<RemoveUserResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<RemoveUserRequest, RemoveUserResponse>(
+        baseUrl,
+        '/api/remove_user',
+        request,
+        token
+    );
+}
+
+// 更新用户组 API
+export async function updateUserGroup(
+    request: UpdateUserGroupRequest
+): Promise<UpdateUserGroupResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<UpdateUserGroupRequest, UpdateUserGroupResponse>(
+        baseUrl,
+        '/api/update_user_group',
+        request,
+        token
+    );
+}
+
+// 设置用户密码 API
+export async function setUserPassword(
+    request: SetUserPasswordRequest
+): Promise<SetUserPasswordResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<SetUserPasswordRequest, SetUserPasswordResponse>(
+        baseUrl,
+        '/api/set_user_password',
         request,
         token
     );

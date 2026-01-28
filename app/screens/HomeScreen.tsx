@@ -45,6 +45,7 @@ interface HomeScreenProps {
     onNavigateToDownloadMonitor?: () => void;
     onNavigateToErrorManagement?: () => void;
     onNavigateToConfig?: () => void;
+    onNavigateToUserManagement?: () => void;
 }
 
 export default function HomeScreen({
@@ -55,7 +56,8 @@ export default function HomeScreen({
     onNavigateToAddTV,
     onNavigateToDownloadMonitor,
     onNavigateToErrorManagement,
-    onNavigateToConfig
+    onNavigateToConfig,
+    onNavigateToUserManagement
 }: HomeScreenProps) {
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -96,6 +98,8 @@ export default function HomeScreen({
 
     // 检查用户是否是admin
     const isAdmin = userInfo?.user?.group?.includes('admin') ?? false;
+    // 检查是否是单用户模式
+    const isSingleUserMode = userInfo?.single_user_mode ?? false;
 
     useEffect(() => {
         loadData();
@@ -812,21 +816,40 @@ export default function HomeScreen({
                                 </TouchableOpacity>
 
                                 {isAdmin && (
-                                    <TouchableOpacity
-                                        style={[styles.menuItem, isOffline && styles.menuItemDisabled]}
-                                        onPress={() => handleMenuItemPress(() => onNavigateToConfig?.())}
-                                        activeOpacity={0.7}
-                                        disabled={isOffline}
-                                    >
-                                        <Text style={styles.menuItemIcon}>⚙️</Text>
-                                        <View style={styles.menuItemContent}>
-                                            <Text style={[
-                                                styles.menuItemText,
-                                                isOffline && styles.menuItemTextDisabled
-                                            ]}>系统配置</Text>
-                                        </View>
-                                        <Text style={styles.menuItemArrow}>›</Text>
-                                    </TouchableOpacity>
+                                    <>
+                                        <TouchableOpacity
+                                            style={[styles.menuItem, isOffline && styles.menuItemDisabled]}
+                                            onPress={() => handleMenuItemPress(() => onNavigateToConfig?.())}
+                                            activeOpacity={0.7}
+                                            disabled={isOffline}
+                                        >
+                                            <Text style={styles.menuItemIcon}>⚙️</Text>
+                                            <View style={styles.menuItemContent}>
+                                                <Text style={[
+                                                    styles.menuItemText,
+                                                    isOffline && styles.menuItemTextDisabled
+                                                ]}>系统配置</Text>
+                                            </View>
+                                            <Text style={styles.menuItemArrow}>›</Text>
+                                        </TouchableOpacity>
+                                        {isAdmin && !isSingleUserMode && (
+                                            <TouchableOpacity
+                                                style={[styles.menuItem, isOffline && styles.menuItemDisabled]}
+                                                onPress={() => handleMenuItemPress(() => onNavigateToUserManagement?.())}
+                                                activeOpacity={0.7}
+                                                disabled={isOffline}
+                                            >
+                                                <Text style={styles.menuItemIcon}>👥</Text>
+                                                <View style={styles.menuItemContent}>
+                                                    <Text style={[
+                                                        styles.menuItemText,
+                                                        isOffline && styles.menuItemTextDisabled
+                                                    ]}>用户管理</Text>
+                                                </View>
+                                                <Text style={styles.menuItemArrow}>›</Text>
+                                            </TouchableOpacity>
+                                        )}
+                                    </>
                                 )}
 
                                 {Platform.OS === 'android' && (
