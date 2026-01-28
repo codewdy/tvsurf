@@ -487,3 +487,13 @@ export interface SetUserPasswordRequest {
 export interface SetUserPasswordResponse {
     // 空响应
 }
+
+// 设置我的密码请求
+export interface SetMyPasswordRequest {
+    password_hash: string;
+}
+
+// 设置我的密码响应
+export interface SetMyPasswordResponse {
+    // 空响应
+}

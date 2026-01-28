@@ -32,7 +32,8 @@ import {
     addUser as addUserBase,
     removeUser as removeUserBase,
     updateUserGroup as updateUserGroupBase,
-    setUserPassword as setUserPasswordBase
+    setUserPassword as setUserPasswordBase,
+    setMyPassword as setMyPasswordBase
 } from './client';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { offlineDataCache } from '../utils/offlineDataCache';
@@ -92,7 +93,9 @@ import type {
     UpdateUserGroupRequest,
     UpdateUserGroupResponse,
     SetUserPasswordRequest,
-    SetUserPasswordResponse
+    SetUserPasswordResponse,
+    SetMyPasswordRequest,
+    SetMyPasswordResponse
 } from './types';
 
 // 离线模式错误
@@ -606,6 +609,20 @@ export async function setUserPassword(
 
     // 在线模式：直接调用 API
     return await setUserPasswordBase(request);
+}
+
+// 设置我的密码 API（离线模式下不可用）
+export async function setMyPassword(
+    request: SetMyPasswordRequest
+): Promise<SetMyPasswordResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法修改密码，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await setMyPasswordBase(request);
 }
 
 // 导出离线模式错误类和离线数据缓存，供外部使用

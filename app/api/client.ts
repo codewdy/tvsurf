@@ -54,7 +54,9 @@ import type {
     UpdateUserGroupRequest,
     UpdateUserGroupResponse,
     SetUserPasswordRequest,
-    SetUserPasswordResponse
+    SetUserPasswordResponse,
+    SetMyPasswordRequest,
+    SetMyPasswordResponse
 } from './types';
 
 // API 基础 URL 存储键
@@ -656,6 +658,24 @@ export async function setUserPassword(
     return apiCall<SetUserPasswordRequest, SetUserPasswordResponse>(
         baseUrl,
         '/api/set_user_password',
+        request,
+        token
+    );
+}
+
+// 设置我的密码 API
+export async function setMyPassword(
+    request: SetMyPasswordRequest
+): Promise<SetMyPasswordResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<SetMyPasswordRequest, SetMyPasswordResponse>(
+        baseUrl,
+        '/api/set_my_password',
         request,
         token
     );

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { whoami, setUserPassword } from '../api/client-proxy';
+import { whoami, setMyPassword } from '../api/client-proxy';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { hashPassword } from '../utils/password';
 import type { WhoamiResponse } from '../api/types';
@@ -90,19 +90,18 @@ export default function AccountScreen({ onBack, onLogout }: AccountScreenProps) 
             return;
         }
 
-        if (!userInfo?.user?.username) {
-            Alert.alert('错误', '无法获取用户名');
+        if (userInfo?.single_user_mode) {
+            Alert.alert('提示', '单用户模式下无法修改密码');
             return;
         }
 
         setChangingPassword(true);
         try {
             // 生成新密码的哈希
-            const newPasswordHash = await hashPassword(newPassword, userInfo.user.username);
+            const newPasswordHash = await hashPassword(newPassword, userInfo?.user?.username || '');
 
             // 调用修改密码 API
-            await setUserPassword({
-                username: userInfo.user.username,
+            await setMyPassword({
                 password_hash: newPasswordHash,
             });
 
@@ -201,31 +200,40 @@ export default function AccountScreen({ onBack, onLogout }: AccountScreenProps) 
                             {userInfo?.user?.group?.join(', ') || '-'}
                         </Text>
                     </View>
-                    {userInfo?.single_user_mode && (
-                        <View style={styles.infoRow}>
-                            <Text style={styles.infoLabel}>模式</Text>
-                            <Text style={styles.infoValue}>单用户模式</Text>
-                        </View>
-                    )}
+                    <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>工作模式</Text>
+                        <Text style={styles.infoValue}>
+                            {userInfo?.single_user_mode ? '单用户模式' : '多用户模式'}
+                        </Text>
+                    </View>
                 </View>
 
                 {/* 操作按钮 */}
                 <View style={styles.card}>
                     <TouchableOpacity
-                        style={[styles.actionButton, isOffline && styles.actionButtonDisabled]}
-                        onPress={() => setChangePasswordVisible(true)}
+                        style={[
+                            styles.actionButton,
+                            (isOffline || userInfo?.single_user_mode) && styles.actionButtonDisabled
+                        ]}
+                        onPress={() => {
+                            if (userInfo?.single_user_mode) {
+                                Alert.alert('提示', '单用户模式下无法修改密码');
+                                return;
+                            }
+                            setChangePasswordVisible(true);
+                        }}
                         activeOpacity={0.7}
-                        disabled={isOffline}
+                        disabled={isOffline || userInfo?.single_user_mode}
                     >
                         <Ionicons
                             name="lock-closed-outline"
                             size={22}
-                            color={isOffline ? '#999' : '#007AFF'}
+                            color={(isOffline || userInfo?.single_user_mode) ? '#999' : '#007AFF'}
                         />
                         <Text
                             style={[
                                 styles.actionButtonText,
-                                isOffline && styles.actionButtonTextDisabled,
+                                (isOffline || userInfo?.single_user_mode) && styles.actionButtonTextDisabled,
                             ]}
                         >
                             修改密码
@@ -233,7 +241,7 @@ export default function AccountScreen({ onBack, onLogout }: AccountScreenProps) 
                         <Ionicons
                             name="chevron-forward"
                             size={20}
-                            color={isOffline ? '#999' : '#999'}
+                            color={(isOffline || userInfo?.single_user_mode) ? '#999' : '#999'}
                         />
                     </TouchableOpacity>
 
