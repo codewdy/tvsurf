@@ -46,6 +46,7 @@ interface HomeScreenProps {
     onNavigateToErrorManagement?: () => void;
     onNavigateToConfig?: () => void;
     onNavigateToUserManagement?: () => void;
+    onNavigateToAccount?: () => void;
 }
 
 export default function HomeScreen({
@@ -57,7 +58,8 @@ export default function HomeScreen({
     onNavigateToDownloadMonitor,
     onNavigateToErrorManagement,
     onNavigateToConfig,
-    onNavigateToUserManagement
+    onNavigateToUserManagement,
+    onNavigateToAccount
 }: HomeScreenProps) {
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -466,31 +468,6 @@ export default function HomeScreen({
         }
     };
 
-    // 处理退出登录
-    const handleLogout = () => {
-        if (isOffline) {
-            Alert.alert('提示', '离线模式下无法退出登录，请先退出离线模式');
-            return;
-        }
-
-        Alert.alert(
-            '退出登录',
-            '确定要退出登录吗？',
-            [
-                { text: '取消', style: 'cancel' },
-                {
-                    text: '退出',
-                    style: 'destructive',
-                    onPress: () => {
-                        closeMenu();
-                        setTimeout(() => {
-                            onLogout();
-                        }, 300);
-                    },
-                },
-            ]
-        );
-    };
 
     // 检查更新（仅 Android）
     const handleCheckUpdate = async (isAutoCheck = false) => {
@@ -871,24 +848,13 @@ export default function HomeScreen({
                                 )}
 
                                 <TouchableOpacity
-                                    style={[
-                                        styles.menuItem,
-                                        isOffline && styles.menuItemDisabled
-                                    ]}
-                                    onPress={handleLogout}
+                                    style={styles.menuItem}
+                                    onPress={() => handleMenuItemPress(() => onNavigateToAccount?.())}
                                     activeOpacity={0.7}
-                                    disabled={isOffline}
                                 >
-                                    <Ionicons
-                                        name="log-out-outline"
-                                        size={22}
-                                        color={isOffline ? "#999" : "#FF3B30"}
-                                        style={styles.menuItemIconComponent}
-                                    />
-                                    <Text style={[
-                                        styles.menuItemText,
-                                        isOffline ? styles.menuItemTextDisabled : styles.menuItemTextDanger
-                                    ]}>退出登录</Text>
+                                    <Text style={styles.menuItemIcon}>👤</Text>
+                                    <Text style={styles.menuItemText}>我的账户</Text>
+                                    <Text style={styles.menuItemArrow}>›</Text>
                                 </TouchableOpacity>
                             </View>
                         </SafeAreaView>

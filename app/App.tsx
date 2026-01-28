@@ -13,11 +13,12 @@ import DownloadMonitorScreen from './screens/DownloadMonitorScreen';
 import ErrorManagementScreen from './screens/ErrorManagementScreen';
 import ConfigScreen from './screens/ConfigScreen';
 import UserManagementScreen from './screens/UserManagementScreen';
+import AccountScreen from './screens/AccountScreen';
 import { getApiToken, clearApiToken, whoami } from './api/client-proxy';
 import { offlineModeManager } from './utils/offlineModeManager';
 import type { TVInfo, WhoamiResponse } from './api/types';
 
-type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv' | 'download-monitor' | 'error-management' | 'config' | 'user-management';
+type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv' | 'download-monitor' | 'error-management' | 'config' | 'user-management' | 'account';
 
 interface NavigationState {
   screen: Screen;
@@ -203,6 +204,10 @@ export default function App() {
     navigateTo('user-management');
   };
 
+  const handleNavigateToAccount = () => {
+    navigateTo('account');
+  };
+
   const handleSeriesPress = (seriesId: number) => {
     navigateTo('series-details', { selectedSeriesId: seriesId });
   };
@@ -232,6 +237,7 @@ export default function App() {
             onNavigateToErrorManagement={handleNavigateToErrorManagement}
             onNavigateToConfig={handleNavigateToConfig}
             onNavigateToUserManagement={handleNavigateToUserManagement}
+            onNavigateToAccount={handleNavigateToAccount}
           />
         ) : currentScreen === 'cache' ? (
           <VideoCacheScreen onBack={navigateBack} />
@@ -267,6 +273,7 @@ export default function App() {
               onNavigateToErrorManagement={handleNavigateToErrorManagement}
               onNavigateToConfig={handleNavigateToConfig}
               onNavigateToUserManagement={handleNavigateToUserManagement}
+              onNavigateToAccount={handleNavigateToAccount}
             />
           )
         ) : currentScreen === 'user-management' ? (
@@ -283,8 +290,11 @@ export default function App() {
               onNavigateToErrorManagement={handleNavigateToErrorManagement}
               onNavigateToConfig={handleNavigateToConfig}
               onNavigateToUserManagement={handleNavigateToUserManagement}
+              onNavigateToAccount={handleNavigateToAccount}
             />
           )
+        ) : currentScreen === 'account' ? (
+          <AccountScreen onBack={navigateBack} onLogout={handleLogout} />
         ) : selectedTV ? (
           <TVDetailsScreen
             tv={selectedTV}
@@ -302,6 +312,7 @@ export default function App() {
             onNavigateToErrorManagement={handleNavigateToErrorManagement}
             onNavigateToConfig={handleNavigateToConfig}
             onNavigateToUserManagement={handleNavigateToUserManagement}
+            onNavigateToAccount={handleNavigateToAccount}
           />
         )
       ) : (
