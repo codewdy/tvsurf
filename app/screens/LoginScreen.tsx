@@ -60,12 +60,6 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         }
     };
 
-    // 验证用户名格式：只允许字母、数字、下划线和减号
-    const isValidUsername = (username: string): boolean => {
-        const usernameRegex = /^[a-zA-Z0-9_-]+$/;
-        return usernameRegex.test(username);
-    };
-
     // 验证 URL 格式
     const isValidUrl = (url: string): boolean => {
         try {
@@ -104,21 +98,6 @@ export default function LoginScreen({ onLoginSuccess }: LoginScreenProps) {
         const normalizedUrl = normalizeUrl(baseUrl);
         if (!isValidUrl(normalizedUrl)) {
             setError('请输入有效的服务器地址（例如：https://example.com）');
-            return;
-        }
-
-        if (!username.trim()) {
-            setError('请输入用户名');
-            return;
-        }
-
-        if (!isValidUsername(username)) {
-            setError('用户名只能包含字母、数字、下划线和减号');
-            return;
-        }
-
-        if (!password) {
-            setError('请输入密码');
             return;
         }
 
