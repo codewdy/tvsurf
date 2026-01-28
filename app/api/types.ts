@@ -353,3 +353,80 @@ export interface RemoveErrorsRequest {
 export interface RemoveErrorsResponse {
     // 空响应
 }
+
+// 配置相关类型定义
+
+// 下载配置
+export interface DownloadConfig {
+    connect_timeout: string; // TimeDelta格式，如 "1m"
+    chunk_size: string; // ByteSize格式，如 "1MB"
+    max_concurrent_fragments: number;
+    max_concurrent_downloads: number;
+    max_retries: number;
+    download_timeout: string; // TimeDelta格式，如 "1h"
+    retry_interval: string; // TimeDelta格式，如 "1m"
+}
+
+// 数据库配置
+export interface DBConfig {
+    save_interval: string; // TimeDelta格式，如 "10s"
+}
+
+// 网络配置
+export interface NetworkConfig {
+    nameservers: string[]; // DNS 服务器列表，例如 ["8.8.8.8", "8.8.4.4"]
+}
+
+// 更新器配置
+export interface UpdaterConfig {
+    update_interval: string; // TimeDelta格式，如 "1d"
+    tracking_timeout: string; // TimeDelta格式，如 "14d"
+    update_parallel: number;
+}
+
+// 配置
+export interface Config {
+    updater: UpdaterConfig;
+    download: DownloadConfig;
+    db: DBConfig;
+    network: NetworkConfig;
+}
+
+// 获取配置请求
+export interface GetConfigRequest {
+    // 空对象
+}
+
+// 获取配置响应
+export interface GetConfigResponse {
+    config: Config;
+}
+
+// 设置配置请求
+export interface SetConfigRequest {
+    config: Config;
+}
+
+// 设置配置响应
+export interface SetConfigResponse {
+    // 空响应
+}
+
+// 用户信息相关类型定义
+
+// 用户信息
+export interface UserInfo {
+    username: string;
+    group: string[];
+}
+
+// 获取当前用户信息请求
+export interface WhoamiRequest {
+    // 空对象
+}
+
+// 获取当前用户信息响应
+export interface WhoamiResponse {
+    user: UserInfo;
+    single_user_mode: boolean;
+}

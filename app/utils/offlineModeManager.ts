@@ -8,7 +8,8 @@ import {
     getSeries as getSeriesApi,
     updateSeriesTVs as updateSeriesTVsApi,
     addSeries as addSeriesApi,
-    removeSeries as removeSeriesApi
+    removeSeries as removeSeriesApi,
+    whoami as whoamiApi
 } from '../api/client';
 import { setWatchProgress as setWatchProgressApi, setTVTag as setTVTagApi, setTVTracking as setTVTrackingApi } from '../api/client';
 import type { Tag } from '../api/types';
@@ -92,34 +93,39 @@ class OfflineModeManager {
         }
 
         try {
-            onProgress?.(0, 4, '准备下载数据...');
+            onProgress?.(0, 5, '准备下载数据...');
 
             await offlineDataCache.clearOfflineData();
 
-            // 1. 获取所有 TV 的 TVInfo
-            onProgress?.(1, 4, '下载所有TV信息...');
+            // 1. 获取用户信息
+            onProgress?.(1, 5, '获取用户信息...');
+            const userInfoResponse = await whoamiApi({});
+            await offlineDataCache.saveUserInfo(userInfoResponse);
+
+            // 2. 获取所有 TV 的 TVInfo
+            onProgress?.(2, 5, '下载所有TV信息...');
             const tvInfosResponse = await getTVInfosApi({ ids: null });
             const tvInfos = tvInfosResponse.tvs;
             await offlineDataCache.saveTVInfos(tvInfos);
 
-            // 2. 获取所有 Series
-            onProgress?.(2, 4, '下载所有播放列表...');
+            // 3. 获取所有 Series
+            onProgress?.(3, 5, '下载所有播放列表...');
             const seriesResponse = await getSeriesApi({ ids: null });
             const seriesList = seriesResponse.series;
             await offlineDataCache.saveSeries(seriesList);
 
-            // 3. 提取所有 TV ID
+            // 4. 提取所有 TV ID
             const tvIds = tvInfos.map(tv => tv.id);
 
-            // 4. 批量下载这些 TV 的 TVDetails
-            onProgress?.(3, 4, '下载TV详情...');
+            // 5. 批量下载这些 TV 的 TVDetails
+            onProgress?.(4, 5, '下载TV详情...');
             // 使用批量接口一次性获取所有详情，比循环调用更高效
             const multipleDetailsResponse = await getMultipleTVDetailsApi({ ids: tvIds });
             const tvDetailsResults = multipleDetailsResponse.tv_details;
 
             await offlineDataCache.saveTVDetails(tvDetailsResults);
 
-            onProgress?.(4, 4, '进入离线模式成功');
+            onProgress?.(5, 5, '进入离线模式成功');
 
             // 5. 设置离线模式状态
             await this.setOfflineMode(true);

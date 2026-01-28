@@ -24,7 +24,10 @@ import {
     removeTV as removeTVBase,
     getMonitor as getMonitorBase,
     getErrors as getErrorsBase,
-    removeErrors as removeErrorsBase
+    removeErrors as removeErrorsBase,
+    getConfig as getConfigBase,
+    setConfig as setConfigBase,
+    whoami as whoamiBase
 } from './client';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { offlineDataCache } from '../utils/offlineDataCache';
@@ -68,7 +71,13 @@ import type {
     GetErrorsRequest,
     GetErrorsResponse,
     RemoveErrorsRequest,
-    RemoveErrorsResponse
+    RemoveErrorsResponse,
+    GetConfigRequest,
+    GetConfigResponse,
+    SetConfigRequest,
+    SetConfigResponse,
+    WhoamiRequest,
+    WhoamiResponse
 } from './types';
 
 // 离线模式错误
@@ -465,6 +474,53 @@ export async function removeErrors(
 
     // 在线模式：直接调用 API
     return await removeErrorsBase(request);
+}
+
+// 获取配置 API（离线模式下不可用）
+export async function getConfig(
+    request: GetConfigRequest = {}
+): Promise<GetConfigResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法获取配置，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await getConfigBase(request);
+}
+
+// 设置配置 API（离线模式下不可用）
+export async function setConfig(
+    request: SetConfigRequest
+): Promise<SetConfigResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        throw new OfflineModeError('离线模式下无法设置配置，请先退出离线模式');
+    }
+
+    // 在线模式：直接调用 API
+    return await setConfigBase(request);
+}
+
+// 获取当前用户信息 API
+export async function whoami(
+    request: WhoamiRequest = {}
+): Promise<WhoamiResponse> {
+    // 检查是否处于离线模式
+    const isOffline = await offlineModeManager.getOfflineMode();
+    if (isOffline) {
+        // 离线模式：从离线缓存读取用户信息
+        const userInfo = await offlineDataCache.getUserInfo();
+        if (!userInfo) {
+            throw new OfflineModeError('离线模式下无法获取用户信息，该内容未缓存');
+        }
+        return userInfo;
+    }
+
+    // 在线模式：直接调用 API
+    return await whoamiBase(request);
 }
 
 // 导出离线模式错误类和离线数据缓存，供外部使用

@@ -19,11 +19,11 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getTVInfos, getApiBaseUrl, getApiToken, getMonitor } from '../api/client-proxy';
+import { getTVInfos, getApiBaseUrl, getApiToken, getMonitor, whoami } from '../api/client-proxy';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { videoCache } from '../utils/videoCache';
 import { checkUpdate, downloadApk, installApk } from '../utils/autoUpdate';
-import type { TVInfo, Tag } from '../api/types';
+import type { TVInfo, Tag, WhoamiResponse } from '../api/types';
 import { getTagName } from '../constants/tagNames';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -44,6 +44,7 @@ interface HomeScreenProps {
     onNavigateToAddTV?: () => void;
     onNavigateToDownloadMonitor?: () => void;
     onNavigateToErrorManagement?: () => void;
+    onNavigateToConfig?: () => void;
 }
 
 export default function HomeScreen({
@@ -53,7 +54,8 @@ export default function HomeScreen({
     onNavigateToSeriesList,
     onNavigateToAddTV,
     onNavigateToDownloadMonitor,
-    onNavigateToErrorManagement
+    onNavigateToErrorManagement,
+    onNavigateToConfig
 }: HomeScreenProps) {
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
@@ -85,16 +87,22 @@ export default function HomeScreen({
     const [updateCheckInProgress, setUpdateCheckInProgress] = useState(false);
     const [updateDownloadVisible, setUpdateDownloadVisible] = useState(false);
     const [updateDownloadProgress, setUpdateDownloadProgress] = useState(0);
+    // 用户信息
+    const [userInfo, setUserInfo] = useState<WhoamiResponse | null>(null);
 
     // 菜单动画
     const slideAnim = useRef(new Animated.Value(-MENU_WIDTH)).current;
     const overlayOpacity = useRef(new Animated.Value(0)).current;
+
+    // 检查用户是否是admin
+    const isAdmin = userInfo?.user?.group?.includes('admin') ?? false;
 
     useEffect(() => {
         loadData();
         loadOfflineStatus();
         loadCachedVideos();
         loadErrorCount();
+        loadUserInfo();
         handleCheckUpdate(true);
     }, []);
 
@@ -162,6 +170,17 @@ export default function HomeScreen({
         } catch (error) {
             console.error('加载错误数量失败:', error);
             setErrorCount(0);
+        }
+    };
+
+    // 加载用户信息
+    const loadUserInfo = async () => {
+        try {
+            const info = await whoami({});
+            setUserInfo(info);
+        } catch (error) {
+            console.error('加载用户信息失败:', error);
+            // 如果获取用户信息失败，不设置userInfo，isAdmin会默认为false
         }
     };
 
@@ -791,6 +810,24 @@ export default function HomeScreen({
                                     </View>
                                     <Text style={styles.menuItemArrow}>›</Text>
                                 </TouchableOpacity>
+
+                                {isAdmin && (
+                                    <TouchableOpacity
+                                        style={[styles.menuItem, isOffline && styles.menuItemDisabled]}
+                                        onPress={() => handleMenuItemPress(() => onNavigateToConfig?.())}
+                                        activeOpacity={0.7}
+                                        disabled={isOffline}
+                                    >
+                                        <Text style={styles.menuItemIcon}>⚙️</Text>
+                                        <View style={styles.menuItemContent}>
+                                            <Text style={[
+                                                styles.menuItemText,
+                                                isOffline && styles.menuItemTextDisabled
+                                            ]}>系统配置</Text>
+                                        </View>
+                                        <Text style={styles.menuItemArrow}>›</Text>
+                                    </TouchableOpacity>
+                                )}
 
                                 {Platform.OS === 'android' && (
                                     <TouchableOpacity

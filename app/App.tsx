@@ -11,11 +11,12 @@ import SeriesDetailsScreen from './screens/SeriesDetailsScreen';
 import AddTVScreen from './screens/AddTVScreen';
 import DownloadMonitorScreen from './screens/DownloadMonitorScreen';
 import ErrorManagementScreen from './screens/ErrorManagementScreen';
-import { getApiToken, clearApiToken } from './api/client-proxy';
+import ConfigScreen from './screens/ConfigScreen';
+import { getApiToken, clearApiToken, whoami } from './api/client-proxy';
 import { offlineModeManager } from './utils/offlineModeManager';
-import type { TVInfo } from './api/types';
+import type { TVInfo, WhoamiResponse } from './api/types';
 
-type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv' | 'download-monitor' | 'error-management';
+type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv' | 'download-monitor' | 'error-management' | 'config';
 
 interface NavigationState {
   screen: Screen;
@@ -31,11 +32,25 @@ export default function App() {
   const [isOffline, setIsOffline] = useState(false);
   // 导航栈：存储导航历史
   const [navigationStack, setNavigationStack] = useState<NavigationState[]>([]);
+  // 用户信息
+  const [userInfo, setUserInfo] = useState<WhoamiResponse | null>(null);
+
+  // 检查用户是否是admin
+  const isAdmin = userInfo?.user?.group?.includes('admin') ?? false;
 
   useEffect(() => {
     checkLoginStatus();
     loadOfflineStatus();
   }, []);
+
+  // 当登录状态改变时，加载用户信息
+  useEffect(() => {
+    if (isLoggedIn) {
+      loadUserInfo();
+    } else {
+      setUserInfo(null);
+    }
+  }, [isLoggedIn]);
 
   // 监听屏幕变化，如果处于离线模式且尝试进入add-tv，则自动返回
   useEffect(() => {
@@ -51,6 +66,16 @@ export default function App() {
       setIsOffline(offline);
     } catch (error) {
       console.error('加载离线模式状态失败:', error);
+    }
+  };
+
+  const loadUserInfo = async () => {
+    try {
+      const info = await whoami({});
+      setUserInfo(info);
+    } catch (error) {
+      console.error('加载用户信息失败:', error);
+      // 如果获取用户信息失败，不设置userInfo，isAdmin会默认为false
     }
   };
 
@@ -159,6 +184,15 @@ export default function App() {
     navigateTo('error-management');
   };
 
+  const handleNavigateToConfig = async () => {
+    // 检查用户是否是admin
+    if (!isAdmin) {
+      Alert.alert('权限不足', '只有管理员可以访问系统配置页面');
+      return;
+    }
+    navigateTo('config');
+  };
+
   const handleSeriesPress = (seriesId: number) => {
     navigateTo('series-details', { selectedSeriesId: seriesId });
   };
@@ -186,6 +220,7 @@ export default function App() {
             onNavigateToAddTV={handleNavigateToAddTV}
             onNavigateToDownloadMonitor={handleNavigateToDownloadMonitor}
             onNavigateToErrorManagement={handleNavigateToErrorManagement}
+            onNavigateToConfig={handleNavigateToConfig}
           />
         ) : currentScreen === 'cache' ? (
           <VideoCacheScreen onBack={navigateBack} />
@@ -207,6 +242,21 @@ export default function App() {
           <DownloadMonitorScreen onBack={navigateBack} />
         ) : currentScreen === 'error-management' ? (
           <ErrorManagementScreen onBack={navigateBack} />
+        ) : currentScreen === 'config' ? (
+          isAdmin ? (
+            <ConfigScreen onBack={navigateBack} />
+          ) : (
+            <HomeScreen
+              onLogout={handleLogout}
+              onTVPress={handleTVPress}
+              onNavigateToCache={handleNavigateToCache}
+              onNavigateToSeriesList={handleNavigateToSeriesList}
+              onNavigateToAddTV={handleNavigateToAddTV}
+              onNavigateToDownloadMonitor={handleNavigateToDownloadMonitor}
+              onNavigateToErrorManagement={handleNavigateToErrorManagement}
+              onNavigateToConfig={handleNavigateToConfig}
+            />
+          )
         ) : selectedTV ? (
           <TVDetailsScreen
             tv={selectedTV}
@@ -222,6 +272,7 @@ export default function App() {
             onNavigateToAddTV={handleNavigateToAddTV}
             onNavigateToDownloadMonitor={handleNavigateToDownloadMonitor}
             onNavigateToErrorManagement={handleNavigateToErrorManagement}
+            onNavigateToConfig={handleNavigateToConfig}
           />
         )
       ) : (

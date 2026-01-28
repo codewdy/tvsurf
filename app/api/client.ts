@@ -38,7 +38,13 @@ import type {
     GetErrorsRequest,
     GetErrorsResponse,
     RemoveErrorsRequest,
-    RemoveErrorsResponse
+    RemoveErrorsResponse,
+    GetConfigRequest,
+    GetConfigResponse,
+    SetConfigRequest,
+    SetConfigResponse,
+    WhoamiRequest,
+    WhoamiResponse
 } from './types';
 
 // API 基础 URL 存储键
@@ -496,6 +502,60 @@ export async function removeErrors(
     return apiCall<RemoveErrorsRequest, RemoveErrorsResponse>(
         baseUrl,
         '/api/remove_errors',
+        request,
+        token
+    );
+}
+
+// 获取配置 API
+export async function getConfig(
+    request: GetConfigRequest = {}
+): Promise<GetConfigResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<GetConfigRequest, GetConfigResponse>(
+        baseUrl,
+        '/api/get_config',
+        request,
+        token
+    );
+}
+
+// 设置配置 API
+export async function setConfig(
+    request: SetConfigRequest
+): Promise<SetConfigResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<SetConfigRequest, SetConfigResponse>(
+        baseUrl,
+        '/api/set_config',
+        request,
+        token
+    );
+}
+
+// 获取当前用户信息 API
+export async function whoami(
+    request: WhoamiRequest = {}
+): Promise<WhoamiResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) {
+        throw new Error('API base URL not set');
+    }
+
+    const token = await getApiToken();
+    return apiCall<WhoamiRequest, WhoamiResponse>(
+        baseUrl,
+        '/api/whoami',
         request,
         token
     );

@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { TVInfo, GetTVDetailsResponse, Tag, Series } from '../api/types';
+import type { TVInfo, GetTVDetailsResponse, Tag, Series, WhoamiResponse } from '../api/types';
 
 // 存储键
 const OFFLINE_DATA_KEY = '@tvsurf_offline_data';
@@ -12,6 +12,7 @@ interface OfflineData {
     tvInfos: Record<number, TVInfo>; // tvId -> TVInfo
     tvDetails: Record<number, GetTVDetailsResponse>; // tvId -> TVDetails
     series: Record<number, Series>; // seriesId -> Series
+    userInfo: WhoamiResponse | null; // 用户信息
     lastSync: string; // ISO datetime string
 }
 
@@ -79,6 +80,7 @@ class OfflineDataCache {
         tvInfos: {},
         tvDetails: {},
         series: {},
+        userInfo: null,
         lastSync: '',
     };
     // 使用数组存储待上传操作，按顺序执行
@@ -105,7 +107,15 @@ class OfflineDataCache {
         try {
             const dataStr = await AsyncStorage.getItem(OFFLINE_DATA_KEY);
             if (dataStr) {
-                this.offlineData = JSON.parse(dataStr);
+                const parsed = JSON.parse(dataStr);
+                // 兼容旧数据格式（没有userInfo字段）
+                this.offlineData = {
+                    tvInfos: parsed.tvInfos || {},
+                    tvDetails: parsed.tvDetails || {},
+                    series: parsed.series || {},
+                    userInfo: parsed.userInfo || null,
+                    lastSync: parsed.lastSync || '',
+                };
             }
         } catch (error) {
             console.error('加载离线数据失败:', error);
@@ -114,6 +124,7 @@ class OfflineDataCache {
                 tvInfos: {},
                 tvDetails: {},
                 series: {},
+                userInfo: null,
                 lastSync: '',
             };
         }
@@ -189,6 +200,20 @@ class OfflineDataCache {
         return allSeries.filter((series) => ids.includes(series.id));
     }
 
+    // 保存用户信息
+    async saveUserInfo(userInfo: WhoamiResponse): Promise<void> {
+        await this.initialize();
+        this.offlineData.userInfo = userInfo;
+        this.offlineData.lastSync = new Date().toISOString();
+        await this.saveOfflineData();
+    }
+
+    // 获取缓存的用户信息
+    async getUserInfo(): Promise<WhoamiResponse | null> {
+        await this.initialize();
+        return this.offlineData.userInfo;
+    }
+
     // 清除所有离线数据（包括临时ID映射表）
     async clearOfflineData(): Promise<void> {
         await this.initialize();
@@ -196,6 +221,7 @@ class OfflineDataCache {
             tvInfos: {},
             tvDetails: {},
             series: {},
+            userInfo: null,
             lastSync: '',
         };
         await this.saveOfflineData();
