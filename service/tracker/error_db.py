@@ -1,7 +1,7 @@
 from service.lib.context import Context
 from service.schema.error import ErrorDB as ErrorDBSchema
 from service.schema.error import Error, ErrorType
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class ErrorDB:
@@ -14,7 +14,7 @@ class ErrorDB:
         self.error_db.errors.append(
             Error(
                 id=self.error_db.next_error_id,
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
                 title=title,
                 description=error,
                 type=ErrorType.ERROR,
@@ -27,7 +27,7 @@ class ErrorDB:
         self.error_db.errors.append(
             Error(
                 id=self.error_db.next_error_id,
-                timestamp=datetime.now(),
+                timestamp=datetime.now(timezone.utc),
                 title=title,
                 description=error,
                 type=ErrorType.CRITICAL,

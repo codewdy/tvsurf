@@ -7,9 +7,18 @@ import type {
   RemoveErrorsRequest,
 } from "../api/types";
 
+// 无时区后缀的 ISO 字符串按 UTC 解析（后端存的是 UTC）
+function parseTimestamp(timestamp: string): Date {
+  const s = timestamp.trim();
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/i.test(s) && !/[Z+\-]\d{2}:?\d{2}$/.test(s)) {
+    return new Date(s + "Z");
+  }
+  return new Date(timestamp);
+}
+
 // 格式化时间
 function formatDateTime(dateString: string): string {
-  const date = new Date(dateString);
+  const date = parseTimestamp(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
@@ -57,7 +66,7 @@ export default function Errors() {
       const data = await getErrors({});
       // 按时间倒序排序，最新的在前
       const sortedErrors = [...(data.errors || [])].sort((a, b) => {
-        return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+        return parseTimestamp(b.timestamp).getTime() - parseTimestamp(a.timestamp).getTime();
       });
       setErrors(sortedErrors);
     } catch (err) {
@@ -234,7 +243,7 @@ export default function Errors() {
                           </p>
                         </div>
                         <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                          ID: {error.id} | 时间: {new Date(error.timestamp).toLocaleString("zh-CN")}
+                          ID: {error.id} | 时间: {parseTimestamp(error.timestamp).toLocaleString("zh-CN")}
                         </div>
                       </>
                     )}

@@ -20,10 +20,19 @@ interface ErrorManagementScreenProps {
     onBack: () => void;
 }
 
+// 解析时间戳：无时区后缀的 ISO 字符串按 UTC 解析（后端存的是 UTC）
+function parseTimestamp(timestamp: string): Date {
+    const s = timestamp.trim();
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/i.test(s) && !/[Z+\-]\d{2}:?\d{2}$/.test(s)) {
+        return new Date(s + 'Z');
+    }
+    return new Date(timestamp);
+}
+
 // 格式化时间
 function formatTimestamp(timestamp: string): string {
     try {
-        const date = new Date(timestamp);
+        const date = parseTimestamp(timestamp);
         const now = new Date();
         const diffMs = now.getTime() - date.getTime();
         const diffMins = Math.floor(diffMs / 60000);
@@ -373,7 +382,7 @@ export default function ErrorManagementScreen({ onBack }: ErrorManagementScreenP
                                 <View style={styles.modalSection}>
                                     <Text style={styles.modalLabel}>时间</Text>
                                     <Text style={styles.modalValue}>
-                                        {new Date(selectedError.timestamp).toLocaleString('zh-CN')}
+                                        {parseTimestamp(selectedError.timestamp).toLocaleString('zh-CN')}
                                     </Text>
                                 </View>
                                 <View style={styles.modalSection}>
