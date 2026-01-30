@@ -876,7 +876,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
                                                         <Ionicons name="phone-portrait" size={10} color="#FF9800" />
                                                         <Text style={styles.episodeStatusTextDownloading}>
-                                                            缓存下载中：{Math.round(downloadProgress * 100)}%
+                                                            {Math.round(downloadProgress * 100)}%
                                                         </Text>
                                                     </View>
                                                 ) : isCached ? (
