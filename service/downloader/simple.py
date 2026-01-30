@@ -5,15 +5,20 @@ from service.schema.downloader import DownloadProgress
 
 
 class SimpleDownloader:
-    def __init__(self, src, dst, download_tracker=None):
+    def __init__(self, src, dst, download_tracker=None, referer=None):
         self.src = src
         self.dst = dst
         self.download_tracker = download_tracker
+        self.referer = referer
 
     async def run(self):
         async with Context.client.get(
             self.src,
-            headers=HEADERS,
+            headers=(
+                {**HEADERS, "Referer": self.referer}
+                if self.referer is not None
+                else HEADERS
+            ),
             timeout=aiohttp.ClientTimeout(
                 total=Context.config.download.connect_timeout.total_seconds()
             ),

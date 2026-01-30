@@ -112,7 +112,7 @@ class M3U8Downloader:
                     fn = os.path.join(tmp, f"fragment_{i}.ts")
                     fragments.append(fn)
                     runner.schedule(
-                        SimpleDownloader(url, fn, self.download_tracker).run
+                        SimpleDownloader(url, fn, self.download_tracker, self.src).run
                     )
                 await runner.wait_all()
             self.download_tracker.update("转码中", False)
