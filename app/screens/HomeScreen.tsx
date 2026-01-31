@@ -19,7 +19,7 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getTVInfos, getApiBaseUrl, getApiToken, getMonitor, whoami } from '../api/client-proxy';
+import { getTVInfos, getTVDetails, getApiBaseUrl, getApiToken, getMonitor, whoami } from '../api/client-proxy';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { videoCache } from '../utils/videoCache';
 import { checkUpdate, downloadApk, installApk } from '../utils/autoUpdate';
@@ -93,6 +93,8 @@ export default function HomeScreen({
     const [updateDownloadProgress, setUpdateDownloadProgress] = useState(0);
     // 用户信息
     const [userInfo, setUserInfo] = useState<WhoamiResponse | null>(null);
+    // TV 卡片长按菜单：当前弹出菜单对应的 TV，null 表示未打开
+    const [tvCardMenuTarget, setTvCardMenuTarget] = useState<TVInfo | null>(null);
 
     // 菜单动画
     const slideAnim = useRef(new Animated.Value(-MENU_WIDTH)).current;
@@ -134,12 +136,17 @@ export default function HomeScreen({
                 closeMenu();
                 return true; // 返回true表示已处理返回事件
             }
+            // 如果 TV 卡片缓存菜单打开，关闭该菜单
+            if (tvCardMenuTarget !== null) {
+                setTvCardMenuTarget(null);
+                return true;
+            }
             // 主屏幕通常不需要返回键处理，返回false让系统处理（可能会退出应用）
             return false;
         });
 
         return () => backHandler.remove();
-    }, [menuVisible, offlineModeDialogVisible, offlineOperationInProgress, updateDownloadVisible]);
+    }, [menuVisible, tvCardMenuTarget, offlineModeDialogVisible, offlineOperationInProgress, updateDownloadVisible]);
 
     // 加载离线模式状态
     const loadOfflineStatus = async () => {
@@ -350,6 +357,62 @@ export default function HomeScreen({
         closeMenu();
         // 延迟执行动作，等待菜单关闭动画完成
         setTimeout(action, 300);
+    };
+
+    // TV 卡片长按菜单：缓存后续集（含当前集）或缓存所有集
+    const handleTvCardCacheMenuAction = (mode: 'fromCurrent' | 'all') => {
+        const tv = tvCardMenuTarget;
+        if (!tv) return;
+        setTvCardMenuTarget(null);
+        if (isOffline) {
+            Alert.alert('提示', '离线模式下无法添加新的缓存');
+            return;
+        }
+        (async () => {
+            try {
+                const url = await getApiBaseUrl();
+                const apiToken = await getApiToken();
+                if (!url || !apiToken) {
+                    Alert.alert('错误', '无法缓存视频');
+                    return;
+                }
+                const res = await getTVDetails({ id: tv.id });
+                const episodes = res.episodes;
+                let start: number;
+                const end = episodes.length - 1;
+                if (mode === 'fromCurrent') {
+                    start = tv.user_data.watch_progress.episode_id;
+                } else {
+                    start = 0;
+                }
+                const indices: number[] = [];
+                for (let i = start; i <= end; i++) {
+                    if (episodes[i]) indices.push(i);
+                }
+                let submitted = 0;
+                for (const i of indices) {
+                    try {
+                        const isCached = await videoCache.isCached(tv.id, i);
+                        const isDownloading = videoCache.isDownloading(tv.id, i);
+                        if (isCached || isDownloading) continue;
+                        const videoUrl = episodes[i]!;
+                        const fullUrl = videoUrl.startsWith('http')
+                            ? videoUrl
+                            : `${url.endsWith('/') ? url.slice(0, -1) : url}${videoUrl}`;
+                        await videoCache.submitDownload(tv.id, i, fullUrl, {
+                            Cookie: `tvsurf_token=${apiToken}`,
+                        });
+                        submitted++;
+                    } catch (err) {
+                        console.error(`提交第 ${i + 1} 集缓存失败:`, err);
+                    }
+                }
+                await loadCachedVideos();
+            } catch (err) {
+                console.error('TV card cache error:', err);
+                Alert.alert('错误', err instanceof Error ? err.message : '获取剧集信息失败');
+            }
+        })();
     };
 
     // 切换离线模式
@@ -641,6 +704,7 @@ export default function HomeScreen({
                                                 key={tv.id}
                                                 style={styles.tvCard}
                                                 onPress={() => onTVPress?.(tv)}
+                                                onLongPress={() => setTvCardMenuTarget(tv)}
                                                 activeOpacity={0.7}
                                             >
                                                 <Image
@@ -736,10 +800,10 @@ export default function HomeScreen({
                                     activeOpacity={0.7}
                                     disabled={isOffline}
                                 >
-                                    <Ionicons 
-                                        name="add-circle-outline" 
-                                        size={22} 
-                                        color={isOffline ? '#999' : '#007AFF'} 
+                                    <Ionicons
+                                        name="add-circle-outline"
+                                        size={22}
+                                        color={isOffline ? '#999' : '#007AFF'}
                                         style={styles.menuItemIconComponent}
                                     />
                                     <Text style={[
@@ -754,10 +818,10 @@ export default function HomeScreen({
                                     onPress={() => handleMenuItemPress(() => onNavigateToSeriesList?.())}
                                     activeOpacity={0.7}
                                 >
-                                    <Ionicons 
-                                        name="list-outline" 
-                                        size={22} 
-                                        color="#007AFF" 
+                                    <Ionicons
+                                        name="list-outline"
+                                        size={22}
+                                        color="#007AFF"
                                         style={styles.menuItemIconComponent}
                                     />
                                     <Text style={styles.menuItemText}>播放列表</Text>
@@ -769,10 +833,10 @@ export default function HomeScreen({
                                     onPress={() => handleMenuItemPress(() => onNavigateToCache?.())}
                                     activeOpacity={0.7}
                                 >
-                                    <Ionicons 
-                                        name="folder-outline" 
-                                        size={22} 
-                                        color="#007AFF" 
+                                    <Ionicons
+                                        name="folder-outline"
+                                        size={22}
+                                        color="#007AFF"
                                         style={styles.menuItemIconComponent}
                                     />
                                     <Text style={styles.menuItemText}>缓存管理</Text>
@@ -785,10 +849,10 @@ export default function HomeScreen({
                                     activeOpacity={0.7}
                                     disabled={isOffline}
                                 >
-                                    <Ionicons 
-                                        name="download-outline" 
-                                        size={22} 
-                                        color={isOffline ? '#999' : '#007AFF'} 
+                                    <Ionicons
+                                        name="download-outline"
+                                        size={22}
+                                        color={isOffline ? '#999' : '#007AFF'}
                                         style={styles.menuItemIconComponent}
                                     />
                                     <Text style={[
@@ -803,10 +867,10 @@ export default function HomeScreen({
                                     onPress={() => handleMenuItemPress(handleToggleOfflineMode)}
                                     activeOpacity={0.7}
                                 >
-                                    <Ionicons 
-                                        name="airplane-outline" 
-                                        size={22} 
-                                        color="#007AFF" 
+                                    <Ionicons
+                                        name="airplane-outline"
+                                        size={22}
+                                        color="#007AFF"
                                         style={styles.menuItemIconComponent}
                                     />
                                     <View style={styles.menuItemContent}>
@@ -825,10 +889,10 @@ export default function HomeScreen({
                                             activeOpacity={0.7}
                                             disabled={isOffline}
                                         >
-                                            <Ionicons 
-                                                name="settings-outline" 
-                                                size={22} 
-                                                color={isOffline ? '#999' : '#007AFF'} 
+                                            <Ionicons
+                                                name="settings-outline"
+                                                size={22}
+                                                color={isOffline ? '#999' : '#007AFF'}
                                                 style={styles.menuItemIconComponent}
                                             />
                                             <View style={styles.menuItemContent}>
@@ -846,10 +910,10 @@ export default function HomeScreen({
                                                 activeOpacity={0.7}
                                                 disabled={isOffline}
                                             >
-                                                <Ionicons 
-                                                    name="people-outline" 
-                                                    size={22} 
-                                                    color={isOffline ? '#999' : '#007AFF'} 
+                                                <Ionicons
+                                                    name="people-outline"
+                                                    size={22}
+                                                    color={isOffline ? '#999' : '#007AFF'}
                                                     style={styles.menuItemIconComponent}
                                                 />
                                                 <View style={styles.menuItemContent}>
@@ -871,10 +935,10 @@ export default function HomeScreen({
                                         activeOpacity={0.7}
                                         disabled={isOffline || updateCheckInProgress}
                                     >
-                                        <Ionicons 
-                                            name="refresh-outline" 
-                                            size={22} 
-                                            color={(isOffline || updateCheckInProgress) ? '#999' : '#007AFF'} 
+                                        <Ionicons
+                                            name="refresh-outline"
+                                            size={22}
+                                            color={(isOffline || updateCheckInProgress) ? '#999' : '#007AFF'}
                                             style={styles.menuItemIconComponent}
                                         />
                                         <Text style={[
@@ -892,10 +956,10 @@ export default function HomeScreen({
                                     onPress={() => handleMenuItemPress(() => onNavigateToAccount?.())}
                                     activeOpacity={0.7}
                                 >
-                                    <Ionicons 
-                                        name="person-outline" 
-                                        size={22} 
-                                        color="#007AFF" 
+                                    <Ionicons
+                                        name="person-outline"
+                                        size={22}
+                                        color="#007AFF"
                                         style={styles.menuItemIconComponent}
                                     />
                                     <Text style={styles.menuItemText}>我的账户</Text>
@@ -905,6 +969,59 @@ export default function HomeScreen({
                         </SafeAreaView>
                     </Animated.View>
                 </View>
+            </Modal>
+
+            {/* TV 卡片长按缓存菜单 */}
+            <Modal
+                visible={tvCardMenuTarget !== null}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setTvCardMenuTarget(null)}
+            >
+                <TouchableWithoutFeedback onPress={() => setTvCardMenuTarget(null)}>
+                    <View style={styles.tvCardMenuOverlay}>
+                        <View
+                            style={styles.tvCardMenuPanel}
+                            onStartShouldSetResponder={() => true}
+                        >
+                            {isOffline && (
+                                <Text style={styles.tvCardMenuHint}>离线模式下无法添加缓存</Text>
+                            )}
+                            <TouchableOpacity
+                                style={[styles.tvCardMenuItem, isOffline && styles.tvCardMenuItemDisabled]}
+                                onPress={() => tvCardMenuTarget && handleTvCardCacheMenuAction('fromCurrent')}
+                                activeOpacity={0.7}
+                                disabled={isOffline}
+                            >
+                                <Ionicons
+                                    name="play-forward-outline"
+                                    size={22}
+                                    color={isOffline ? '#999' : '#007AFF'}
+                                    style={styles.tvCardMenuIcon}
+                                />
+                                <Text style={[styles.tvCardMenuText, isOffline && styles.tvCardMenuTextDisabled]}>
+                                    缓存后续集
+                                </Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.tvCardMenuItem, isOffline && styles.tvCardMenuItemDisabled]}
+                                onPress={() => tvCardMenuTarget && handleTvCardCacheMenuAction('all')}
+                                activeOpacity={0.7}
+                                disabled={isOffline}
+                            >
+                                <Ionicons
+                                    name="list-outline"
+                                    size={22}
+                                    color={isOffline ? '#999' : '#007AFF'}
+                                    style={styles.tvCardMenuIcon}
+                                />
+                                <Text style={[styles.tvCardMenuText, isOffline && styles.tvCardMenuTextDisabled]}>
+                                    缓存所有集
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </TouchableWithoutFeedback>
             </Modal>
 
             {/* 离线模式操作进度对话框 */}
@@ -1327,5 +1444,51 @@ const styles = StyleSheet.create({
         fontSize: 13,
         color: '#999',
         marginTop: 8,
+    },
+    // TV 卡片长按缓存菜单
+    tvCardMenuOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    tvCardMenuPanel: {
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        paddingVertical: 8,
+        minWidth: 260,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+        elevation: 5,
+    },
+    tvCardMenuHint: {
+        fontSize: 13,
+        color: '#999',
+        paddingHorizontal: 20,
+        paddingVertical: 8,
+        paddingBottom: 4,
+    },
+    tvCardMenuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+    },
+    tvCardMenuItemDisabled: {
+        opacity: 0.6,
+    },
+    tvCardMenuIcon: {
+        marginRight: 12,
+        width: 22,
+        textAlign: 'center',
+    },
+    tvCardMenuText: {
+        fontSize: 16,
+        color: '#333',
+    },
+    tvCardMenuTextDisabled: {
+        color: '#999',
     },
 });
