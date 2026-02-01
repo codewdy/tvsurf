@@ -21,7 +21,8 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.codewdy.tvsurf",
       "permissions": [
-        "REQUEST_INSTALL_PACKAGES"
+        "REQUEST_INSTALL_PACKAGES",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -40,7 +41,8 @@
             "usesCleartextTraffic": true
           }
         }
-      ]
+      ],
+      "./withNotifeeDataSync.js"
     ]
   }
 }

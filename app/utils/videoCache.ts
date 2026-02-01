@@ -1,5 +1,12 @@
 import * as FileSystem from 'expo-file-system/legacy';
+import { Platform, PermissionsAndroid } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import {
+    startDownloadNotification,
+    updateDownloadNotification,
+    stopDownloadNotification,
+} from './notifeeDownloadService';
 
 // 缓存元数据
 export interface CachedVideo {
@@ -69,10 +76,26 @@ class VideoCache {
     private readonly MAX_CONCURRENT_DOWNLOADS = 3;
     private downloadQueue: string[] = []; // 等待下载的任务队列（存储key）
     private runningDownloads = 0; // 当前正在运行的下载数量
+    private fgsNotificationActive = false; // 前台服务通知是否已显示
+
+    // 请求 Android 13+ 通知权限（下载时显示前台服务通知需要）
+    private async requestNotificationPermissionIfNeeded(): Promise<void> {
+        if (Platform.OS === 'android' && Platform.Version >= 33) {
+            try {
+                await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+                );
+            } catch (e) {
+                console.warn('请求通知权限失败:', e);
+            }
+        }
+    }
 
     // 初始化缓存系统
     async initialize(): Promise<void> {
         if (this.initialized) return;
+
+        await this.requestNotificationPermissionIfNeeded();
 
         // 确保缓存目录存在
         const dirInfo = await FileSystem.getInfoAsync(CACHE_DIR);
@@ -332,6 +355,8 @@ class VideoCache {
         this.downloadTasks.clear();
         this.runningDownloads = 0;
 
+        this.tryStopDownloadNotification();
+
         // 删除缓存目录
         const dirInfo = await FileSystem.getInfoAsync(CACHE_DIR);
         if (dirInfo.exists) {
@@ -401,6 +426,14 @@ class VideoCache {
         this.processQueue();
     }
 
+    // 无下载任务时停止前台服务通知
+    private tryStopDownloadNotification(): void {
+        if (this.runningDownloads === 0 && this.downloadQueue.length === 0 && this.fgsNotificationActive) {
+            this.fgsNotificationActive = false;
+            stopDownloadNotification().catch(console.error);
+        }
+    }
+
     // 处理下载队列
     private processQueue(): void {
         // 如果已达到最大并发数，则不处理
@@ -426,6 +459,7 @@ class VideoCache {
                     this.runningDownloads--;
                     // 下载完成后，继续处理队列
                     this.processQueue();
+                    this.tryStopDownloadNotification();
                 });
         }
     }
@@ -448,6 +482,16 @@ class VideoCache {
             // 更新状态为下载中
             task.status = DownloadStatus.DOWNLOADING;
             this.notifyProgress(task);
+
+            // 有下载任务时启动前台服务通知（仅启动一次）
+            if (!this.fgsNotificationActive) {
+                this.fgsNotificationActive = true;
+                const totalTasks = this.getTotalDownloadTasksCount();
+                startDownloadNotification(totalTasks).catch(console.error);
+            } else {
+                const totalTasks = this.getTotalDownloadTasksCount();
+                updateDownloadNotification(totalTasks).catch(console.error);
+            }
 
             const localUri = this.getLocalFilePath(tvId, episodeId);
 
@@ -565,6 +609,8 @@ class VideoCache {
         if (fileInfo.exists) {
             await FileSystem.deleteAsync(localUri, { idempotent: true });
         }
+
+        this.tryStopDownloadNotification();
     }
 
     // ==================== 事件监听 ====================
