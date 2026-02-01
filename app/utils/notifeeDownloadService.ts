@@ -27,6 +27,7 @@ export async function startDownloadNotification(totalTasks: number): Promise<voi
       channelId: DOWNLOAD_CHANNEL_ID,
       asForegroundService: true,
       foregroundServiceTypes: [AndroidForegroundServiceType.FOREGROUND_SERVICE_TYPE_DATA_SYNC],
+      pressAction: { id: 'default' }, // 点击通知打开应用
     },
   });
 }
@@ -44,6 +45,7 @@ export async function updateDownloadNotification(
       channelId: DOWNLOAD_CHANNEL_ID,
       asForegroundService: true,
       foregroundServiceTypes: [AndroidForegroundServiceType.FOREGROUND_SERVICE_TYPE_DATA_SYNC],
+      pressAction: { id: 'default' }, // 点击通知打开应用
     },
   });
 }
