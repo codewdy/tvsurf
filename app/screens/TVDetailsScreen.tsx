@@ -715,7 +715,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
         return (
             <SafeAreaView style={styles.container}>
                 <View style={styles.errorContainer}>
-                    <Text style={styles.errorText}>未找到电视剧详情</Text>
+                    <Text style={styles.errorText}>未找到TV详情</Text>
                 </View>
             </SafeAreaView>
         );

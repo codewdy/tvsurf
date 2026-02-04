@@ -681,13 +681,13 @@ export default function TVSettingsModal({
                     ⚠️ 警告：此操作不可撤销
                   </h3>
                   <p className="text-sm text-red-700 dark:text-red-400">
-                    删除此电视剧将永久移除所有相关数据，包括下载的剧集、观看进度等信息。此操作无法恢复。
+                    删除此TV将永久移除所有相关数据，包括下载的剧集、观看进度等信息。此操作无法恢复。
                   </p>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    请输入电视剧名称以确认删除
+                    请输入TV名称以确认删除
                   </label>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                     请输入 "<span className="font-semibold">{details.tv.name}</span>" 以确认删除
@@ -706,7 +706,7 @@ export default function TVSettingsModal({
                   <button
                     onClick={async () => {
                       if (deleteConfirmName !== details.tv.name) {
-                        setErrorMessage("输入的电视剧名称不匹配");
+                        setErrorMessage("输入的TV名称不匹配");
                         return;
                       }
 

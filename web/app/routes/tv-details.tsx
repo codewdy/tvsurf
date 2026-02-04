@@ -19,8 +19,8 @@ import "xgplayer/dist/index.min.css";
 
 export function meta({ }: Route.MetaArgs) {
   return [
-    { title: "电视剧详情" },
-    { name: "description", content: "电视剧详情和播放" },
+    { title: "TV详情" },
+    { name: "description", content: "TV详情和播放" },
   ];
 }
 
@@ -194,7 +194,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
       const data = await getTVDetails({ id: tvId });
       setDetails(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "获取电视剧详情时发生错误");
+      setError(err instanceof Error ? err.message : "获取TV详情时发生错误");
       console.error("Fetch TV details error:", err);
     }
   };
@@ -272,7 +272,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-700 dark:text-red-400">
-            {error || "未找到电视剧详情"}
+            {error || "未找到TV详情"}
           </div>
           <a
             href="/"
@@ -310,7 +310,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
         )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* 左侧：电视剧信息 */}
+          {/* 左侧：TV信息 */}
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 sticky top-4">
               {details.info.cover_url && (

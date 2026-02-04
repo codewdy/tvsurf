@@ -369,7 +369,7 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                         style={styles.searchInput}
                         value={keyword}
                         onChangeText={setKeyword}
-                        placeholder="输入电视剧名称..."
+                        placeholder="输入TV名称..."
                         placeholderTextColor="#999"
                         editable={!loading && !isOffline}
                     />
