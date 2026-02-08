@@ -4,7 +4,7 @@ from enum import Enum
 
 class DownloadConfig(BaseModel):
     connect_timeout: TimeDelta = "1m"  # type: ignore
-    chunk_size: ByteSize = "1MB"  # type: ignore
+    chunk_size: ByteSize = "64KB"  # type: ignore
     max_concurrent_fragments: int = 1
     max_concurrent_downloads: int = 5
     max_retries: int = 3

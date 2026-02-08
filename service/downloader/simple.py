@@ -20,7 +20,7 @@ class SimpleDownloader:
                 else HEADERS
             ),
             timeout=aiohttp.ClientTimeout(
-                total=Context.config.download.connect_timeout.total_seconds()
+                connect=Context.config.download.connect_timeout.total_seconds(),
             ),
         ) as resp:
             content_length = resp.content_length
