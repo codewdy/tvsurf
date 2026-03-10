@@ -27,6 +27,7 @@ export function meta({ }: Route.MetaArgs) {
 export default function TVDetails({ params }: Route.ComponentProps) {
   const id = params?.id;
   const [details, setDetails] = useState<GetTVDetailsResponse | null>(null);
+  const [mutableDetails, setMutableDetails] = useState<GetTVDetailsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<number>(0);
@@ -193,6 +194,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     try {
       const data = await getTVDetails({ id: tvId });
       setDetails(data);
+      setMutableDetails(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "获取TV详情时发生错误");
       console.error("Fetch TV details error:", err);
@@ -211,7 +213,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   };
 
   const handleTagChange = async (newTag: Tag) => {
-    if (!details) return;
+    if (!details || !mutableDetails) return;
 
     setUpdatingTag(true);
     setError(null);
@@ -222,11 +224,11 @@ export default function TVDetails({ params }: Route.ComponentProps) {
       });
 
       // 更新本地状态
-      setDetails({
-        ...details,
+      setMutableDetails({
+        ...mutableDetails,
         info: {
-          ...details.info,
-          user_data: { ...details.info.user_data, tag: newTag },
+          ...mutableDetails.info,
+          user_data: { ...mutableDetails.info.user_data, tag: newTag },
         },
       });
     } catch (err) {
@@ -267,7 +269,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     );
   }
 
-  if (error || !details) {
+  if (error || !mutableDetails) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
         <div className="container mx-auto px-4 max-w-6xl">
@@ -285,7 +287,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     );
   }
 
-  const currentVideoUrl = details.episodes[selectedEpisode];
+  const currentVideoUrl = mutableDetails.episodes[selectedEpisode];
   const hasVideo = currentVideoUrl !== null;
 
   return (
@@ -293,7 +295,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
       <div className="container mx-auto px-4 max-w-7xl">
         {/* 导航栏 */}
         <div className="mb-6 flex items-center justify-between">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{details.tv.name}</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">{mutableDetails.tv.name}</h1>
           <button
             onClick={() => setShowEditModal(true)}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors dark:bg-blue-700 dark:hover:bg-blue-600"
@@ -313,10 +315,10 @@ export default function TVDetails({ params }: Route.ComponentProps) {
           {/* 左侧：TV信息 */}
           <div className="lg:col-span-1">
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 sticky top-4">
-              {details.info.cover_url && (
+              {mutableDetails.info.cover_url && (
                 <img
-                  src={details.info.cover_url}
-                  alt={details.tv.name}
+                  src={mutableDetails.info.cover_url}
+                  alt={mutableDetails.tv.name}
                   className="w-full rounded-lg mb-4"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
@@ -330,7 +332,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                     标签
                   </label>
                   <select
-                    value={details.info.user_data.tag}
+                    value={mutableDetails.info.user_data.tag}
                     onChange={(e) => handleTagChange(e.target.value as Tag)}
                     disabled={updatingTag}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100 disabled:opacity-50"
@@ -364,34 +366,34 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                   )}
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">来源:</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{details.tv.source.source.source_name}</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">{mutableDetails.tv.source.source.source_name}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">频道:</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{details.tv.source.source.channel_name}</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">{mutableDetails.tv.source.source.channel_name}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">追更状态:</span>
                     <span
-                      className={`font-medium ${details.tv.track.tracking ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"
+                      className={`font-medium ${mutableDetails.tv.track.tracking ? "text-green-600 dark:text-green-400" : "text-gray-400 dark:text-gray-500"
                         }`}
                     >
-                      {details.tv.track.tracking ? "追更中" : "未追更"}
+                      {mutableDetails.tv.track.tracking ? "追更中" : "未追更"}
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">最后更新:</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{formatDate(details.tv.track.latest_update)}</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">{formatDate(mutableDetails.tv.track.latest_update)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">总集数:</span>
-                    <span className="font-medium text-gray-900 dark:text-gray-100">{details.tv.source.episodes.length} 集</span>
+                    <span className="font-medium text-gray-900 dark:text-gray-100">{mutableDetails.tv.source.episodes.length} 集</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600 dark:text-gray-400">已下载:</span>
                     <span className="font-medium text-gray-900 dark:text-gray-100">
                       {
-                        details.tv.storage.episodes.filter(
+                        mutableDetails.tv.storage.episodes.filter(
                           (ep) => ep.status === "success"
                         ).length
                       }{" "}
@@ -400,15 +402,15 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                   </div>
                 </div>
 
-                {details.info.user_data.watch_progress.episode_id > 0 && (
+                {mutableDetails.info.user_data.watch_progress.episode_id > 0 && (
                   <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                     <div className="text-sm text-gray-600 dark:text-gray-400">
                       <div className="font-medium mb-1">观看进度</div>
                       <div>
-                        第 {details.info.user_data.watch_progress.episode_id + 1} 集
+                        第 {mutableDetails.info.user_data.watch_progress.episode_id + 1} 集
                       </div>
                       <div>
-                        {formatTime(details.info.user_data.watch_progress.time)}
+                        {formatTime(mutableDetails.info.user_data.watch_progress.time)}
                       </div>
                     </div>
                   </div>
@@ -425,10 +427,10 @@ export default function TVDetails({ params }: Route.ComponentProps) {
               <div className="space-y-4">
                 <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: "16/9" }}>
                   {/* 播放器容器始终渲染，但根据情况隐藏 */}
-                  <div ref={playerContainerRef} className={`w-full h-full ${hasVideo && selectedEpisode < details.tv.source.episodes.length ? '' : 'hidden'}`}></div>
+                  <div ref={playerContainerRef} className={`w-full h-full ${hasVideo && selectedEpisode < mutableDetails.tv.source.episodes.length ? '' : 'hidden'}`}></div>
 
                   {/* 播放完成提示 */}
-                  {selectedEpisode >= details.tv.source.episodes.length && (
+                  {selectedEpisode >= mutableDetails.tv.source.episodes.length && (
                     <div className="absolute inset-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                       <div className="text-center">
                         <p className="text-2xl font-semibold text-gray-700 dark:text-gray-300 mb-2">播放完成</p>
@@ -440,28 +442,28 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                   )}
 
                   {/* 无视频时的提示 */}
-                  {!hasVideo && selectedEpisode < details.tv.source.episodes.length && (
+                  {!hasVideo && selectedEpisode < mutableDetails.tv.source.episodes.length && (
                     <div className="absolute inset-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center">
                       <div className="text-center text-gray-500 dark:text-gray-400">
-                        {details.tv.storage.episodes[selectedEpisode]?.status === "running" ? (
+                        {mutableDetails.tv.storage.episodes[selectedEpisode]?.status === "running" ? (
                           <div>
                             <p className="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-300">该集正在下载中...</p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {details.tv.storage.episodes[selectedEpisode].name}
+                              {mutableDetails.tv.storage.episodes[selectedEpisode].name}
                             </p>
                           </div>
-                        ) : details.tv.storage.episodes[selectedEpisode]?.status === "failed" ? (
+                        ) : mutableDetails.tv.storage.episodes[selectedEpisode]?.status === "failed" ? (
                           <div>
                             <p className="mb-2 text-lg font-semibold text-red-600 dark:text-red-400">该集下载失败</p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {details.tv.storage.episodes[selectedEpisode].name}
+                              {mutableDetails.tv.storage.episodes[selectedEpisode].name}
                             </p>
                           </div>
                         ) : (
                           <div>
                             <p className="mb-2 text-lg font-semibold text-gray-700 dark:text-gray-300">该集尚未下载</p>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
-                              {details.tv.source.episodes[selectedEpisode]?.name || `第 ${selectedEpisode + 1} 集`}
+                              {mutableDetails.tv.source.episodes[selectedEpisode]?.name || `第 ${selectedEpisode + 1} 集`}
                             </p>
                           </div>
                         )}
@@ -471,12 +473,12 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                 </div>
 
                 <div className="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
-                  {selectedEpisode >= details.tv.source.episodes.length ? (
+                  {selectedEpisode >= mutableDetails.tv.source.episodes.length ? (
                     <span>播放完成</span>
                   ) : hasVideo ? (
                     <>
                       <span>
-                        正在播放: {details.tv.source.episodes[selectedEpisode]?.name || "全部集数已播放完成"}
+                        正在播放: {mutableDetails.tv.source.episodes[selectedEpisode]?.name || "全部集数已播放完成"}
                       </span>
                       {playerRef.current && (
                         <span>
@@ -486,7 +488,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                     </>
                   ) : (
                     <span>
-                      {details.tv.source.episodes[selectedEpisode]?.name || `第 ${selectedEpisode + 1} 集`}
+                      {mutableDetails.tv.source.episodes[selectedEpisode]?.name || `第 ${selectedEpisode + 1} 集`}
                     </span>
                   )}
                 </div>
@@ -497,16 +499,16 @@ export default function TVDetails({ params }: Route.ComponentProps) {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
               <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">剧集列表</h2>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-96 overflow-y-auto">
-                {details.tv.source.episodes.map((episode, index) => {
-                  const storageEp = details.tv.storage.episodes[index];
+                {mutableDetails.tv.source.episodes.map((episode, index) => {
+                  const storageEp = mutableDetails.tv.storage.episodes[index];
                   const hasDownloaded = storageEp?.status === "success";
                   const isDownloading = storageEp?.status === "running";
                   const isFailed = storageEp?.status === "failed";
                   const isSelected = index === selectedEpisode;
                   const isWatched =
-                    details.info.user_data.watch_progress.episode_id > index ||
-                    (details.info.user_data.watch_progress.episode_id === index &&
-                      details.info.user_data.watch_progress.time > 0);
+                    mutableDetails.info.user_data.watch_progress.episode_id > index ||
+                    (mutableDetails.info.user_data.watch_progress.episode_id === index &&
+                      mutableDetails.info.user_data.watch_progress.time > 0);
 
                   return (
                     <button
