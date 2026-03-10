@@ -40,6 +40,13 @@ export default function VideoPlayer({
     const [seekOffset, setSeekOffset] = useState(0);
     const [showSeekIndicator, setShowSeekIndicator] = useState(false);
     const [playerWidth, setPlayerWidth] = useState(0);
+    const [systemTime, setSystemTime] = useState(
+        new Date().toLocaleTimeString('zh-CN', {
+            hour12: false,
+            hour: '2-digit',
+            minute: '2-digit',
+        }),
+    );
     const readyRef = useRef(false);
     const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const lastClickTimeRef = useRef<number>(0);
@@ -362,6 +369,22 @@ export default function VideoPlayer({
     const progressPercent = duration > 0 ? Math.min(1, playbackTime / duration) * 100 : 0;
 
     useEffect(() => {
+        const timer = setInterval(() => {
+            setSystemTime(
+                new Date().toLocaleTimeString('zh-CN', {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                }),
+            );
+        }, 1000);
+
+        return () => {
+            clearInterval(timer);
+        };
+    }, []);
+
+    useEffect(() => {
         if (showControls) {
             scheduleAutoHide();
         } else {
@@ -389,6 +412,11 @@ export default function VideoPlayer({
                     }
                 }}
             />
+            {showControls && (
+                <View style={styles.systemTimeContainer} pointerEvents="none">
+                    <Text style={styles.systemTimeText}>{systemTime}</Text>
+                </View>
+            )}
             <View
                 style={styles.touchOverlay}
                 {...(panResponderRef.current?.panHandlers || {})}
@@ -513,6 +541,20 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         backgroundColor: 'rgba(0, 0, 0, 0.45)',
         zIndex: 2,
+    },
+    systemTimeContainer: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+        backgroundColor: 'rgba(0, 0, 0, 0.45)',
+        zIndex: 3,
+    },
+    systemTimeText: {
+        color: '#fff',
+        fontSize: 12,
     },
     controlsRow: {
         flexDirection: 'row',
