@@ -596,7 +596,7 @@ export default function HomeScreen({
                 );
             } else {
                 if (!isAutoCheck) {
-                    Alert.alert('检查更新', `当前已是最新版本（${result.currentVersion}）`);
+                    Alert.alert('检查更新', `当前已是最新版本（${result.currentVersion}） 服务器版本 ${result.latestVersion}`);
                 }
             }
         } catch (err) {
