@@ -27,6 +27,7 @@ export async function fetchPackageJson(): Promise<PackageJson> {
     const res = await fetch(url, {
         method: 'GET',
         headers: { Cookie: `tvsurf_token=${token}` },
+        cache: 'no-store',
     });
     if (!res.ok) throw new Error(`获取版本信息失败: ${res.status}`);
     const json = (await res.json()) as PackageJson;
