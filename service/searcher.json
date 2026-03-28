@@ -85,20 +85,19 @@
             "name": "忘忧草",
             "enable": true,
             "subject_searcher": {
-                "search_url": "https://www.myripon.com/index.php/vod/search.html?wd={keyword}",
+                "search_url": "https://www.myripon.com/public/auto/search1.html?keyword={keyword}",
                 "type": "web_a",
-                "token": ".video-info > .video-info-header > h3 a",
-                "a": ".video-info > .video-info-header > h3 a",
-                "cover": ".module-item-cover img",
-                "cover_attr": "data-src",
-                "other_page": "a.page-number.display"
+                "token": ".gen-movie-info h3 a",
+                "a": ".gen-movie-info h3 a",
+                "cover": ".gen-movie-img img",
+                "cover_attr": "src"
             },
             "channel_searcher": {
                 "type": "web_a",
-                "channel_names": ".module-tab-item span",
-                "episode_lists": ".module-blocklist .scroll-content",
-                "episodes_from_list": "a span",
-                "episode_links_from_list": "a"
+                "channel_names": ".cms-nav-play-line a.cms-nav-link",
+                "episode_lists": ".gen-season-holder .tab-content .tab-pane",
+                "episodes_from_list": "a.cms-seo033-player-lineid",
+                "episode_links_from_list": "a.cms-seo033-player-lineid"
             },
             "resource_searcher": {
                 "type": "browser"
