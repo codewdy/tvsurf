@@ -12,12 +12,12 @@ import re
 class WebSubjectSearcher(BaseSubjectSearcher):
     def __init__(
         self,
-        search_url,
+        search_url: str | list[str],
         other_page: str = "",
         other_page_filter: str = "",
         max_pages: int = 3,
     ):
-        self.search_url = search_url
+        self.search_url = search_url if isinstance(search_url, list) else [search_url]
         self.other_page = other_page
         if other_page_filter != "":
             self.other_page_filter = re.compile(other_page_filter)
@@ -25,8 +25,9 @@ class WebSubjectSearcher(BaseSubjectSearcher):
             self.other_page_filter = None
         self.max_pages = max_pages
 
-    def request_url(self, query):
-        return self.search_url.format(keyword=quote(query))
+    def request_urls(self, query: str) -> list[str]:
+        q = quote(query)
+        return [u.format(keyword=q) for u in self.search_url]
 
     @abstractmethod
     def parse(self, request_url: str, soup: BeautifulSoup) -> list[Subject]:
@@ -51,10 +52,16 @@ class WebSubjectSearcher(BaseSubjectSearcher):
         return result
 
     async def search(self, query):
-        request_url = self.request_url(query)
-        soups = [await request(request_url)]
-        other_pages = self.get_other_pages(request_url, soups[0])
-        for other_page in other_pages:
-            soups.append(await request(other_page))
-        subjects = [self.parse(request_url, soup) for soup in soups]
-        return sum(subjects, [])
+        seen: set[str] = set()
+        merged: list[Subject] = []
+        for request_url in self.request_urls(query):
+            soups = [await request(request_url)]
+            other_pages = self.get_other_pages(request_url, soups[0])
+            for other_page in other_pages:
+                soups.append(await request(other_page))
+            for soup in soups:
+                for subj in self.parse(request_url, soup):
+                    if subj.url not in seen:
+                        seen.add(subj.url)
+                        merged.append(subj)
+        return merged

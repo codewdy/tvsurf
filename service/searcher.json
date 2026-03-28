@@ -5,11 +5,14 @@
             "name": "girigiri愛動漫",
             "enable": true,
             "subject_searcher": {
-                "search_url": "https://bgm.girigirilove.com/search/-------------/?wd={keyword}",
+                "search_url": [
+                    "https://bgm.girigirilove.com/show/2-----------/?wd={keyword}",
+                    "https://bgm.girigirilove.com/show/21-----------/?wd={keyword}"
+                ],
                 "type": "web_a",
-                "token": ".detail-info h3",
-                "a": ".detail-info > a:first-child",
-                "cover": ".detail-pic img",
+                "token": ".public-list-button a.time-title",
+                "a": ".public-list-button a.time-title",
+                "cover": ".public-list-box .public-list-exp img",
                 "cover_attr": "data-src",
                 "other_page": "a.page-link.box",
                 "other_page_filter": "首页|上一页|下一页|尾页"
