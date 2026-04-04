@@ -6,26 +6,23 @@ import json
 from .header import HEADERS
 
 
-async def request(url, retry=3):
+async def request_text(url, retry=3) -> str:
     async with Context.client.get(url, headers=HEADERS) as response:
         if response.status == 429:
             if retry > 0:
                 await asyncio.sleep(5)
-                return await request(url, retry - 1)
+                return await request_text(url, retry - 1)
         if response.status != 200:
             raise RuntimeError(f"cannot get result status_code={response.status}")
-        return BeautifulSoup(await response.text(), features="lxml")
+        return await response.text()
 
 
-async def request_json(url, retry=3):
-    async with Context.client.get(url, headers=HEADERS) as response:
-        if response.status == 429:
-            if retry > 0:
-                await asyncio.sleep(5)
-                return await request(url, retry - 1)
-        if response.status != 200:
-            raise RuntimeError(f"cannot get result status_code={response.status}")
-        return json.loads(await response.text())
+async def request(url, retry=3) -> BeautifulSoup:
+    return BeautifulSoup(await request_text(url, retry), features="lxml")
+
+
+async def request_json(url, retry=3) -> dict:
+    return json.loads(await request_text(url, retry))
 
 
 def to_text(token) -> str:

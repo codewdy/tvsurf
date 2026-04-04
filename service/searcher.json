@@ -24,7 +24,7 @@
                 "episodes_from_list": "a"
             },
             "resource_searcher": {
-                "type": "browser"
+                "type": "maccms_player"
             },
             "has_ad": false,
             "self_test": {
@@ -76,7 +76,7 @@
                 "episodes_from_list": "a"
             },
             "resource_searcher": {
-                "type": "browser"
+                "type": "artplayer"
             },
             "has_ad": true,
             "self_test": {
@@ -103,7 +103,7 @@
                 "episode_links_from_list": "a.cms-seo033-player-lineid"
             },
             "resource_searcher": {
-                "type": "browser"
+                "type": "iyplayer_temline"
             },
             "has_ad": true,
             "self_test": {

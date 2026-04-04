@@ -120,10 +120,7 @@ if __name__ == "__main__":
             with open("result.json", "w") as f:
                 f.write(
                     json.dumps(
-                        [
-                            [x.model_dump(mode="json"), y.model_dump(mode="json")]
-                            for x, y in rst
-                        ],
+                        [[x.model_dump(mode="json")] for x in rst[0]],
                         ensure_ascii=False,
                         indent=2,
                     )
