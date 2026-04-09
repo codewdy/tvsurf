@@ -80,19 +80,26 @@ class M3U8Downloader:
         with open(src_m3u8, "w") as f:
             f.writelines(newlines)
 
+        # 针对分段 TS 的必要修正：genpts + make_zero + 音频 async 对齐；视频保持 copy 以控制耗时。
         await run_cmd(
             ffmpeg_path(),
             "-y",
+            "-fflags",
+            "+genpts",
             "-allowed_extensions",
             "ALL",
             "-i",
             src_m3u8,
-            "-acodec",
+            "-avoid_negative_ts",
+            "make_zero",
+            "-c:v",
             "copy",
-            "-vcodec",
-            "copy",
-            "-bsf:a",
-            "aac_adtstoasc",
+            "-af",
+            "aresample=async=1:first_pts=0",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "128k",
             dst,
         )
 
