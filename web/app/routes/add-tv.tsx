@@ -68,6 +68,10 @@ export default function AddTV() {
     setError(null);
     setResults([]);
     setSearchErrors([]);
+    // 搜索结果会重建，清空基于结果 index 的临时状态，避免新结果被旧 index 状态误伤
+    setAddingIds(new Set());
+    setAddedIds(new Set());
+    setAddError(new Map());
     setHasSearched(true);
 
     try {
