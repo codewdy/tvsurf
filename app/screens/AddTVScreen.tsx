@@ -53,6 +53,7 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
     const [savedTag, setSavedTag] = useState<Tag>('not_tagged');
     const [tvList, setTvList] = useState<TVInfo[]>([]);
     const [nameExists, setNameExists] = useState(false);
+    const [namePathCharError, setNamePathCharError] = useState<string | null>(null);
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
     const [isOffline, setIsOffline] = useState(false);
@@ -120,6 +121,22 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
             console.error('Check name exists error:', err);
             setNameExists(false);
         }
+    };
+
+    const validateTVNamePathChars = (name: string): string | null => {
+        const trimmedName = name.trim();
+        if (!trimmedName) {
+            return null;
+        }
+
+        const invalidChars = new Set(['<', '>', ':', '"', '/', '\\', '|', '?', '*']);
+        for (const char of trimmedName) {
+            const code = char.charCodeAt(0);
+            if (invalidChars.has(char) || code <= 31) {
+                return '名称包含路径非法字符（Windows/Linux）：<>:"/\\|?* 或控制字符';
+            }
+        }
+        return null;
     };
 
     const isNameExistsInTVList = (name: string): boolean => {
@@ -220,6 +237,7 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
         setConfirmSeries(savedSeries);
         setConfirmTag(savedTag);
         setNameExists(false);
+        setNamePathCharError(validateTVNamePathChars(source.name));
         setShowConfirmDialog(true);
         fetchSeries();
         checkNameExists(source.name);
@@ -230,7 +248,7 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
             return;
         }
 
-        if (nameExists) {
+        if (nameExists || namePathCharError) {
             return;
         }
 
@@ -294,6 +312,7 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
         setSeriesSearchKeyword('');
         setSeriesNameError(null);
         setNameExists(false);
+        setNamePathCharError(null);
     };
 
     const toggleSeries = (seriesId: number) => {
@@ -547,12 +566,13 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                                 <TextInput
                                     style={[
                                         styles.modalInput,
-                                        nameExists && styles.modalInputError
+                                        (nameExists || !!namePathCharError) && styles.modalInputError
                                     ]}
                                     value={confirmName}
                                     onChangeText={(text) => {
                                         setConfirmName(text);
                                         checkNameExists(text);
+                                        setNamePathCharError(validateTVNamePathChars(text));
                                     }}
                                     placeholder="输入TV名称"
                                     placeholderTextColor="#999"
@@ -560,6 +580,11 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                                 {nameExists && (
                                     <Text style={styles.modalErrorText}>
                                         该名称已存在，请使用其他名称
+                                    </Text>
+                                )}
+                                {namePathCharError && (
+                                    <Text style={styles.modalErrorText}>
+                                        {namePathCharError}
                                     </Text>
                                 )}
                             </View>
@@ -707,10 +732,10 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                             <TouchableOpacity
                                 style={[
                                     styles.modalButtonConfirm,
-                                    (!confirmName.trim() || nameExists) && styles.modalButtonConfirmDisabled
+                                    (!confirmName.trim() || nameExists || !!namePathCharError) && styles.modalButtonConfirmDisabled
                                 ]}
                                 onPress={handleConfirmAdd}
-                                disabled={!confirmName.trim() || nameExists}
+                                disabled={!confirmName.trim() || nameExists || !!namePathCharError}
                                 activeOpacity={0.7}
                             >
                                 <Text style={styles.modalButtonConfirmText}>确认添加</Text>

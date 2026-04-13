@@ -135,6 +135,15 @@ class Tracker:
     @api("user")
     async def add_tv(self, user: User, request: AddTV.Request) -> AddTV.Response:
         name = request.name
+        if not name:
+            raise ValueError("TV 名称不能为空")
+
+        invalid_chars = {"<", ">", ":", '"', "/", "\\", "|", "?", "*"}
+        for char in name:
+            if char in invalid_chars or ord(char) <= 31:
+                raise ValueError(
+                    'TV 名称包含路径非法字符（Windows/Linux）：<>:"/\\|?* 或控制字符'
+                )
         source = request.source
         tv_id = await self.local_manager.add_tv(name, source, request.tracking)
         self.series_manager.add_tv_to_series(tv_id, request.series)

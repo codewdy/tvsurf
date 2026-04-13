@@ -57,6 +57,24 @@ export default function AddTV() {
   // TV 名称验证
   const [tvList, setTvList] = useState<TVInfo[]>([]);
   const [nameExists, setNameExists] = useState(false);
+  const [namePathCharError, setNamePathCharError] = useState<string | null>(null);
+
+  // Windows + Linux 路径不允许字符：<>:"/\|?* 和控制字符（包含 \0）
+  const validateTVNamePathChars = (name: string): string | null => {
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      return null;
+    }
+
+    const invalidChars = new Set(["<", ">", ":", "\"", "/", "\\", "|", "?", "*"]);
+    for (const char of trimmedName) {
+      const code = char.charCodeAt(0);
+      if (invalidChars.has(char) || code <= 31) {
+        return "名称包含路径非法字符（Windows/Linux）：<>:\"/\\|?* 或控制字符";
+      }
+    }
+    return null;
+  };
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,6 +212,7 @@ export default function AddTV() {
     setConfirmSeries(savedSeries); // 使用保存的播放列表选择
     setConfirmTag(savedTag); // 使用保存的tag
     setNameExists(false); // 重置名称存在状态
+    setNamePathCharError(validateTVNamePathChars(source.name));
     setShowConfirmDialog(true);
     fetchSeries();
     checkNameExists(source.name); // 检查初始名称（使用缓存的 TV 列表）
@@ -204,8 +223,8 @@ export default function AddTV() {
       return;
     }
 
-    // 如果名称已存在，不允许添加
-    if (nameExists) {
+    // 名称校验失败时，不允许添加
+    if (nameExists || namePathCharError) {
       return;
     }
 
@@ -276,6 +295,7 @@ export default function AddTV() {
     setSeriesSearchKeyword("");
     setSeriesNameError(null);
     setNameExists(false);
+    setNamePathCharError(null);
   };
 
   // 监听ESC键
@@ -294,6 +314,7 @@ export default function AddTV() {
         setSeriesSearchKeyword("");
         setSeriesNameError(null);
         setNameExists(false);
+        setNamePathCharError(null);
       }
     };
 
@@ -565,8 +586,9 @@ export default function AddTV() {
                   onChange={(e) => {
                     setConfirmName(e.target.value);
                     checkNameExists(e.target.value);
+                    setNamePathCharError(validateTVNamePathChars(e.target.value));
                   }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${nameExists
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${(nameExists || namePathCharError)
                     ? "border-red-500 focus:ring-red-500 dark:border-red-500"
                     : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
                     }`}
@@ -575,6 +597,11 @@ export default function AddTV() {
                 {nameExists && (
                   <p className="mt-1 text-xs text-red-600 dark:text-red-400">
                     该名称已存在，请使用其他名称
+                  </p>
+                )}
+                {namePathCharError && (
+                  <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    {namePathCharError}
                   </p>
                 )}
               </div>
@@ -799,7 +826,7 @@ export default function AddTV() {
                 </button>
                 <button
                   onClick={handleConfirmAdd}
-                  disabled={!confirmName.trim() || nameExists}
+                  disabled={!confirmName.trim() || nameExists || !!namePathCharError}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-green-700 dark:hover:bg-green-600"
                 >
                   确认添加
