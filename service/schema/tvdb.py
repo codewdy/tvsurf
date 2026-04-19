@@ -32,6 +32,7 @@ class Storage(BaseModel):
         name: str
         filename: str
         status: DownloadStatus
+        content_uuid: str = ""
 
     directory: str
     episodes: list["Storage.Episode"]

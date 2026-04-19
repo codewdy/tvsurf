@@ -17,6 +17,7 @@ from service.searcher.searchers import Searchers
 from service.lib.parallel_holder import ParallelHolder
 import asyncio
 import os
+import uuid
 import aiofiles
 import shutil
 
@@ -71,6 +72,7 @@ class TVDownloadManager:
     def on_download_finished(self, tv_id: int, episode_id: int) -> None:
         tv = self.tvdb.tvs[tv_id]
         tv.storage.episodes[episode_id].status = DownloadStatus.SUCCESS
+        tv.storage.episodes[episode_id].content_uuid = str(uuid.uuid4())
         self.tvdb.commit()
 
     def on_download_error(self, tv_id: int, episode_id: int, error: Exception) -> None:

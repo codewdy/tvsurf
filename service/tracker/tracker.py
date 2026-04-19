@@ -1,3 +1,4 @@
+from xxlimited import Str
 from service.server.api import api, login, get_user
 from service.schema.api import *
 from service.lib.context import Context
@@ -74,8 +75,13 @@ class Tracker:
     def token_validate(self, token: Optional[str]) -> bool:
         return self.get_user(token) is not None
 
-    def resource_url(self, tv: TV, filename: str) -> str:
-        return f"/resource/{tv.name}/{filename}"
+    def resource_url(
+        self, tv: TV, filename: str, cache_bust: Optional[str] = None
+    ) -> str:
+        path = f"/resource/{tv.name}/{filename}"
+        if cache_bust:
+            return f"{path}?v={cache_bust}"
+        return path
 
     def build_tv_info(self, user_data: UserData, tv: TV) -> TVInfo:
         return TVInfo(
@@ -201,7 +207,7 @@ class Tracker:
             info=self.build_tv_info(user_data, tv),
             episodes=[
                 (
-                    self.resource_url(tv, episode.filename)
+                    self.resource_url(tv, episode.filename, episode.content_uuid)
                     if episode.status == DownloadStatus.SUCCESS
                     else None
                 )
