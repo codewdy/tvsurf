@@ -1,4 +1,3 @@
-from xxlimited import Str
 from service.server.api import api, login, get_user
 from service.schema.api import *
 from service.lib.context import Context
