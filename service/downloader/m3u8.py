@@ -14,6 +14,24 @@ from service.lib.parallel_holder import ParallelHolder
 from .m3u8_adblocker import M3U8AdBlocker
 
 
+def m3u8_total_duration_sec_from_lines(lines: list[str]) -> float | None:
+    """Sum #EXTINF segment durations. None if no EXTINF or parse error."""
+    total = 0.0
+    found = False
+    for raw in lines:
+        line = raw.strip()
+        if not line.startswith("#EXTINF:"):
+            continue
+        found = True
+        try:
+            payload = line[8:].lstrip()
+            dur_str = payload.split(",", 1)[0].strip()
+            total += float(dur_str)
+        except (ValueError, IndexError):
+            return None
+    return total if found else None
+
+
 class M3U8Downloader:
     def __init__(self, src, dst):
         self.src = src
@@ -21,6 +39,7 @@ class M3U8Downloader:
         self.download_tracker = DownloadTracker()
         self.ad_block = M3U8AdBlocker()
         self.ad_detected = False
+        self.content_duration_sec: float | None = None
 
     def select_sub_list(self, lines):
         r = re.compile(r"RESOLUTION=([0-9]+)x([0-9]+)")
@@ -63,6 +82,7 @@ class M3U8Downloader:
     async def ffmpeg(self, src_m3u8, fragments, dst):
         with open(src_m3u8, "r") as f:
             lines = f.readlines()
+            self.content_duration_sec = m3u8_total_duration_sec_from_lines(lines)
             current_fragment = 0
             newlines = []
             for line in lines:

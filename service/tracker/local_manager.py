@@ -21,6 +21,8 @@ import uuid
 import aiofiles
 import shutil
 
+_HAS_AD_SHORT_EPISODE_NO_WARN_SEC = 600.0
+
 
 class TVDownloadManager:
     def __init__(self, tvdb: TVDB) -> None:
@@ -47,7 +49,9 @@ class TVDownloadManager:
             {"tv_id": tv_id, "episode_id": episode_id},
             lambda: self.on_download_finished(tv_id, episode_id),
             lambda error: self.on_download_error(tv_id, episode_id, error),
-            lambda ad_detected: self.on_ad_detected(tv_id, episode_id, ad_detected),
+            lambda ad_detected, content_duration_sec=None: self.on_ad_detected(
+                tv_id, episode_id, ad_detected, content_duration_sec
+            ),
         )
 
     def submit_episodes(self, tv_id: int, ep_start: int) -> None:
@@ -80,15 +84,26 @@ class TVDownloadManager:
         tv.storage.episodes[episode_id].status = DownloadStatus.FAILED
         self.tvdb.commit()
 
-    def on_ad_detected(self, tv_id: int, episode_id: int, ad_detected: bool) -> None:
+    def on_ad_detected(
+        self,
+        tv_id: int,
+        episode_id: int,
+        ad_detected: bool,
+        content_duration_sec: float | None = None,
+    ) -> None:
         tv = self.tvdb.tvs[tv_id]
         with Context.handle_error(
             title=f"ad not found: {tv.name} - {tv.source.episodes[episode_id].name} "
             f"source: {tv.source.episodes[episode_id].source.source_name}"
         ):
+            short_no_ad_expected = (
+                content_duration_sec is not None
+                and content_duration_sec < _HAS_AD_SHORT_EPISODE_NO_WARN_SEC
+            )
             if (
                 self.searchers.has_ad(tv.source.episodes[episode_id].source.source_key)
                 and not ad_detected
+                and not short_no_ad_expected
             ):
                 raise ValueError(
                     f"ad not found: {tv.name} - {tv.source.episodes[episode_id].name} "
