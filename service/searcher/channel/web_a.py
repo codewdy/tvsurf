@@ -13,7 +13,9 @@ class WebAChannelSearcher(WebChannelSearcher):
         episode_links_from_list="",
         cover="",
         cover_attr="src",
+        **kwargs,
     ):
+        super().__init__(**kwargs)
         self.channel_names = channel_names
         self.episode_lists = episode_lists
         self.episodes_from_list = episodes_from_list

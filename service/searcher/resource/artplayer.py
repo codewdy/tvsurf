@@ -21,7 +21,7 @@ _ART_URL_RE_SQ = re.compile(
 class ArtplayerResourceSearcher(BaseResourceSearcher):
     """Parse `url:` inside Artplayer options from play page HTML (no browser)."""
 
-    async def search(self, url: str, _retry: int = 3) -> str:
+    async def search_impl(self, url: str, _retry: int = 3) -> str:
         html = await request_text(url, _retry)
         found = _ART_URL_RE.findall(html) or _ART_URL_RE_SQ.findall(html)
         if not found:

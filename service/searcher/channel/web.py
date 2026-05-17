@@ -10,6 +10,6 @@ class WebChannelSearcher(BaseChannelSearcher):
     def parse(self, url: str, soup: BeautifulSoup) -> list[Channel]:
         pass
 
-    async def search(self, url: str) -> list[Channel]:
+    async def search_impl(self, url: str) -> list[Channel]:
         soup = await request(url)
         return self.parse(url, soup)

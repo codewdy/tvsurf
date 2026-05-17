@@ -82,7 +82,7 @@ class MaccmsPlayerResourceSearcher(BaseResourceSearcher):
     def __init__(self, var_name: str = "player_aaaa"):
         self.var_name = var_name
 
-    async def search(self, url: str, _retry: int = 3) -> str:
+    async def search_impl(self, url: str, _retry: int = 3) -> str:
         async with Context.client.get(url, headers=HEADERS) as response:
             if response.status == 429:
                 if _retry > 0:

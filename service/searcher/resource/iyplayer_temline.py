@@ -68,7 +68,7 @@ def _parse_tem_line_list(html: str) -> list:
 class IyplayerTemlineResourceSearcher(BaseResourceSearcher):
     """Decode iyplayer `temLineList[].file` (base64 + strip 3 chars) from player HTML."""
 
-    async def search(self, url: str, _retry: int = 3) -> str:
+    async def search_impl(self, url: str, _retry: int = 3) -> str:
         html = await request_text(url, _retry)
 
         qs = parse_qs(urlparse(url).query)

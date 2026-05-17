@@ -35,7 +35,7 @@ class BrowserResourceSearcher(BaseResourceSearcher):
     def __init__(self, pattern="https?://.*\\.(mp4|m3u8)"):
         self.pattern = re.compile(pattern)
 
-    async def search(self, url):
+    async def search_impl(self, url):
         video_url = await RequestResourceHandler.get(url, self.pattern)
         if video_url is None:
             raise ValueError(f"cannot get resource: {url}")

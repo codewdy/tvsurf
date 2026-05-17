@@ -6,8 +6,8 @@
             "enable": true,
             "subject_searcher": {
                 "search_url": [
-                    "https://bgm.girigirilove.com/show/2-----------/?wd={keyword}",
-                    "https://bgm.girigirilove.com/show/21-----------/?wd={keyword}"
+                    "https://ani.girigirilove.com/show/2-----------/?wd={keyword}",
+                    "https://ani.girigirilove.com/show/21-----------/?wd={keyword}"
                 ],
                 "type": "web_a",
                 "token": ".public-list-button a.time-title",
@@ -21,10 +21,12 @@
                 "type": "web_a",
                 "channel_names": ".anthology-tab > .swiper-wrapper a",
                 "episode_lists": ".anthology-list-box",
-                "episodes_from_list": "a"
+                "episodes_from_list": "a",
+                "domain": "https://ani.girigirilove.com"
             },
             "resource_searcher": {
-                "type": "maccms_player"
+                "type": "maccms_player",
+                "domain": "https://ani.girigirilove.com"
             },
             "has_ad": false,
             "self_test": {

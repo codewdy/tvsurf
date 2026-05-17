@@ -5,5 +5,5 @@ class RawResourceSearcher(BaseResourceSearcher):
     def __init__(self):
         pass
 
-    async def search(self, url):
+    async def search_impl(self, url):
         return url
