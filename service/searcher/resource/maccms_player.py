@@ -79,7 +79,8 @@ def _unwrap_embedded_url(video_url: str) -> str:
 class MaccmsPlayerResourceSearcher(BaseResourceSearcher):
     """Resolve play URL from MacCMS `var player_aaaa=...` in page HTML (no browser)."""
 
-    def __init__(self, var_name: str = "player_aaaa"):
+    def __init__(self, var_name: str = "player_aaaa", **kwargs):
+        super().__init__(**kwargs)
         self.var_name = var_name
 
     async def search_impl(self, url: str, _retry: int = 3) -> str:
