@@ -82,12 +82,13 @@ class M3U8Downloader:
     async def ffmpeg(self, src_m3u8, fragments, dst):
         with open(src_m3u8, "r") as f:
             lines = f.readlines()
+            lines = [line.strip() for line in lines]
             self.content_duration_sec = m3u8_total_duration_sec_from_lines(lines)
             current_fragment = 0
             newlines = []
             for line in lines:
-                if line.startswith("#"):
-                    newlines.append(line)
+                if line.startswith("#") or line == "":
+                    newlines.append(line + "\n")
                 else:
                     newlines.append(fragments[current_fragment] + "\n")
                     current_fragment += 1
