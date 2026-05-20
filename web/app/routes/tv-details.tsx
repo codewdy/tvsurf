@@ -10,12 +10,12 @@ import type {
   Tag,
   GetTVDetailsResponse,
   Series,
-  GetSeriesResponse,
 } from "../api/types";
 import { TAG_NAMES } from "../api/types";
 import TVSettingsModal from "../components/TVSettingsModal";
-import Player from "xgplayer";
-import "xgplayer/dist/index.min.css";
+import VideoPlayer, {
+  type VideoPlayerEvent,
+} from "../components/VideoPlayer";
 
 export function meta({ }: Route.MetaArgs) {
   return [
@@ -32,14 +32,12 @@ export default function TVDetails({ params }: Route.ComponentProps) {
   const [error, setError] = useState<string | null>(null);
   const [selectedEpisode, setSelectedEpisode] = useState<number>(0);
   const [videoTime, setVideoTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [videoDuration, setVideoDuration] = useState(0);
   const [updatingTag, setUpdatingTag] = useState(false);
   const [seriesList, setSeriesList] = useState<Series[]>([]);
   const [autoPlay, setAutoPlay] = useState(false);
   const lastProgressUpdateRef = useRef<number>(0);
-  const playerRef = useRef<Player | null>(null);
-  const playerContainerRef = useRef<HTMLDivElement>(null);
-  const readyRef = useRef<boolean>(false);
+  const sessionReadyRef = useRef(false);
   // 编辑模态框相关状态
   const [showEditModal, setShowEditModal] = useState(false);
 
@@ -66,20 +64,51 @@ export default function TVDetails({ params }: Route.ComponentProps) {
     setSelectedEpisode(episodeIndex);
     const newVideoUrl = details?.episodes[episodeIndex] || null;
 
-    if (newVideoUrl && playerRef.current) {
-      // 更新播放器视频源
-      playerRef.current.src = newVideoUrl;
+    if (newVideoUrl) {
       setVideoTime(0);
-      lastProgressUpdateRef.current = 0; // 重置更新时间
+      lastProgressUpdateRef.current = 0;
+      setVideoDuration(0);
       setAutoPlay(_autoPlay);
-    } else if (!newVideoUrl && playerRef.current) {
-      // 如果下一集没有视频（下载中、下载失败或未下载），停止并清空播放器
-      playerRef.current.pause();
-      playerRef.current.src = '';
+    } else {
       setVideoTime(0);
-      setIsPlaying(false);
+      setVideoDuration(0);
+      lastProgressUpdateRef.current = 0;
     }
   }, [details, updateWatchProgress]);
+
+  const handlePlayerEvent = useCallback(
+    (event: VideoPlayerEvent) => {
+      switch (event.type) {
+        case "ready":
+          sessionReadyRef.current = true;
+          break;
+        case "pause":
+          updateWatchProgress(selectedEpisode, event.currentTime);
+          break;
+        case "timeupdate":
+          setVideoTime(event.currentTime);
+          setVideoDuration(event.duration);
+          if (
+            Math.abs(event.currentTime - lastProgressUpdateRef.current) >= 1
+          ) {
+            updateWatchProgress(selectedEpisode, event.currentTime);
+            lastProgressUpdateRef.current = event.currentTime;
+          }
+          break;
+        case "ended": {
+          const nextEpisode = selectedEpisode + 1;
+          updateWatchProgress(nextEpisode, 0);
+          handleEpisodeSelect(nextEpisode, true);
+          break;
+        }
+      }
+    },
+    [
+      selectedEpisode,
+      updateWatchProgress,
+      handleEpisodeSelect,
+    ],
+  );
 
   useEffect(() => {
     if (id) {
@@ -91,7 +120,7 @@ export default function TVDetails({ params }: Route.ComponentProps) {
 
   useEffect(() => {
     if (details) {
-      readyRef.current = false;
+      sessionReadyRef.current = false;
       lastProgressUpdateRef.current = details.info.user_data.watch_progress.time;
       setSelectedEpisode(details.info.user_data.watch_progress.episode_id);
     }
@@ -102,92 +131,6 @@ export default function TVDetails({ params }: Route.ComponentProps) {
       fetchSeries(details.info.series);
     }
   }, [details]);
-
-  // 初始化 xgplayer
-  useEffect(() => {
-    if (!playerContainerRef.current || !details) return;
-
-    // 如果播放器已存在，先销毁
-    if (playerRef.current) {
-      playerRef.current.destroy();
-      playerRef.current = null;
-    }
-
-    const currentVideoUrl = details.episodes[selectedEpisode];
-    if (!currentVideoUrl) return;
-
-    // 创建播放器实例
-    const player = new Player({
-      el: playerContainerRef.current,
-      url: currentVideoUrl,
-      autoplay: autoPlay,
-      volume: 0.6,
-      playbackRate: [0.5, 0.75, 1, 1.25, 1.5, 2],
-      defaultPlaybackRate: 1,
-      fluid: true,
-      lang: "zh-cn",
-      seekedStatus: 'auto',
-    });
-
-    playerRef.current = player;
-
-
-    if (!readyRef.current) {
-      const savedTime = details.info.user_data.watch_progress.episode_id === selectedEpisode ?
-        details.info.user_data.watch_progress.time : 0;
-      player.once("canplay", () => {
-        player.currentTime = savedTime;
-        readyRef.current = true;
-      });
-      lastProgressUpdateRef.current = savedTime;
-    } else {
-      lastProgressUpdateRef.current = 0;
-    }
-
-    // 监听播放事件
-    player.on("play", () => {
-      setIsPlaying(true);
-    });
-
-    // 监听暂停事件
-    player.on("pause", () => {
-      setIsPlaying(false);
-      if (playerRef.current) {
-        updateWatchProgress(selectedEpisode, playerRef.current.currentTime);
-      }
-    });
-
-    // 监听时间更新事件
-    player.on("timeupdate", () => {
-      if (playerRef.current) {
-        const currentTime = playerRef.current.currentTime;
-        setVideoTime(currentTime);
-
-        // 每秒更新一次播放进度
-        if (Math.abs(currentTime - lastProgressUpdateRef.current) >= 1) {
-          updateWatchProgress(selectedEpisode, currentTime);
-          lastProgressUpdateRef.current = currentTime;
-        }
-      }
-    });
-
-    // 监听播放结束事件
-    player.on("ended", () => {
-      // 播放完成后，更新为下一集的第0秒
-      const nextEpisode = selectedEpisode + 1;
-      updateWatchProgress(nextEpisode, 0);
-
-      handleEpisodeSelect(nextEpisode, true);
-    });
-
-    // 清理函数
-    return () => {
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-    };
-  }, [details, selectedEpisode, autoPlay, updateWatchProgress, handleEpisodeSelect]);
 
   const fetchTVDetails = async (tvId: number) => {
     setError(null);
@@ -289,6 +232,13 @@ export default function TVDetails({ params }: Route.ComponentProps) {
 
   const currentVideoUrl = mutableDetails.episodes[selectedEpisode];
   const hasVideo = currentVideoUrl !== null;
+  const playerInitialTime =
+    !sessionReadyRef.current &&
+    mutableDetails.info.user_data.watch_progress.episode_id === selectedEpisode
+      ? mutableDetails.info.user_data.watch_progress.time
+      : 0;
+  const showPlayer =
+    hasVideo && selectedEpisode < mutableDetails.tv.source.episodes.length;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
@@ -426,8 +376,14 @@ export default function TVDetails({ params }: Route.ComponentProps) {
               <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">播放</h2>
               <div className="space-y-4">
                 <div className="relative bg-black rounded-lg overflow-hidden" style={{ aspectRatio: "16/9" }}>
-                  {/* 播放器容器始终渲染，但根据情况隐藏 */}
-                  <div ref={playerContainerRef} className={`w-full h-full ${hasVideo && selectedEpisode < mutableDetails.tv.source.episodes.length ? '' : 'hidden'}`}></div>
+                  {showPlayer && (
+                    <VideoPlayer
+                      url={currentVideoUrl as string}
+                      autoplay={autoPlay}
+                      initialTime={playerInitialTime}
+                      onEvent={handlePlayerEvent}
+                    />
+                  )}
 
                   {/* 播放完成提示 */}
                   {selectedEpisode >= mutableDetails.tv.source.episodes.length && (
@@ -480,11 +436,10 @@ export default function TVDetails({ params }: Route.ComponentProps) {
                       <span>
                         正在播放: {mutableDetails.tv.source.episodes[selectedEpisode]?.name || "全部集数已播放完成"}
                       </span>
-                      {playerRef.current && (
-                        <span>
-                          {formatTime(videoTime)} / {formatTime(playerRef.current.duration || 0)}
-                        </span>
-                      )}
+                      <span>
+                        {formatTime(videoTime)} /{" "}
+                        {formatTime(videoDuration)}
+                      </span>
                     </>
                   ) : (
                     <span>
