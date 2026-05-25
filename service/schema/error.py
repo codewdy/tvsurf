@@ -16,6 +16,11 @@ class Error(BaseModel):
     type: ErrorType
 
 
+class IgnoredError(BaseModel):
+    count: dict[str, int] = {}
+
+
 class ErrorDB(BaseModel):
     errors: list[Error] = []
     next_error_id: int = 1
+    ignored_errors: IgnoredError = IgnoredError()
