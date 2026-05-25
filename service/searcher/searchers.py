@@ -35,7 +35,9 @@ class Searchers:
 
     async def update_source(self, source: Source) -> Optional[Source]:
         with Context.handle_error(
-            title=f"update_source {source.name} - {source.source.source_key}"
+            title=f"update_source {source.name} - {source.source.source_key}",
+            key=f"update_source {source.name} - {source.source.source_key}",
+            max_ignore_count=3,
         ):
             return await self.searcher_dict[source.source.source_key].update_source(
                 source
