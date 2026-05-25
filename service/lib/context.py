@@ -34,10 +34,15 @@ class ContextMeta(type):
         return cls.current.error_handler
 
     def handle_error(
-        cls, title: str, type: str = "error", rethrow: bool = False
+        cls,
+        title: str,
+        type: str = "error",
+        rethrow: bool = False,
+        key: str | None = None,
+        max_ignore_count: int = 0,
     ) -> Any:
         return cls.current.error_handler.handle_error_context(
-            title, type, rethrow=rethrow
+            title, type, rethrow=rethrow, key=key, max_ignore_count=max_ignore_count
         )
 
     def info(cls, msg: str, *args: Any, **kwargs: Any) -> None:
