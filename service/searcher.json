@@ -38,7 +38,7 @@
             "name": "电影天堂",
             "enable": true,
             "subject_searcher": {
-                "search_url": "http://dyttzy.tv/index.php/vod/search.html?wd={keyword}",
+                "search_url": "http://dyttzy2.tv/index.php/vod/search.html?wd={keyword}",
                 "type": "web_a",
                 "token": "th > a.group div.font-medium div.overflow-hidden:first-child",
                 "a": "th > a.group",
@@ -50,7 +50,8 @@
             "channel_searcher": {
                 "type": "web_a",
                 "episode_lists": ".dyttm3u8",
-                "episodes_from_list": "a.text-ellipsis"
+                "episodes_from_list": "a.text-ellipsis",
+                "domain": "http://dyttzy2.tv"
             },
             "resource_searcher": {
                 "type": "raw"
