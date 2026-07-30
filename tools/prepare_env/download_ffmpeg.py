@@ -2,7 +2,11 @@ from utils import pretty_download
 import shutil
 import os
 import sys
+import stat
 import platform
+
+# owncast/ffmpeg-builds static macOS builds
+FFMPEG_MAC_RELEASE = "20260503142706"
 
 
 def download_ffmpeg_linux(directory: str):
@@ -53,12 +57,21 @@ def download_ffmpeg_windows(directory: str):
 
 def download_ffmpeg_mac(directory: str):
     print("下载 ffmpeg 中, 请稍候...")
-    url = "https://evermeet.cx/ffmpeg/ffmpeg-8.0.1.zip"
-    pretty_download("ffmpeg", url, f"{directory}/ffmpeg-mac.zip")
+    url = (
+        "https://github.com/owncast/ffmpeg-builds/releases/download/"
+        f"{FFMPEG_MAC_RELEASE}/ffmpeg8.0-darwin-arm64.tar.gz"
+    )
+    archive_path = f"{directory}/ffmpeg-mac.tar.gz"
+    pretty_download("ffmpeg", url, archive_path)
     print(f"解压 ffmpeg 中, 请稍候...")
     os.makedirs(f"{directory}/ffmpeg", exist_ok=True)
-    shutil.unpack_archive(f"{directory}/ffmpeg-mac.zip", f"{directory}/ffmpeg")
-    os.remove(f"{directory}/ffmpeg-mac.zip")
+    shutil.unpack_archive(archive_path, f"{directory}/ffmpeg")
+    os.remove(archive_path)
+    ffmpeg_bin = f"{directory}/ffmpeg/ffmpeg"
+    os.chmod(
+        ffmpeg_bin,
+        os.stat(ffmpeg_bin).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH,
+    )
     print(f"ffmpeg 下载完成")
 
 
