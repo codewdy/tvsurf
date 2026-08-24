@@ -3,6 +3,31 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import * as Brightness from 'expo-brightness';
+import { VolumeManager } from 'react-native-volume-manager';
+
+type GestureMode = 'none' | 'seek' | 'brightness' | 'volume';
+
+const clamp = (value: number, min: number, max: number): number =>
+    Math.min(max, Math.max(min, value));
+
+const getSystemVolume = async (): Promise<number> => {
+    try {
+        const { volume } = await VolumeManager.getVolume();
+        return volume;
+    } catch (err) {
+        console.error('Error getting system volume:', err);
+        return 1;
+    }
+};
+
+const setSystemVolume = async (volume: number): Promise<void> => {
+    try {
+        await VolumeManager.setVolume(volume);
+    } catch (err) {
+        console.error('Error setting system volume:', err);
+    }
+};
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
 const HOLD_SPEED = 3;
@@ -51,6 +76,11 @@ export default function VideoPlayer({
     const [seekOffset, setSeekOffset] = useState(0);
     const [showSeekIndicator, setShowSeekIndicator] = useState(false);
     const [playerWidth, setPlayerWidth] = useState(0);
+    const [playerHeight, setPlayerHeight] = useState(0);
+    const [showBrightnessIndicator, setShowBrightnessIndicator] = useState(false);
+    const [showVolumeIndicator, setShowVolumeIndicator] = useState(false);
+    const [brightnessLevel, setBrightnessLevel] = useState(1);
+    const [volumeLevel, setVolumeLevel] = useState(1);
     const [systemTime, setSystemTime] = useState(
         new Date().toLocaleTimeString('zh-CN', {
             hour12: false,
@@ -66,8 +96,15 @@ export default function VideoPlayer({
     const autoHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isDraggingRef = useRef(false);
     const seekIndicatorOpacity = useRef(new Animated.Value(0)).current;
+    const brightnessIndicatorOpacity = useRef(new Animated.Value(0)).current;
+    const volumeIndicatorOpacity = useRef(new Animated.Value(0)).current;
+    const gestureModeRef = useRef<GestureMode>('none');
+    const gestureStartXRef = useRef(0);
+    const gestureStartBrightnessRef = useRef(1);
+    const gestureStartVolumeRef = useRef(1);
     const AUTO_HIDE_DELAY_MS = 10000;
     const SEEK_SECONDS_PER_FULL_SWIPE = 100; // 拖动整个播放器宽度对应的秒数
+    const GESTURE_AXIS_THRESHOLD = 10;
 
     // 构建视频源，优先使用本地缓存，否则使用网络URL
     const videoSource = React.useMemo(() => {
@@ -113,6 +150,34 @@ export default function VideoPlayer({
     useEffect(() => {
         readyRef.current = false;
     }, [videoUrl, resumeTime, localUri]);
+
+    useEffect(() => {
+        let cancelled = false;
+        Brightness.getBrightnessAsync()
+            .then((value) => {
+                if (!cancelled) {
+                    setBrightnessLevel(value);
+                }
+            })
+            .catch((err) => {
+                console.error('Error getting brightness:', err);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        getSystemVolume().then((value) => {
+            if (!cancelled) {
+                setVolumeLevel(value);
+            }
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     useEffect(() => {
         const updateVideoSource = async () => {
@@ -325,13 +390,175 @@ export default function VideoPlayer({
         }, 100);
     }, []);
 
+    const showSideIndicator = useCallback(
+        (type: 'brightness' | 'volume') => {
+            const opacity = type === 'brightness' ? brightnessIndicatorOpacity : volumeIndicatorOpacity;
+            if (type === 'brightness') {
+                setShowBrightnessIndicator(true);
+            } else {
+                setShowVolumeIndicator(true);
+            }
+            Animated.timing(opacity, {
+                toValue: 1,
+                duration: 200,
+                useNativeDriver: true,
+            }).start();
+        },
+        [brightnessIndicatorOpacity, volumeIndicatorOpacity],
+    );
+
+    const hideSideIndicator = useCallback(
+        (type: 'brightness' | 'volume') => {
+            const opacity = type === 'brightness' ? brightnessIndicatorOpacity : volumeIndicatorOpacity;
+            if (type === 'brightness') {
+                setShowBrightnessIndicator(false);
+            } else {
+                setShowVolumeIndicator(false);
+            }
+            opacity.setValue(0);
+        },
+        [brightnessIndicatorOpacity, volumeIndicatorOpacity],
+    );
+
+    const beginPanGesture = useCallback(
+        (x: number) => {
+            gestureModeRef.current = 'none';
+            gestureStartXRef.current = x;
+            deactivateHoldSpeed();
+            Brightness.getBrightnessAsync()
+                .then((value) => {
+                    gestureStartBrightnessRef.current = value;
+                    setBrightnessLevel(value);
+                })
+                .catch((err) => {
+                    console.error('Error getting brightness:', err);
+                });
+            getSystemVolume().then((value) => {
+                gestureStartVolumeRef.current = value;
+                setVolumeLevel(value);
+            });
+        },
+        [deactivateHoldSpeed],
+    );
+
+    const resolveGestureMode = useCallback(
+        (translationX: number, translationY: number) => {
+            const absX = Math.abs(translationX);
+            const absY = Math.abs(translationY);
+            if (absX < GESTURE_AXIS_THRESHOLD && absY < GESTURE_AXIS_THRESHOLD) {
+                return;
+            }
+
+            if (absX >= absY) {
+                gestureModeRef.current = 'seek';
+                beginSeekGesture();
+                return;
+            }
+
+            if (playerWidth <= 0) return;
+
+            if (gestureStartXRef.current < playerWidth / 2) {
+                gestureModeRef.current = 'brightness';
+                isDraggingRef.current = true;
+                showSideIndicator('brightness');
+            } else {
+                gestureModeRef.current = 'volume';
+                isDraggingRef.current = true;
+                VolumeManager.showNativeVolumeUI({ enabled: false }).catch((err) => {
+                    console.error('Error hiding native volume UI:', err);
+                });
+                showSideIndicator('volume');
+            }
+        },
+        [beginSeekGesture, playerWidth, showSideIndicator],
+    );
+
+    const updateBrightnessGesture = useCallback(
+        (translationY: number) => {
+            if (playerHeight <= 0) return;
+            const delta = -translationY / playerHeight;
+            const nextBrightness = clamp(gestureStartBrightnessRef.current + delta, 0, 1);
+            setBrightnessLevel(nextBrightness);
+            Brightness.setBrightnessAsync(nextBrightness).catch((err) => {
+                console.error('Error setting brightness:', err);
+            });
+        },
+        [playerHeight],
+    );
+
+    const updateVolumeGesture = useCallback(
+        (translationY: number) => {
+            if (playerHeight <= 0) return;
+            const delta = -translationY / playerHeight;
+            const nextVolume = clamp(gestureStartVolumeRef.current + delta, 0, 1);
+            setVolumeLevel(nextVolume);
+            setSystemVolume(nextVolume);
+        },
+        [playerHeight],
+    );
+
+    const updatePanGesture = useCallback(
+        (translationX: number, translationY: number) => {
+            if (gestureModeRef.current === 'none') {
+                resolveGestureMode(translationX, translationY);
+            }
+
+            switch (gestureModeRef.current) {
+                case 'seek':
+                    updateSeekGesture(translationX);
+                    break;
+                case 'brightness':
+                    updateBrightnessGesture(translationY);
+                    break;
+                case 'volume':
+                    updateVolumeGesture(translationY);
+                    break;
+            }
+        },
+        [resolveGestureMode, updateBrightnessGesture, updateSeekGesture, updateVolumeGesture],
+    );
+
+    const endPanGesture = useCallback(
+        (translationX: number) => {
+            if (gestureModeRef.current === 'seek') {
+                finishSeekGesture(translationX);
+            }
+        },
+        [finishSeekGesture],
+    );
+
+    const finalizePanGesture = useCallback(() => {
+        const mode = gestureModeRef.current;
+        gestureModeRef.current = 'none';
+
+        if (mode === 'seek') {
+            finalizeSeekGesture();
+            return;
+        }
+
+        if (mode === 'brightness') {
+            hideSideIndicator('brightness');
+        } else if (mode === 'volume') {
+            hideSideIndicator('volume');
+            VolumeManager.showNativeVolumeUI({ enabled: true }).catch((err) => {
+                console.error('Error restoring native volume UI:', err);
+            });
+        }
+
+        if (mode === 'brightness' || mode === 'volume') {
+            setTimeout(() => {
+                isDraggingRef.current = false;
+            }, 100);
+        }
+    }, [finalizeSeekGesture, hideSideIndicator]);
+
     const videoGesture = useMemo(() => {
         const pan = Gesture.Pan()
-            .activeOffsetX([-6, 6])
-            .onStart(beginSeekGesture)
-            .onUpdate((event) => updateSeekGesture(event.translationX))
-            .onEnd((event) => finishSeekGesture(event.translationX))
-            .onFinalize(finalizeSeekGesture)
+            .minDistance(GESTURE_AXIS_THRESHOLD)
+            .onStart((event) => beginPanGesture(event.x))
+            .onUpdate((event) => updatePanGesture(event.translationX, event.translationY))
+            .onEnd((event) => endPanGesture(event.translationX))
+            .onFinalize(finalizePanGesture)
             .runOnJS(true);
 
         const longPress = Gesture.LongPress()
@@ -361,13 +588,13 @@ export default function VideoPlayer({
         );
     }, [
         activateHoldSpeed,
-        beginSeekGesture,
+        beginPanGesture,
         deactivateHoldSpeed,
-        finalizeSeekGesture,
-        finishSeekGesture,
+        endPanGesture,
+        finalizePanGesture,
         handleSingleTap,
         togglePlay,
-        updateSeekGesture,
+        updatePanGesture,
     ]);
 
     // 清理定时器
@@ -472,9 +699,12 @@ export default function VideoPlayer({
                 contentFit="contain"
                 nativeControls={false}
                 onLayout={(event) => {
-                    const width = event.nativeEvent.layout.width;
+                    const { width, height } = event.nativeEvent.layout;
                     if (width > 0 && width !== playerWidth) {
                         setPlayerWidth(width);
+                    }
+                    if (height > 0 && height !== playerHeight) {
+                        setPlayerHeight(height);
                     }
                 }}
             />
@@ -487,9 +717,12 @@ export default function VideoPlayer({
                 <View
                     style={styles.touchOverlay}
                     onLayout={(event) => {
-                        const width = event.nativeEvent.layout.width;
+                        const { width, height } = event.nativeEvent.layout;
                         if (width > 0 && width !== playerWidth) {
                             setPlayerWidth(width);
+                        }
+                        if (height > 0 && height !== playerHeight) {
+                            setPlayerHeight(height);
                         }
                     }}
                 >
@@ -519,6 +752,56 @@ export default function VideoPlayer({
                     </Animated.View>
                 );
             })()}
+            {showBrightnessIndicator && (
+                <Animated.View
+                    style={[
+                        styles.sideIndicator,
+                        styles.leftSideIndicator,
+                        { opacity: brightnessIndicatorOpacity },
+                    ]}
+                    pointerEvents="none"
+                >
+                    <Ionicons name="sunny" size={28} color="#fff" />
+                    <View style={styles.verticalBarTrack}>
+                        <View
+                            style={[
+                                styles.verticalBarFill,
+                                { height: `${Math.round(brightnessLevel * 100)}%` },
+                            ]}
+                        />
+                    </View>
+                    <Text style={styles.sideIndicatorText}>
+                        {Math.round(brightnessLevel * 100)}%
+                    </Text>
+                </Animated.View>
+            )}
+            {showVolumeIndicator && (
+                <Animated.View
+                    style={[
+                        styles.sideIndicator,
+                        styles.rightSideIndicator,
+                        { opacity: volumeIndicatorOpacity },
+                    ]}
+                    pointerEvents="none"
+                >
+                    <Ionicons
+                        name={volumeLevel <= 0 ? 'volume-mute' : volumeLevel < 0.5 ? 'volume-low' : 'volume-high'}
+                        size={28}
+                        color="#fff"
+                    />
+                    <View style={styles.verticalBarTrack}>
+                        <View
+                            style={[
+                                styles.verticalBarFill,
+                                { height: `${Math.round(volumeLevel * 100)}%` },
+                            ]}
+                        />
+                    </View>
+                    <Text style={styles.sideIndicatorText}>
+                        {Math.round(volumeLevel * 100)}%
+                    </Text>
+                </Animated.View>
+            )}
             {showControls && (
                 <View style={styles.controlsOverlay} pointerEvents="box-none">
                     <View style={styles.controlsRow}>
@@ -623,6 +906,40 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginTop: 4,
         opacity: 0.8,
+    },
+    sideIndicator: {
+        position: 'absolute',
+        top: '50%',
+        width: 56,
+        transform: [{ translateY: -80 }],
+        alignItems: 'center',
+        zIndex: 3,
+    },
+    leftSideIndicator: {
+        left: 32,
+    },
+    rightSideIndicator: {
+        right: 32,
+    },
+    verticalBarTrack: {
+        width: 4,
+        height: 100,
+        marginTop: 10,
+        borderRadius: 2,
+        backgroundColor: 'rgba(255, 255, 255, 0.3)',
+        justifyContent: 'flex-end',
+        overflow: 'hidden',
+    },
+    verticalBarFill: {
+        width: '100%',
+        backgroundColor: '#fff',
+        borderRadius: 2,
+    },
+    sideIndicatorText: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '600',
+        marginTop: 8,
     },
     controlsOverlay: {
         position: 'absolute',

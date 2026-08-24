@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "expo start",
+    "start": "expo start --dev-client",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web"
@@ -14,8 +14,10 @@
     "@react-native-async-storage/async-storage": "^2.1.0",
     "bcryptjs": "^2.4.3",
     "expo": "~54.0.31",
+    "expo-brightness": "^14.0.8",
     "expo-build-properties": "~1.0.10",
     "expo-constants": "~18.0.13",
+    "expo-dev-client": "~6.0.0",
     "expo-file-system": "^19.0.0",
     "expo-image": "^3.0.11",
     "expo-intent-launcher": "~13.0.8",
@@ -30,6 +32,7 @@
     "react-native-gesture-handler": "~2.28.0",
     "react-native-reanimated": "~4.1.1",
     "react-native-safe-area-context": "^5.6.2",
+    "react-native-volume-manager": "^2.0.8",
     "react-native-worklets": "0.5.1"
   },
   "devDependencies": {
