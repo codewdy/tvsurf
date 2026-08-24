@@ -3,6 +3,16 @@ import { View, Text, StyleSheet, TouchableOpacity, Pressable, PanResponder, Anim
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 
+const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
+const HOLD_SPEED = 3;
+const HOLD_SPEED_DELAY_MS = 200;
+
+const formatPlaybackRate = (rate: number): string => {
+    if (rate === 1) return '1.0x';
+    if (Number.isInteger(rate)) return `${rate}.0x`;
+    return `${rate}x`;
+};
+
 type PlaybackState = {
     currentTime: number;
     duration: number;
@@ -47,7 +57,12 @@ export default function VideoPlayer({
             minute: '2-digit',
         }),
     );
+    const [playbackRate, setPlaybackRate] = useState(1);
+    const [showSpeedMenu, setShowSpeedMenu] = useState(false);
     const readyRef = useRef(false);
+    const holdSpeedTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const isHoldSpeedActiveRef = useRef(false);
+    const savedRateRef = useRef(1);
     const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const lastClickTimeRef = useRef<number>(0);
     const autoHideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -77,7 +92,25 @@ export default function VideoPlayer({
         player.loop = false;
         player.muted = false;
         player.timeUpdateEventInterval = 1;
+        player.preservesPitch = true;
     });
+
+    const applyPlaybackRate = useCallback(
+        (rate: number) => {
+            if (!player) return;
+            try {
+                player.playbackRate = rate;
+            } catch (err) {
+                console.error('Error setting playback rate:', err);
+            }
+        },
+        [player],
+    );
+
+    useEffect(() => {
+        if (isHoldSpeedActiveRef.current) return;
+        applyPlaybackRate(playbackRate);
+    }, [playbackRate, applyPlaybackRate]);
 
     useEffect(() => {
         readyRef.current = false;
@@ -199,6 +232,7 @@ export default function VideoPlayer({
         clearAutoHide();
         autoHideTimeoutRef.current = setTimeout(() => {
             setShowControls(false);
+            setShowSpeedMenu(false);
             autoHideTimeoutRef.current = null;
         }, AUTO_HIDE_DELAY_MS);
     }, [clearAutoHide]);
@@ -222,9 +256,44 @@ export default function VideoPlayer({
         }
     }, [player, showControlsWithAutoHide]);
 
+    const clearHoldSpeedTimer = useCallback(() => {
+        if (holdSpeedTimerRef.current) {
+            clearTimeout(holdSpeedTimerRef.current);
+            holdSpeedTimerRef.current = null;
+        }
+    }, []);
+
+    const deactivateHoldSpeed = useCallback(() => {
+        if (!isHoldSpeedActiveRef.current) return;
+        isHoldSpeedActiveRef.current = false;
+        applyPlaybackRate(savedRateRef.current);
+    }, [applyPlaybackRate]);
+
+    const handleTouchPressIn = useCallback(() => {
+        if (isDraggingRef.current) return;
+        clearHoldSpeedTimer();
+        holdSpeedTimerRef.current = setTimeout(() => {
+            holdSpeedTimerRef.current = null;
+            if (isDraggingRef.current) return;
+            savedRateRef.current = playbackRate;
+            isHoldSpeedActiveRef.current = true;
+            applyPlaybackRate(HOLD_SPEED);
+            if (clickTimeoutRef.current) {
+                clearTimeout(clickTimeoutRef.current);
+                clickTimeoutRef.current = null;
+            }
+            lastClickTimeRef.current = 0;
+        }, HOLD_SPEED_DELAY_MS);
+    }, [playbackRate, applyPlaybackRate, clearHoldSpeedTimer]);
+
+    const handleTouchPressOut = useCallback(() => {
+        clearHoldSpeedTimer();
+        deactivateHoldSpeed();
+    }, [clearHoldSpeedTimer, deactivateHoldSpeed]);
+
     const handleVideoPress = useCallback(() => {
-        // 如果正在拖动，不处理点击事件
-        if (isDraggingRef.current) {
+        // 如果正在拖动或按住倍速，不处理点击事件
+        if (isDraggingRef.current || isHoldSpeedActiveRef.current) {
             return;
         }
 
@@ -251,6 +320,7 @@ export default function VideoPlayer({
                         scheduleAutoHide();
                     } else {
                         clearAutoHide();
+                        setShowSpeedMenu(false);
                     }
                     return next;
                 });
@@ -272,6 +342,14 @@ export default function VideoPlayer({
             },
             onPanResponderGrant: () => {
                 isDraggingRef.current = true;
+                if (holdSpeedTimerRef.current) {
+                    clearTimeout(holdSpeedTimerRef.current);
+                    holdSpeedTimerRef.current = null;
+                }
+                if (isHoldSpeedActiveRef.current) {
+                    isHoldSpeedActiveRef.current = false;
+                    applyPlaybackRate(savedRateRef.current);
+                }
                 // 清除单击定时器，防止拖动时触发点击
                 if (clickTimeoutRef.current) {
                     clearTimeout(clickTimeoutRef.current);
@@ -325,7 +403,7 @@ export default function VideoPlayer({
                 setSeekOffset(0);
             },
         });
-    }, [playerWidth, player, duration, seekIndicatorOpacity]);
+    }, [playerWidth, player, duration, seekIndicatorOpacity, applyPlaybackRate]);
 
     // 清理定时器
     useEffect(() => {
@@ -333,9 +411,10 @@ export default function VideoPlayer({
             if (clickTimeoutRef.current) {
                 clearTimeout(clickTimeoutRef.current);
             }
+            clearHoldSpeedTimer();
             clearAutoHide();
         };
-    }, [clearAutoHide]);
+    }, [clearAutoHide, clearHoldSpeedTimer]);
 
     const handleSeek = useCallback(
         (event: { nativeEvent: { locationX: number } }) => {
@@ -398,6 +477,21 @@ export default function VideoPlayer({
         onToggleFullscreen?.();
     }, [showControlsWithAutoHide, onToggleFullscreen]);
 
+    const handleSelectSpeed = useCallback(
+        (rate: number) => {
+            setPlaybackRate(rate);
+            savedRateRef.current = rate;
+            setShowSpeedMenu(false);
+            showControlsWithAutoHide();
+        },
+        [showControlsWithAutoHide],
+    );
+
+    const handleToggleSpeedMenu = useCallback(() => {
+        setShowSpeedMenu((prev) => !prev);
+        showControlsWithAutoHide();
+    }, [showControlsWithAutoHide]);
+
     return (
         <View style={styles.container}>
             <VideoView
@@ -427,7 +521,12 @@ export default function VideoPlayer({
                     }
                 }}
             >
-                <Pressable style={styles.touchArea} onPress={handleVideoPress}>
+                <Pressable
+                    style={styles.touchArea}
+                    onPress={handleVideoPress}
+                    onPressIn={handleTouchPressIn}
+                    onPressOut={handleTouchPressOut}
+                >
                     <View style={{ flex: 1 }} />
                 </Pressable>
             </View>
@@ -474,6 +573,34 @@ export default function VideoPlayer({
                         <Text style={styles.timeText}>
                             {formatTime(playbackTime)} / {formatTime(duration)}
                         </Text>
+                        <View style={styles.speedControl}>
+                            <TouchableOpacity style={styles.speedButton} onPress={handleToggleSpeedMenu}>
+                                <Text style={styles.speedButtonText}>{formatPlaybackRate(playbackRate)}</Text>
+                            </TouchableOpacity>
+                            {showSpeedMenu && (
+                                <View style={styles.speedMenu}>
+                                    {PLAYBACK_RATES.map((rate) => (
+                                        <TouchableOpacity
+                                            key={rate}
+                                            style={[
+                                                styles.speedMenuItem,
+                                                rate === playbackRate && styles.speedMenuItemActive,
+                                            ]}
+                                            onPress={() => handleSelectSpeed(rate)}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.speedMenuItemText,
+                                                    rate === playbackRate && styles.speedMenuItemTextActive,
+                                                ]}
+                                            >
+                                                {formatPlaybackRate(rate)}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            )}
+                        </View>
                         {onToggleFullscreen ? (
                             <TouchableOpacity style={styles.controlButton} onPress={handleToggleFullscreen}>
                                 <Ionicons name={isFullscreen ? 'contract' : 'expand'} size={18} color="#fff" />
@@ -570,6 +697,48 @@ const styles = StyleSheet.create({
     timeText: {
         color: '#fff',
         fontSize: 12,
+    },
+    speedControl: {
+        position: 'relative',
+    },
+    speedButton: {
+        paddingHorizontal: 6,
+        paddingVertical: 4,
+        borderRadius: 4,
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+        minWidth: 44,
+        alignItems: 'center',
+    },
+    speedButtonText: {
+        color: '#fff',
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    speedMenu: {
+        position: 'absolute',
+        bottom: 32,
+        right: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.85)',
+        borderRadius: 8,
+        paddingVertical: 4,
+        minWidth: 72,
+        zIndex: 10,
+    },
+    speedMenuItem: {
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+    },
+    speedMenuItemActive: {
+        backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    },
+    speedMenuItemText: {
+        color: 'rgba(255, 255, 255, 0.85)',
+        fontSize: 13,
+        textAlign: 'center',
+    },
+    speedMenuItemTextActive: {
+        color: '#fff',
+        fontWeight: '600',
     },
     progressBar: {
         flex: 1,
