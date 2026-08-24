@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Pressable, PanResponder, Animated } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2, 3];
 const HOLD_SPEED = 3;
@@ -60,12 +61,9 @@ export default function VideoPlayer({
     const [playbackRate, setPlaybackRate] = useState(1);
     const [showSpeedMenu, setShowSpeedMenu] = useState(false);
     const readyRef = useRef(false);
-    const holdSpeedTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isHoldSpeedActiveRef = useRef(false);
     const savedRateRef = useRef(1);
-    const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const lastClickTimeRef = useRef<number>(0);
-    const autoHideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+    const autoHideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isDraggingRef = useRef(false);
     const seekIndicatorOpacity = useRef(new Animated.Value(0)).current;
     const AUTO_HIDE_DELAY_MS = 10000;
@@ -256,171 +254,135 @@ export default function VideoPlayer({
         }
     }, [player, showControlsWithAutoHide]);
 
-    const clearHoldSpeedTimer = useCallback(() => {
-        if (holdSpeedTimerRef.current) {
-            clearTimeout(holdSpeedTimerRef.current);
-            holdSpeedTimerRef.current = null;
-        }
-    }, []);
-
     const deactivateHoldSpeed = useCallback(() => {
         if (!isHoldSpeedActiveRef.current) return;
         isHoldSpeedActiveRef.current = false;
         applyPlaybackRate(savedRateRef.current);
     }, [applyPlaybackRate]);
 
-    const handleTouchPressIn = useCallback(() => {
-        if (isDraggingRef.current) return;
-        clearHoldSpeedTimer();
-        holdSpeedTimerRef.current = setTimeout(() => {
-            holdSpeedTimerRef.current = null;
-            if (isDraggingRef.current) return;
-            savedRateRef.current = playbackRate;
-            isHoldSpeedActiveRef.current = true;
-            applyPlaybackRate(HOLD_SPEED);
-            if (clickTimeoutRef.current) {
-                clearTimeout(clickTimeoutRef.current);
-                clickTimeoutRef.current = null;
+    const handleSingleTap = useCallback(() => {
+        setShowControls((prev) => {
+            const next = !prev;
+            if (next) {
+                scheduleAutoHide();
+            } else {
+                clearAutoHide();
+                setShowSpeedMenu(false);
             }
-            lastClickTimeRef.current = 0;
-        }, HOLD_SPEED_DELAY_MS);
-    }, [playbackRate, applyPlaybackRate, clearHoldSpeedTimer]);
-
-    const handleTouchPressOut = useCallback(() => {
-        clearHoldSpeedTimer();
-        deactivateHoldSpeed();
-    }, [clearHoldSpeedTimer, deactivateHoldSpeed]);
-
-    const handleVideoPress = useCallback(() => {
-        // 如果正在拖动或按住倍速，不处理点击事件
-        if (isDraggingRef.current || isHoldSpeedActiveRef.current) {
-            return;
-        }
-
-        const now = Date.now();
-        const timeSinceLastClick = now - lastClickTimeRef.current;
-
-        // 清除之前的单击定时器
-        if (clickTimeoutRef.current) {
-            clearTimeout(clickTimeoutRef.current);
-            clickTimeoutRef.current = null;
-        }
-
-        // 如果距离上次点击小于300ms，认为是双击
-        if (timeSinceLastClick < 300) {
-            togglePlay();
-            lastClickTimeRef.current = 0;
-        } else {
-            // 否则，延迟执行单击操作（显示/隐藏UI）
-            lastClickTimeRef.current = now;
-            clickTimeoutRef.current = setTimeout(() => {
-                setShowControls((prev) => {
-                    const next = !prev;
-                    if (next) {
-                        scheduleAutoHide();
-                    } else {
-                        clearAutoHide();
-                        setShowSpeedMenu(false);
-                    }
-                    return next;
-                });
-                clickTimeoutRef.current = null;
-                lastClickTimeRef.current = 0;
-            }, 300);
-        }
-    }, [togglePlay, scheduleAutoHide, clearAutoHide]);
-
-    // 拖动手势处理
-    const panResponderRef = useRef<any>(null);
-
-    useEffect(() => {
-        panResponderRef.current = PanResponder.create({
-            onStartShouldSetPanResponder: () => false,
-            onMoveShouldSetPanResponder: (_, gestureState) => {
-                // 只有水平滑动距离大于10像素才激活拖动
-                return Math.abs(gestureState.dx) > 10 && Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
-            },
-            onPanResponderGrant: () => {
-                isDraggingRef.current = true;
-                if (holdSpeedTimerRef.current) {
-                    clearTimeout(holdSpeedTimerRef.current);
-                    holdSpeedTimerRef.current = null;
-                }
-                if (isHoldSpeedActiveRef.current) {
-                    isHoldSpeedActiveRef.current = false;
-                    applyPlaybackRate(savedRateRef.current);
-                }
-                // 清除单击定时器，防止拖动时触发点击
-                if (clickTimeoutRef.current) {
-                    clearTimeout(clickTimeoutRef.current);
-                    clickTimeoutRef.current = null;
-                }
-                setShowSeekIndicator(true);
-                Animated.timing(seekIndicatorOpacity, {
-                    toValue: 1,
-                    duration: 200,
-                    useNativeDriver: true,
-                }).start();
-            },
-            onPanResponderMove: (_, gestureState) => {
-                if (playerWidth <= 0) return;
-                // 拖动整个播放器宽度对应 SEEK_SECONDS_PER_FULL_SWIPE 秒
-                // 保留小数精度，避免小的拖动距离被舍入为0
-                const offset = (gestureState.dx / playerWidth) * SEEK_SECONDS_PER_FULL_SWIPE;
-                setSeekOffset(offset);
-            },
-            onPanResponderRelease: (_, gestureState) => {
-                if (!player || playerWidth <= 0) {
-                    isDraggingRef.current = false;
-                    setShowSeekIndicator(false);
-                    setSeekOffset(0);
-                    return;
-                }
-
-                // 计算新的播放时间，保留小数精度以便更精确的跳转
-                const offset = (gestureState.dx / playerWidth) * SEEK_SECONDS_PER_FULL_SWIPE;
-                const currentTime = player.currentTime || 0;
-                const newTime = Math.max(0, Math.min(duration, currentTime + offset));
-
-                try {
-                    player.currentTime = newTime;
-                    setPlaybackTime(newTime);
-                } catch (err) {
-                    console.error('Error seeking video:', err);
-                }
-
-                setShowSeekIndicator(false);
-                setSeekOffset(0);
-
-                // 延迟重置拖动状态，避免触发点击
-                setTimeout(() => {
-                    isDraggingRef.current = false;
-                }, 100);
-            },
-            onPanResponderTerminate: () => {
-                isDraggingRef.current = false;
-                setShowSeekIndicator(false);
-                setSeekOffset(0);
-            },
+            return next;
         });
-    }, [playerWidth, player, duration, seekIndicatorOpacity, applyPlaybackRate]);
+    }, [scheduleAutoHide, clearAutoHide]);
+
+    const activateHoldSpeed = useCallback(() => {
+        if (isDraggingRef.current) return;
+        savedRateRef.current = playbackRate;
+        isHoldSpeedActiveRef.current = true;
+        applyPlaybackRate(HOLD_SPEED);
+    }, [playbackRate, applyPlaybackRate]);
+
+    const beginSeekGesture = useCallback(() => {
+        isDraggingRef.current = true;
+        deactivateHoldSpeed();
+        setShowSeekIndicator(true);
+        Animated.timing(seekIndicatorOpacity, {
+            toValue: 1,
+            duration: 200,
+            useNativeDriver: true,
+        }).start();
+    }, [deactivateHoldSpeed, seekIndicatorOpacity]);
+
+    const updateSeekGesture = useCallback(
+        (translationX: number) => {
+            if (playerWidth <= 0) return;
+            const offset = (translationX / playerWidth) * SEEK_SECONDS_PER_FULL_SWIPE;
+            setSeekOffset(offset);
+        },
+        [playerWidth],
+    );
+
+    const finishSeekGesture = useCallback(
+        (translationX: number) => {
+            if (!player || playerWidth <= 0) return;
+            const offset = (translationX / playerWidth) * SEEK_SECONDS_PER_FULL_SWIPE;
+            const currentTime = player.currentTime || 0;
+            const newTime = Math.max(0, Math.min(duration, currentTime + offset));
+
+            try {
+                player.currentTime = newTime;
+                setPlaybackTime(newTime);
+            } catch (err) {
+                console.error('Error seeking video:', err);
+            }
+        },
+        [player, playerWidth, duration],
+    );
+
+    const finalizeSeekGesture = useCallback(() => {
+        setShowSeekIndicator(false);
+        setSeekOffset(0);
+        setTimeout(() => {
+            isDraggingRef.current = false;
+        }, 100);
+    }, []);
+
+    const videoGesture = useMemo(() => {
+        const pan = Gesture.Pan()
+            .activeOffsetX([-6, 6])
+            .onStart(beginSeekGesture)
+            .onUpdate((event) => updateSeekGesture(event.translationX))
+            .onEnd((event) => finishSeekGesture(event.translationX))
+            .onFinalize(finalizeSeekGesture)
+            .runOnJS(true);
+
+        const longPress = Gesture.LongPress()
+            .minDuration(HOLD_SPEED_DELAY_MS)
+            .maxDistance(10)
+            .onStart(activateHoldSpeed)
+            .onFinalize(deactivateHoldSpeed)
+            .runOnJS(true);
+
+        const doubleTap = Gesture.Tap()
+            .numberOfTaps(2)
+            .maxDelay(300)
+            .onEnd((_, success) => {
+                if (success) togglePlay();
+            })
+            .runOnJS(true);
+
+        const singleTap = Gesture.Tap()
+            .onEnd((_, success) => {
+                if (success) handleSingleTap();
+            })
+            .runOnJS(true);
+
+        return Gesture.Simultaneous(
+            pan,
+            Gesture.Race(longPress, Gesture.Exclusive(doubleTap, singleTap)),
+        );
+    }, [
+        activateHoldSpeed,
+        beginSeekGesture,
+        deactivateHoldSpeed,
+        finalizeSeekGesture,
+        finishSeekGesture,
+        handleSingleTap,
+        togglePlay,
+        updateSeekGesture,
+    ]);
 
     // 清理定时器
     useEffect(() => {
         return () => {
-            if (clickTimeoutRef.current) {
-                clearTimeout(clickTimeoutRef.current);
-            }
-            clearHoldSpeedTimer();
+            deactivateHoldSpeed();
             clearAutoHide();
         };
-    }, [clearAutoHide, clearHoldSpeedTimer]);
+    }, [clearAutoHide, deactivateHoldSpeed]);
 
     const handleSeek = useCallback(
-        (event: { nativeEvent: { locationX: number } }) => {
+        (locationX: number) => {
             if (!player || duration <= 0 || progressBarWidth <= 0) return;
             showControlsWithAutoHide();
-            const ratio = Math.min(1, Math.max(0, event.nativeEvent.locationX / progressBarWidth));
+            const ratio = Math.min(1, Math.max(0, locationX / progressBarWidth));
             const newTime = ratio * duration;
             try {
                 player.currentTime = newTime;
@@ -430,6 +392,16 @@ export default function VideoPlayer({
             }
         },
         [player, duration, progressBarWidth, showControlsWithAutoHide],
+    );
+
+    const progressTapGesture = useMemo(
+        () =>
+            Gesture.Tap()
+                .onEnd((event, success) => {
+                    if (success) handleSeek(event.x);
+                })
+                .runOnJS(true),
+        [handleSeek],
     );
 
     const formatTime = (seconds: number | undefined | null): string => {
@@ -511,25 +483,19 @@ export default function VideoPlayer({
                     <Text style={styles.systemTimeText}>{systemTime}</Text>
                 </View>
             )}
-            <View
-                style={styles.touchOverlay}
-                {...(panResponderRef.current?.panHandlers || {})}
-                onLayout={(event) => {
-                    const width = event.nativeEvent.layout.width;
-                    if (width > 0 && width !== playerWidth) {
-                        setPlayerWidth(width);
-                    }
-                }}
-            >
-                <Pressable
-                    style={styles.touchArea}
-                    onPress={handleVideoPress}
-                    onPressIn={handleTouchPressIn}
-                    onPressOut={handleTouchPressOut}
+            <GestureDetector gesture={videoGesture}>
+                <View
+                    style={styles.touchOverlay}
+                    onLayout={(event) => {
+                        const width = event.nativeEvent.layout.width;
+                        if (width > 0 && width !== playerWidth) {
+                            setPlayerWidth(width);
+                        }
+                    }}
                 >
-                    <View style={{ flex: 1 }} />
-                </Pressable>
-            </View>
+                    <View style={styles.touchArea} />
+                </View>
+            </GestureDetector>
             {showSeekIndicator && (() => {
                 const targetTime = Math.max(0, Math.min(duration, playbackTime + seekOffset));
                 return (
@@ -559,17 +525,16 @@ export default function VideoPlayer({
                         <TouchableOpacity style={styles.controlButton} onPress={togglePlay}>
                             <Ionicons name={isPlaying ? 'pause' : 'play'} size={18} color="#fff" />
                         </TouchableOpacity>
-                        <View
-                            style={styles.progressBar}
-                            onLayout={(event) => setProgressBarWidth(event.nativeEvent.layout.width)}
-                            onStartShouldSetResponder={() => true}
-                            onResponderGrant={handleSeek}
-                            onResponderTerminationRequest={() => false}
-                        >
-                            <View style={styles.progressTrack} />
-                            <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
-                            <View style={[styles.progressThumb, { left: `${progressPercent}%` }]} />
-                        </View>
+                        <GestureDetector gesture={progressTapGesture}>
+                            <View
+                                style={styles.progressBar}
+                                onLayout={(event) => setProgressBarWidth(event.nativeEvent.layout.width)}
+                            >
+                                <View style={styles.progressTrack} />
+                                <View style={[styles.progressFill, { width: `${progressPercent}%` }]} />
+                                <View style={[styles.progressThumb, { left: `${progressPercent}%` }]} />
+                            </View>
+                        </GestureDetector>
                         <Text style={styles.timeText}>
                             {formatTime(playbackTime)} / {formatTime(duration)}
                         </Text>
