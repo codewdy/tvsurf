@@ -3,10 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS, useSharedValue } from 'react-native-reanimated';
 import * as Brightness from 'expo-brightness';
 import { VolumeManager } from 'react-native-volume-manager';
-
-type GestureMode = 'none' | 'seek' | 'brightness' | 'volume';
 
 const clamp = (value: number, min: number, max: number): number =>
     Math.min(max, Math.max(min, value));
@@ -98,10 +97,9 @@ export default function VideoPlayer({
     const seekIndicatorOpacity = useRef(new Animated.Value(0)).current;
     const brightnessIndicatorOpacity = useRef(new Animated.Value(0)).current;
     const volumeIndicatorOpacity = useRef(new Animated.Value(0)).current;
-    const gestureModeRef = useRef<GestureMode>('none');
-    const gestureStartXRef = useRef(0);
     const gestureStartBrightnessRef = useRef(1);
     const gestureStartVolumeRef = useRef(1);
+    const playerWidthShared = useSharedValue(0);
     const AUTO_HIDE_DELAY_MS = 10000;
     const SEEK_SECONDS_PER_FULL_SWIPE = 100; // 拖动整个播放器宽度对应的秒数
     const GESTURE_AXIS_THRESHOLD = 10;
@@ -420,58 +418,49 @@ export default function VideoPlayer({
         [brightnessIndicatorOpacity, volumeIndicatorOpacity],
     );
 
-    const beginPanGesture = useCallback(
-        (x: number) => {
-            gestureModeRef.current = 'none';
-            gestureStartXRef.current = x;
-            deactivateHoldSpeed();
-            Brightness.getBrightnessAsync()
-                .then((value) => {
-                    gestureStartBrightnessRef.current = value;
-                    setBrightnessLevel(value);
-                })
-                .catch((err) => {
-                    console.error('Error getting brightness:', err);
-                });
-            getSystemVolume().then((value) => {
-                gestureStartVolumeRef.current = value;
-                setVolumeLevel(value);
+    const beginBrightnessGesture = useCallback(() => {
+        deactivateHoldSpeed();
+        isDraggingRef.current = true;
+        showSideIndicator('brightness');
+        Brightness.getBrightnessAsync()
+            .then((value) => {
+                gestureStartBrightnessRef.current = value;
+                setBrightnessLevel(value);
+            })
+            .catch((err) => {
+                console.error('Error getting brightness:', err);
             });
-        },
-        [deactivateHoldSpeed],
-    );
+    }, [deactivateHoldSpeed, showSideIndicator]);
 
-    const resolveGestureMode = useCallback(
-        (translationX: number, translationY: number) => {
-            const absX = Math.abs(translationX);
-            const absY = Math.abs(translationY);
-            if (absX < GESTURE_AXIS_THRESHOLD && absY < GESTURE_AXIS_THRESHOLD) {
-                return;
-            }
+    const beginVolumeGesture = useCallback(() => {
+        deactivateHoldSpeed();
+        isDraggingRef.current = true;
+        VolumeManager.showNativeVolumeUI({ enabled: false }).catch((err) => {
+            console.error('Error hiding native volume UI:', err);
+        });
+        showSideIndicator('volume');
+        getSystemVolume().then((value) => {
+            gestureStartVolumeRef.current = value;
+            setVolumeLevel(value);
+        });
+    }, [deactivateHoldSpeed, showSideIndicator]);
 
-            if (absX >= absY) {
-                gestureModeRef.current = 'seek';
-                beginSeekGesture();
-                return;
-            }
+    const endBrightnessGesture = useCallback(() => {
+        hideSideIndicator('brightness');
+        setTimeout(() => {
+            isDraggingRef.current = false;
+        }, 100);
+    }, [hideSideIndicator]);
 
-            if (playerWidth <= 0) return;
-
-            if (gestureStartXRef.current < playerWidth / 2) {
-                gestureModeRef.current = 'brightness';
-                isDraggingRef.current = true;
-                showSideIndicator('brightness');
-            } else {
-                gestureModeRef.current = 'volume';
-                isDraggingRef.current = true;
-                VolumeManager.showNativeVolumeUI({ enabled: false }).catch((err) => {
-                    console.error('Error hiding native volume UI:', err);
-                });
-                showSideIndicator('volume');
-            }
-        },
-        [beginSeekGesture, playerWidth, showSideIndicator],
-    );
+    const endVolumeGesture = useCallback(() => {
+        hideSideIndicator('volume');
+        VolumeManager.showNativeVolumeUI({ enabled: true }).catch((err) => {
+            console.error('Error restoring native volume UI:', err);
+        });
+        setTimeout(() => {
+            isDraggingRef.current = false;
+        }, 100);
+    }, [hideSideIndicator]);
 
     const updateBrightnessGesture = useCallback(
         (translationY: number) => {
@@ -497,69 +486,92 @@ export default function VideoPlayer({
         [playerHeight],
     );
 
-    const updatePanGesture = useCallback(
-        (translationX: number, translationY: number) => {
-            if (gestureModeRef.current === 'none') {
-                resolveGestureMode(translationX, translationY);
+    const syncPlayerLayout = useCallback(
+        (width: number, height: number) => {
+            if (width > 0 && width !== playerWidth) {
+                setPlayerWidth(width);
+                playerWidthShared.value = width;
             }
-
-            switch (gestureModeRef.current) {
-                case 'seek':
-                    updateSeekGesture(translationX);
-                    break;
-                case 'brightness':
-                    updateBrightnessGesture(translationY);
-                    break;
-                case 'volume':
-                    updateVolumeGesture(translationY);
-                    break;
+            if (height > 0 && height !== playerHeight) {
+                setPlayerHeight(height);
             }
         },
-        [resolveGestureMode, updateBrightnessGesture, updateSeekGesture, updateVolumeGesture],
+        [playerWidth, playerHeight, playerWidthShared],
     );
-
-    const endPanGesture = useCallback(
-        (translationX: number) => {
-            if (gestureModeRef.current === 'seek') {
-                finishSeekGesture(translationX);
-            }
-        },
-        [finishSeekGesture],
-    );
-
-    const finalizePanGesture = useCallback(() => {
-        const mode = gestureModeRef.current;
-        gestureModeRef.current = 'none';
-
-        if (mode === 'seek') {
-            finalizeSeekGesture();
-            return;
-        }
-
-        if (mode === 'brightness') {
-            hideSideIndicator('brightness');
-        } else if (mode === 'volume') {
-            hideSideIndicator('volume');
-            VolumeManager.showNativeVolumeUI({ enabled: true }).catch((err) => {
-                console.error('Error restoring native volume UI:', err);
-            });
-        }
-
-        if (mode === 'brightness' || mode === 'volume') {
-            setTimeout(() => {
-                isDraggingRef.current = false;
-            }, 100);
-        }
-    }, [finalizeSeekGesture, hideSideIndicator]);
 
     const videoGesture = useMemo(() => {
-        const pan = Gesture.Pan()
-            .minDistance(GESTURE_AXIS_THRESHOLD)
-            .onStart((event) => beginPanGesture(event.x))
-            .onUpdate((event) => updatePanGesture(event.translationX, event.translationY))
-            .onEnd((event) => endPanGesture(event.translationX))
-            .onFinalize(finalizePanGesture)
+        const axisThreshold = GESTURE_AXIS_THRESHOLD;
+
+        const seekPan = Gesture.Pan()
+            .minDistance(axisThreshold)
+            .activeOffsetX([-axisThreshold, axisThreshold])
+            .failOffsetY([-axisThreshold, axisThreshold])
+            .onStart(beginSeekGesture)
+            .onUpdate((event) => updateSeekGesture(event.translationX))
+            .onEnd((event) => finishSeekGesture(event.translationX))
+            .onFinalize(finalizeSeekGesture)
             .runOnJS(true);
+
+        const brightnessPan = Gesture.Pan()
+            .manualActivation(true)
+            .onTouchesDown((event, stateManager) => {
+                'worklet';
+                const x = event.allTouches[0]?.x ?? 0;
+                const width = playerWidthShared.value;
+                if (width > 0 && x < width / 2) {
+                    stateManager.activate();
+                } else {
+                    stateManager.fail();
+                }
+            })
+            .minDistance(axisThreshold)
+            .activeOffsetY([-axisThreshold, axisThreshold])
+            .failOffsetX([-axisThreshold, axisThreshold])
+            .onStart(() => {
+                'worklet';
+                runOnJS(beginBrightnessGesture)();
+            })
+            .onUpdate((event) => {
+                'worklet';
+                runOnJS(updateBrightnessGesture)(event.translationY);
+            })
+            .onFinalize(() => {
+                'worklet';
+                runOnJS(endBrightnessGesture)();
+            });
+
+        const volumePan = Gesture.Pan()
+            .manualActivation(true)
+            .onTouchesDown((event, stateManager) => {
+                'worklet';
+                const x = event.allTouches[0]?.x ?? 0;
+                const width = playerWidthShared.value;
+                if (width > 0 && x >= width / 2) {
+                    stateManager.activate();
+                } else {
+                    stateManager.fail();
+                }
+            })
+            .minDistance(axisThreshold)
+            .activeOffsetY([-axisThreshold, axisThreshold])
+            .failOffsetX([-axisThreshold, axisThreshold])
+            .onStart(() => {
+                'worklet';
+                runOnJS(beginVolumeGesture)();
+            })
+            .onUpdate((event) => {
+                'worklet';
+                runOnJS(updateVolumeGesture)(event.translationY);
+            })
+            .onFinalize(() => {
+                'worklet';
+                runOnJS(endVolumeGesture)();
+            });
+
+        const pan = Gesture.Exclusive(
+            seekPan,
+            Gesture.Exclusive(brightnessPan, volumePan),
+        );
 
         const longPress = Gesture.LongPress()
             .minDuration(HOLD_SPEED_DELAY_MS)
@@ -588,13 +600,20 @@ export default function VideoPlayer({
         );
     }, [
         activateHoldSpeed,
-        beginPanGesture,
+        beginBrightnessGesture,
+        beginSeekGesture,
+        beginVolumeGesture,
         deactivateHoldSpeed,
-        endPanGesture,
-        finalizePanGesture,
+        endBrightnessGesture,
+        endVolumeGesture,
+        finalizeSeekGesture,
+        finishSeekGesture,
         handleSingleTap,
+        playerWidthShared,
         togglePlay,
-        updatePanGesture,
+        updateBrightnessGesture,
+        updateSeekGesture,
+        updateVolumeGesture,
     ]);
 
     // 清理定时器
@@ -700,12 +719,7 @@ export default function VideoPlayer({
                 nativeControls={false}
                 onLayout={(event) => {
                     const { width, height } = event.nativeEvent.layout;
-                    if (width > 0 && width !== playerWidth) {
-                        setPlayerWidth(width);
-                    }
-                    if (height > 0 && height !== playerHeight) {
-                        setPlayerHeight(height);
-                    }
+                    syncPlayerLayout(width, height);
                 }}
             />
             {showControls && (
@@ -718,12 +732,7 @@ export default function VideoPlayer({
                     style={styles.touchOverlay}
                     onLayout={(event) => {
                         const { width, height } = event.nativeEvent.layout;
-                        if (width > 0 && width !== playerWidth) {
-                            setPlayerWidth(width);
-                        }
-                        if (height > 0 && height !== playerHeight) {
-                            setPlayerHeight(height);
-                        }
+                        syncPlayerLayout(width, height);
                     }}
                 >
                     <View style={styles.touchArea} />
