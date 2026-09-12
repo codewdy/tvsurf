@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, Text, StyleSheet, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import TVDetailsScreen from './screens/TVDetailsScreen';
@@ -43,6 +44,7 @@ export default function App() {
   useEffect(() => {
     checkLoginStatus();
     loadOfflineStatus();
+    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
   }, []);
 
   // 当登录状态改变时，加载用户信息

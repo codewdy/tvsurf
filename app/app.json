@@ -3,7 +3,7 @@
     "name": "追番小助手",
     "slug": "tvsurf",
     "version": "0.2.7",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
@@ -37,6 +37,12 @@
       "expo-dev-client",
       "./withGradleJvmArgs.js",
       [
+        "expo-screen-orientation",
+        {
+          "initialOrientation": "PORTRAIT_UP"
+        }
+      ],
+      [
         "expo-build-properties",
         {
           "android": {
@@ -44,7 +50,8 @@
           }
         }
       ],
-      "./withNotifeeDataSync.js"
+      "./withNotifeeDataSync.js",
+      "./withFoldScreenSupport.js"
     ]
   }
 }
