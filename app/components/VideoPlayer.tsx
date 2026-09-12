@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -713,12 +713,10 @@ export default function VideoPlayer({
     return (
         <View style={styles.container}>
             <VideoView
-                key={isFullscreen ? 'video-fullscreen' : 'video-windowed'}
                 player={player}
                 style={styles.videoPlayer}
                 contentFit="contain"
                 nativeControls={false}
-                {...(Platform.OS === 'android' ? { surfaceType: 'textureView' as const } : null)}
                 onLayout={(event) => {
                     const { width, height } = event.nativeEvent.layout;
                     syncPlayerLayout(width, height);
@@ -876,13 +874,11 @@ const styles = StyleSheet.create({
     container: {
         width: '100%',
         height: '100%',
-        flex: 1,
         position: 'relative',
     },
     videoPlayer: {
         width: '100%',
         height: '100%',
-        flex: 1,
     },
     touchOverlay: {
         position: 'absolute',

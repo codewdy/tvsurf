@@ -13,7 +13,6 @@ import {
     Alert,
     TextInput,
     Image,
-    useWindowDimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -25,14 +24,6 @@ import type { GetTVDetailsResponse, Tag, Series, Source, SearchError } from '../
 import { videoCache } from '../utils/videoCache';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { getTagName, TAG_NAMES } from '../constants/tagNames';
-
-// 小米折叠屏内屏/平板接近方形，宽高比通常 ≤ 16:9；强锁横屏会被忽略或挤进平行窗口。
-const isCompactPhoneWindow = (width: number, height: number): boolean => {
-    const longSide = Math.max(width, height);
-    const shortSide = Math.min(width, height);
-    if (shortSide <= 0) return true;
-    return longSide / shortSide > 16 / 9;
-};
 
 interface TVDetailsScreenProps {
     tv: {
@@ -59,7 +50,6 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
         isPlaying: false,
     });
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const windowSize = useWindowDimensions();
     const [showMenu, setShowMenu] = useState(false);
     const [showTagSelector, setShowTagSelector] = useState(false);
     const [showCacheSelector, setShowCacheSelector] = useState(false);
@@ -438,21 +428,12 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
     }, [details, selectedEpisode, playbackState, updateWatchProgress]);
 
     useEffect(() => {
-        const applyOrientation = async () => {
-            if (!isFullscreen) {
-                await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-                return;
-            }
-            // 全屏以“是否已最大化”为准，不依赖方向是否真的转过去。
-            // 直屏手机仍锁横屏；折叠内屏/平板解锁，避免失败后播放器卡在 16:9。
-            if (isCompactPhoneWindow(windowSize.width, windowSize.height)) {
-                await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
-                return;
-            }
-            await ScreenOrientation.unlockAsync();
-        };
-        applyOrientation().catch(() => null);
-    }, [isFullscreen, windowSize.height, windowSize.width]);
+        if (!isFullscreen) {
+            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
+            return;
+        }
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => null);
+    }, [isFullscreen]);
 
     useEffect(() => {
         StatusBar.setHidden(isFullscreen, 'fade');
@@ -749,10 +730,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
 
 
     return (
-        <SafeAreaView
-            style={[styles.container, isFullscreen && styles.containerFullscreen]}
-            edges={isFullscreen ? [] : ['top', 'right', 'bottom', 'left']}
-        >
+        <SafeAreaView style={styles.container}>
             {!isFullscreen && (
                 <View style={styles.titleBar}>
                     <TouchableOpacity
@@ -781,12 +759,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                 </View>
             )}
 
-            <View
-                style={[
-                    styles.playerContainer,
-                    isFullscreen ? styles.playerContainerFullscreen : styles.playerContainerWindowed,
-                ]}
-            >
+            <View style={[styles.playerContainer, isFullscreen && styles.playerContainerFullscreen]}>
                 {hasVideo ? (
                     <VideoPlayer
                         videoUrl={currentVideoUrl}
@@ -2046,9 +2019,6 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#f5f5f5',
     },
-    containerFullscreen: {
-        backgroundColor: '#000',
-    },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -2144,24 +2114,23 @@ const styles = StyleSheet.create({
         backgroundColor: '#000',
         borderRadius: 0,
         overflow: 'hidden',
+        marginLeft: -12,
+        marginRight: -12,
+        marginTop: 0,
+        marginBottom: 0,
+        aspectRatio: 16 / 9,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    playerContainerWindowed: {
-        marginLeft: -12,
-        marginRight: -12,
-        aspectRatio: 16 / 9,
-    },
     playerContainerFullscreen: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
+        ...StyleSheet.absoluteFillObject,
         zIndex: 10,
         elevation: 10,
-        width: '100%',
-        height: '100%',
+        aspectRatio: undefined,
+        marginLeft: 0,
+        marginRight: 0,
+        marginTop: 0,
+        marginBottom: 0,
     },
     noVideoContainer: {
         flex: 1,
