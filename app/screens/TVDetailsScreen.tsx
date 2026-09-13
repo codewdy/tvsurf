@@ -23,7 +23,7 @@ import { getTVDetails, setWatchProgress, setTVTag, setTVTracking, getApiToken, g
 import type { GetTVDetailsResponse, Tag, Series, Source, SearchError } from '../api/types';
 import { videoCache } from '../utils/videoCache';
 import { offlineModeManager } from '../utils/offlineModeManager';
-import { useResponsiveLayout } from '../utils/useResponsiveLayout';
+import { useResponsiveLayout } from '../utils/responsiveLayout';
 import { getTagName, TAG_NAMES } from '../constants/tagNames';
 
 interface TVDetailsScreenProps {
