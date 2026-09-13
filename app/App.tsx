@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, Text, StyleSheet, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as ScreenOrientation from 'expo-screen-orientation';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import TVDetailsScreen from './screens/TVDetailsScreen';
@@ -16,6 +17,7 @@ import UserManagementScreen from './screens/UserManagementScreen';
 import AccountScreen from './screens/AccountScreen';
 import { getApiToken, clearApiToken, whoami } from './api/client-proxy';
 import { offlineModeManager } from './utils/offlineModeManager';
+import { useResponsiveLayout } from './utils/useResponsiveLayout';
 import type { TVInfo, WhoamiResponse } from './api/types';
 
 type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv' | 'download-monitor' | 'error-management' | 'config' | 'user-management' | 'account';
@@ -36,6 +38,7 @@ export default function App() {
   const [navigationStack, setNavigationStack] = useState<NavigationState[]>([]);
   // 用户信息
   const [userInfo, setUserInfo] = useState<WhoamiResponse | null>(null);
+  const { isLargeScreen } = useResponsiveLayout();
 
   // 检查用户是否是admin
   const isAdmin = userInfo?.user?.group?.includes('admin') ?? false;
@@ -44,6 +47,17 @@ export default function App() {
     checkLoginStatus();
     loadOfflineStatus();
   }, []);
+
+  // app.json 的 orientation 已放开为 default，这里按设备收回控制权：
+  // 只有折叠屏内屏 / 平板放行旋转，普通手机维持竖屏锁。
+  // 仅依赖 isLargeScreen（由窗口短边算出，旋转时不变），避免解锁后反复触发。
+  useEffect(() => {
+    if (isLargeScreen) {
+      ScreenOrientation.unlockAsync().catch(() => null);
+    } else {
+      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
+    }
+  }, [isLargeScreen]);
 
   // 当登录状态改变时，加载用户信息
   useEffect(() => {

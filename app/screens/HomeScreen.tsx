@@ -11,7 +11,7 @@ import {
     Modal,
     Animated,
     TouchableWithoutFeedback,
-    Dimensions,
+    useWindowDimensions,
     Alert,
     BackHandler,
 } from 'react-native';
@@ -26,8 +26,9 @@ import { checkUpdate, downloadApk, installApk } from '../utils/autoUpdate';
 import type { TVInfo, Tag, WhoamiResponse } from '../api/types';
 import { getTagName } from '../constants/tagNames';
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const MENU_WIDTH = Math.min(280, SCREEN_WIDTH * 0.75);
+const MENU_MAX_WIDTH = 280;
+
+const getMenuWidth = (windowWidth: number) => Math.min(MENU_MAX_WIDTH, windowWidth * 0.75);
 
 function getWatchedLabel(episodeId: number, time: number, totalEpisodes: number): string {
     const suffix = ` / 共 ${totalEpisodes} 集`;
@@ -96,9 +97,20 @@ export default function HomeScreen({
     // TV 卡片长按菜单：当前弹出菜单对应的 TV，null 表示未打开
     const [tvCardMenuTarget, setTvCardMenuTarget] = useState<TVInfo | null>(null);
 
+    // 抽屉宽度随窗口变化，横屏 / 折叠屏展开后不能再用启动时的竖屏宽度
+    const { width: windowWidth } = useWindowDimensions();
+    const menuWidth = getMenuWidth(windowWidth);
+
     // 菜单动画
-    const slideAnim = useRef(new Animated.Value(-MENU_WIDTH)).current;
+    const slideAnim = useRef(new Animated.Value(-menuWidth)).current;
     const overlayOpacity = useRef(new Animated.Value(0)).current;
+
+    // 窗口变化时抽屉仍收起的话，同步收起位移，否则会残留一条缝或超出屏幕
+    useEffect(() => {
+        if (!menuVisible) {
+            slideAnim.setValue(-menuWidth);
+        }
+    }, [menuWidth, menuVisible, slideAnim]);
 
     // 检查用户是否是admin
     const isAdmin = userInfo?.user?.group?.includes('admin') ?? false;
@@ -338,7 +350,7 @@ export default function HomeScreen({
     const closeMenu = () => {
         Animated.parallel([
             Animated.timing(slideAnim, {
-                toValue: -MENU_WIDTH,
+                toValue: -menuWidth,
                 duration: 250,
                 useNativeDriver: true,
             }),
@@ -775,7 +787,7 @@ export default function HomeScreen({
                     <Animated.View
                         style={[
                             styles.menuContent,
-                            { transform: [{ translateX: slideAnim }] }
+                            { width: menuWidth, transform: [{ translateX: slideAnim }] }
                         ]}
                     >
                         <SafeAreaView style={styles.menuSafeArea}>
@@ -1319,7 +1331,6 @@ const styles = StyleSheet.create({
         left: 0,
         top: 0,
         bottom: 0,
-        width: MENU_WIDTH,
         backgroundColor: '#fff',
         shadowColor: '#000',
         shadowOffset: {

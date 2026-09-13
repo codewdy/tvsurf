@@ -23,6 +23,7 @@ import { getTVDetails, setWatchProgress, setTVTag, setTVTracking, getApiToken, g
 import type { GetTVDetailsResponse, Tag, Series, Source, SearchError } from '../api/types';
 import { videoCache } from '../utils/videoCache';
 import { offlineModeManager } from '../utils/offlineModeManager';
+import { useResponsiveLayout } from '../utils/useResponsiveLayout';
 import { getTagName, TAG_NAMES } from '../constants/tagNames';
 
 interface TVDetailsScreenProps {
@@ -50,6 +51,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
         isPlaying: false,
     });
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const { isLargeScreen, isTwoPane } = useResponsiveLayout();
     const [showMenu, setShowMenu] = useState(false);
     const [showTagSelector, setShowTagSelector] = useState(false);
     const [showCacheSelector, setShowCacheSelector] = useState(false);
@@ -427,13 +429,21 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
         updateWatchProgress(selectedEpisode, playbackState.currentTime);
     }, [details, selectedEpisode, playbackState, updateWatchProgress]);
 
+    // 全屏一律锁横屏，包括大屏竖屏单栏下点全屏。
+    // 退出全屏后大屏解锁交回传感器：设备物理上仍是竖屏就自己转回单栏，
+    // 本来横着拿就留在双栏，不必记录进入前的方向。
+    // 普通手机非全屏时维持竖屏锁，否则大屏解锁会让它也能横过来。
     useEffect(() => {
-        if (!isFullscreen) {
-            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
+        if (isFullscreen) {
+            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => null);
             return;
         }
-        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => null);
-    }, [isFullscreen]);
+        if (isLargeScreen) {
+            ScreenOrientation.unlockAsync().catch(() => null);
+            return;
+        }
+        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
+    }, [isFullscreen, isLargeScreen]);
 
     useEffect(() => {
         StatusBar.setHidden(isFullscreen, 'fade');
@@ -458,9 +468,17 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
         syncNavigationBar();
     }, [isFullscreen]);
 
+    const isLargeScreenRef = useRef(isLargeScreen);
+    isLargeScreenRef.current = isLargeScreen;
+
     useEffect(() => {
         return () => {
-            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
+            // 可能是在全屏横屏锁的状态下离开的，大屏必须显式解锁而不是放任不管
+            if (isLargeScreenRef.current) {
+                ScreenOrientation.unlockAsync().catch(() => null);
+            } else {
+                ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
+            }
             if (Platform.OS === 'android') {
                 NavigationBar.setVisibilityAsync('visible').catch(() => null);
             }
@@ -728,6 +746,8 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
         (details.info.user_data.watch_progress.episode_id === selectedEpisode &&
             details.info.user_data.watch_progress.time > 0);
 
+    const twoPane = isTwoPane && !isFullscreen;
+
 
     return (
         <SafeAreaView style={styles.container}>
@@ -759,148 +779,160 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                 </View>
             )}
 
-            <View style={[styles.playerContainer, isFullscreen && styles.playerContainerFullscreen]}>
-                {hasVideo ? (
-                    <VideoPlayer
-                        videoUrl={currentVideoUrl}
-                        headers={requestHeaders}
-                        resumeTime={resumeTime}
-                        autoPlay={autoPlay}
-                        onPlaybackState={setPlaybackState}
-                        onPlayToEnd={() => handleEpisodeSelect(selectedEpisode + 1, true)}
-                        isFullscreen={isFullscreen}
-                        onToggleFullscreen={handleToggleFullscreen}
-                        localUri={currentEpisodeLocalUri}
-                    />
-                ) : (
-                    <View style={styles.noVideoContainer}>
-                        {selectedEpisode >= details.episodes.length ? (
-                            <Text style={styles.noVideoText}>已全部播放完毕</Text>
-                        ) : storageEp?.status === 'running' ? (
-                            <Text style={styles.noVideoText}>该集正在缓存中...</Text>
-                        ) : storageEp?.status === 'failed' ? (
-                            <Text style={styles.noVideoText}>该集缓存失败</Text>
-                        ) : (
-                            <Text style={styles.noVideoText}>该集尚未缓存</Text>
-                        )}
-                        {currentEpisode ? (
-                            <Text style={styles.noVideoSubtext}>{currentEpisode.name || ''}</Text>
-                        ) : null}
-                    </View>
-                )}
-            </View>
-
-            {!isFullscreen && (
-                <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-                    {error && (
-                        <View style={styles.errorBanner}>
-                            <Text style={styles.errorBannerText}>{error}</Text>
+            <View style={[styles.body, twoPane && styles.bodyTwoPane]}>
+                <View
+                    style={[
+                        styles.playerContainer,
+                        twoPane && styles.playerContainerTwoPane,
+                        isFullscreen && styles.playerContainerFullscreen,
+                    ]}
+                >
+                    {hasVideo ? (
+                        <VideoPlayer
+                            videoUrl={currentVideoUrl}
+                            headers={requestHeaders}
+                            resumeTime={resumeTime}
+                            autoPlay={autoPlay}
+                            onPlaybackState={setPlaybackState}
+                            onPlayToEnd={() => handleEpisodeSelect(selectedEpisode + 1, true)}
+                            isFullscreen={isFullscreen}
+                            onToggleFullscreen={handleToggleFullscreen}
+                            localUri={currentEpisodeLocalUri}
+                        />
+                    ) : (
+                        <View style={styles.noVideoContainer}>
+                            {selectedEpisode >= details.episodes.length ? (
+                                <Text style={styles.noVideoText}>已全部播放完毕</Text>
+                            ) : storageEp?.status === 'running' ? (
+                                <Text style={styles.noVideoText}>该集正在缓存中...</Text>
+                            ) : storageEp?.status === 'failed' ? (
+                                <Text style={styles.noVideoText}>该集缓存失败</Text>
+                            ) : (
+                                <Text style={styles.noVideoText}>该集尚未缓存</Text>
+                            )}
+                            {currentEpisode ? (
+                                <Text style={styles.noVideoSubtext}>{currentEpisode.name || ''}</Text>
+                            ) : null}
                         </View>
                     )}
+                </View>
 
-                    {/* 剧集列表 */}
-                    <View style={styles.episodesSection}>
-                        <Text style={styles.sectionTitle}>剧集列表</Text>
-                        <View style={styles.episodesGrid}>
-                            {details.tv.source.episodes.map((episode, index) => {
-                                const epStorage = details.tv.storage.episodes[index];
-                                const hasDownloaded = epStorage?.status === 'success';
-                                const isDownloading = epStorage?.status === 'running';
-                                const isFailed = epStorage?.status === 'failed';
-                                const isSelected = index === selectedEpisode;
-                                const epIsWatched =
-                                    details.info.user_data.watch_progress.episode_id > index ||
-                                    (details.info.user_data.watch_progress.episode_id === index &&
-                                        details.info.user_data.watch_progress.time > 0);
+                {!isFullscreen && (
+                    <ScrollView
+                        style={twoPane ? styles.infoPaneTwoPane : styles.scrollView}
+                        contentContainerStyle={styles.content}
+                    >
+                        {error && (
+                            <View style={styles.errorBanner}>
+                                <Text style={styles.errorBannerText}>{error}</Text>
+                            </View>
+                        )}
 
-                                // 本地缓存状态
-                                const isCached = cachedEpisodes.has(index);
-                                const isPending = pendingEpisodes.has(index);
-                                const downloadProgress = downloadingEpisodes.get(index);
-                                const isDownloadingToLocal = downloadProgress !== undefined;
-                                const downloadError = failedDownloads.get(index);
+                        {/* 剧集列表 */}
+                        <View style={styles.episodesSection}>
+                            <Text style={styles.sectionTitle}>剧集列表</Text>
+                            <View style={styles.episodesGrid}>
+                                {details.tv.source.episodes.map((episode, index) => {
+                                    const epStorage = details.tv.storage.episodes[index];
+                                    const hasDownloaded = epStorage?.status === 'success';
+                                    const isDownloading = epStorage?.status === 'running';
+                                    const isFailed = epStorage?.status === 'failed';
+                                    const isSelected = index === selectedEpisode;
+                                    const epIsWatched =
+                                        details.info.user_data.watch_progress.episode_id > index ||
+                                        (details.info.user_data.watch_progress.episode_id === index &&
+                                            details.info.user_data.watch_progress.time > 0);
 
-                                return (
-                                    <TouchableOpacity
-                                        key={index}
-                                        style={[
-                                            styles.episodeCard,
-                                            isSelected && styles.episodeCardSelected,
-                                            { marginHorizontal: 2, marginBottom: 6 },
-                                        ]}
-                                        onPress={() => handleEpisodeSelect(index, false)}
-                                        disabled={!hasDownloaded && !isDownloading && !isCached}
-                                    >
-                                        <Text
+                                    // 本地缓存状态
+                                    const isCached = cachedEpisodes.has(index);
+                                    const isPending = pendingEpisodes.has(index);
+                                    const downloadProgress = downloadingEpisodes.get(index);
+                                    const isDownloadingToLocal = downloadProgress !== undefined;
+                                    const downloadError = failedDownloads.get(index);
+
+                                    return (
+                                        <TouchableOpacity
+                                            key={index}
                                             style={[
-                                                styles.episodeName,
-                                                (!hasDownloaded && !isDownloading && !isCached) &&
-                                                styles.episodeNameDisabled,
+                                                styles.episodeCard,
+                                                twoPane && styles.episodeCardTwoPane,
+                                                isSelected && styles.episodeCardSelected,
+                                                { marginHorizontal: 2, marginBottom: 6 },
                                             ]}
-                                            numberOfLines={2}
+                                            onPress={() => handleEpisodeSelect(index, false)}
+                                            disabled={!hasDownloaded && !isDownloading && !isCached}
                                         >
-                                            {episode.name || ''}
-                                        </Text>
-                                        <View style={styles.episodeStatusContainer}>
-                                            {/* 服务器状态 */}
-                                            <View style={styles.episodeStatus}>
-                                                {hasDownloaded ? (
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                                                        <Ionicons name="cloud-done" size={10} color="#4CAF50" />
-                                                        <Text style={styles.episodeStatusText}>✓</Text>
-                                                    </View>
-                                                ) : isDownloading ? (
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                                                        <Ionicons name="cloud-download" size={10} color="#FF9800" />
-                                                        <Text style={styles.episodeStatusTextDownloading}>中</Text>
-                                                    </View>
-                                                ) : isFailed ? (
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                                                        <Ionicons name="cloud-offline" size={10} color="#f44336" />
-                                                        <Text style={styles.episodeStatusTextFailed}>×</Text>
-                                                    </View>
-                                                ) : (
-                                                    <Text style={styles.episodeStatusText}>-</Text>
-                                                )}
+                                            <Text
+                                                style={[
+                                                    styles.episodeName,
+                                                    (!hasDownloaded && !isDownloading && !isCached) &&
+                                                    styles.episodeNameDisabled,
+                                                ]}
+                                                numberOfLines={2}
+                                            >
+                                                {episode.name || ''}
+                                            </Text>
+                                            <View style={styles.episodeStatusContainer}>
+                                                {/* 服务器状态 */}
+                                                <View style={styles.episodeStatus}>
+                                                    {hasDownloaded ? (
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                                                            <Ionicons name="cloud-done" size={10} color="#4CAF50" />
+                                                            <Text style={styles.episodeStatusText}>✓</Text>
+                                                        </View>
+                                                    ) : isDownloading ? (
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                                                            <Ionicons name="cloud-download" size={10} color="#FF9800" />
+                                                            <Text style={styles.episodeStatusTextDownloading}>中</Text>
+                                                        </View>
+                                                    ) : isFailed ? (
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                                                            <Ionicons name="cloud-offline" size={10} color="#f44336" />
+                                                            <Text style={styles.episodeStatusTextFailed}>×</Text>
+                                                        </View>
+                                                    ) : (
+                                                        <Text style={styles.episodeStatusText}>-</Text>
+                                                    )}
+                                                </View>
+                                                {/* 本地缓存状态 */}
+                                                <View style={styles.episodeStatus}>
+                                                    {isPending ? (
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                                                            <Ionicons name="time-outline" size={10} color="#9E9E9E" />
+                                                            <Text style={styles.episodeStatusTextPending}>
+                                                                排队中
+                                                            </Text>
+                                                        </View>
+                                                    ) : isDownloadingToLocal ? (
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                                                            <Ionicons name="phone-portrait" size={10} color="#FF9800" />
+                                                            <Text style={styles.episodeStatusTextDownloading}>
+                                                                {Math.round(downloadProgress * 100)}%
+                                                            </Text>
+                                                        </View>
+                                                    ) : isCached ? (
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                                                            <Ionicons name="phone-portrait" size={10} color="#007AFF" />
+                                                            <Text style={styles.episodeStatusText}>已缓存</Text>
+                                                        </View>
+                                                    ) : downloadError ? (
+                                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+                                                            <Ionicons name="phone-portrait" size={10} color="#f44336" />
+                                                            <Text style={styles.episodeStatusTextFailed}>失败</Text>
+                                                        </View>
+                                                    ) : (
+                                                        <Text style={styles.episodeStatusText}>-</Text>
+                                                    )}
+                                                </View>
                                             </View>
-                                            {/* 本地缓存状态 */}
-                                            <View style={styles.episodeStatus}>
-                                                {isPending ? (
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                                                        <Ionicons name="time-outline" size={10} color="#9E9E9E" />
-                                                        <Text style={styles.episodeStatusTextPending}>
-                                                            排队中
-                                                        </Text>
-                                                    </View>
-                                                ) : isDownloadingToLocal ? (
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                                                        <Ionicons name="phone-portrait" size={10} color="#FF9800" />
-                                                        <Text style={styles.episodeStatusTextDownloading}>
-                                                            {Math.round(downloadProgress * 100)}%
-                                                        </Text>
-                                                    </View>
-                                                ) : isCached ? (
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                                                        <Ionicons name="phone-portrait" size={10} color="#007AFF" />
-                                                        <Text style={styles.episodeStatusText}>已缓存</Text>
-                                                    </View>
-                                                ) : downloadError ? (
-                                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
-                                                        <Ionicons name="phone-portrait" size={10} color="#f44336" />
-                                                        <Text style={styles.episodeStatusTextFailed}>失败</Text>
-                                                    </View>
-                                                ) : (
-                                                    <Text style={styles.episodeStatusText}>-</Text>
-                                                )}
-                                            </View>
-                                        </View>
-                                    </TouchableOpacity>
-                                );
-                            })}
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </View>
                         </View>
-                    </View>
-                </ScrollView>
-            )}
+                    </ScrollView>
+                )}
+            </View>
 
             {/* 菜单弹窗 */}
             <Modal
@@ -2080,8 +2112,23 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    // 单栏与双栏共用同一层 body，只切换主轴方向，
+    // 这样 VideoPlayer 在 React 树中的位置不变，旋转时不会被重建。
+    body: {
+        flex: 1,
+    },
+    bodyTwoPane: {
+        flexDirection: 'row',
+    },
     scrollView: {
         flex: 1,
+    },
+    // 双栏按 6:4 分配，播放器拿 60%；上下限兜住极端窗口宽度：
+    // 太窄剧集三列会挤到不可读，太宽则右栏白占空间、不如让给播放器。
+    infoPaneTwoPane: {
+        flex: 4,
+        minWidth: 280,
+        maxWidth: 420,
     },
     content: {
         padding: 12,
@@ -2121,6 +2168,15 @@ const styles = StyleSheet.create({
         aspectRatio: 16 / 9,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    // 双栏左栏：占 60% 宽度与整个高度，由 expo-video 的 contentFit="contain"
+    // 在近方形的内屏上自行留出上下黑边。右栏触到 maxWidth 后这里会吃掉多出的空间。
+    playerContainerTwoPane: {
+        flex: 6,
+        alignSelf: 'stretch',
+        aspectRatio: undefined,
+        marginLeft: 0,
+        marginRight: 0,
     },
     playerContainerFullscreen: {
         ...StyleSheet.absoluteFillObject,
@@ -2183,6 +2239,10 @@ const styles = StyleSheet.create({
         borderColor: '#e0e0e0',
         minHeight: 48,
         justifyContent: 'space-between',
+    },
+    // 右栏只有 300-380dp 宽，4 列会挤到不可读，改为 3 列
+    episodeCardTwoPane: {
+        width: '31%',
     },
     episodeCardSelected: {
         borderColor: '#007AFF',
