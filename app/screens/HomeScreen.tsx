@@ -22,7 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTVInfos, getTVDetails, getApiBaseUrl, getApiToken, getMonitor, whoami } from '../api/client-proxy';
 import { offlineModeManager } from '../utils/offlineModeManager';
 import { videoCache } from '../utils/videoCache';
-import { checkUpdate, downloadApk, installApk } from '../utils/autoUpdate';
+import { checkUpdate, downloadApk, installApk, isUpdateCheckEnabled } from '../utils/autoUpdate';
 import type { TVInfo, Tag, WhoamiResponse } from '../api/types';
 import { getTagName } from '../constants/tagNames';
 
@@ -547,6 +547,12 @@ export default function HomeScreen({
     // 检查更新（仅 Android）
     const handleCheckUpdate = async (isAutoCheck = false) => {
         if (Platform.OS !== 'android') return;
+        if (!isUpdateCheckEnabled()) {
+            if (!isAutoCheck) {
+                Alert.alert('提示', 'Debug 版本不检查更新');
+            }
+            return;
+        }
 
         // 如果是自动检查，重新获取一次离线状态，确保准确
         let currentIsOffline = isOffline;

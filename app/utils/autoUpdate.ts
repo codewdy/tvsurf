@@ -13,6 +13,11 @@ export interface PackageJson {
     version: string;
 }
 
+/** Debug 应用（包括打包运行的 development 版本）不检查正式版更新。 */
+export function isUpdateCheckEnabled(): boolean {
+    return !__DEV__ && Constants.expoConfig?.android?.package !== 'com.codewdy.tvsurf.debug';
+}
+
 async function getBaseUrlAndToken(): Promise<{ baseUrl: string; token: string }> {
     const baseUrl = await getApiBaseUrl();
     const token = await getApiToken();
@@ -68,6 +73,9 @@ export interface CheckUpdateResult {
 /** 检查是否有可更新版本 */
 export async function checkUpdate(): Promise<CheckUpdateResult> {
     const current = getCurrentVersion();
+    if (!isUpdateCheckEnabled()) {
+        return { available: false, currentVersion: current, latestVersion: current };
+    }
     const pkg = await fetchPackageJson();
     const latest = pkg.version;
     const cmp = compareVersions(current, latest);
