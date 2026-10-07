@@ -805,7 +805,10 @@ export default function HomeScreen({
                             </View>
 
                             {/* 菜单项 */}
-                            <View style={styles.menuItems}>
+                            <ScrollView
+                                style={styles.menuScrollView}
+                                contentContainerStyle={styles.menuItems}
+                            >
                                 <TouchableOpacity
                                     style={styles.menuItem}
                                     onPress={() => handleMenuItemPress(() => onNavigateToAddTV?.())}
@@ -977,7 +980,7 @@ export default function HomeScreen({
                                     <Text style={styles.menuItemText}>我的账户</Text>
                                     <Text style={styles.menuItemArrow}>›</Text>
                                 </TouchableOpacity>
-                            </View>
+                            </ScrollView>
                         </SafeAreaView>
                     </Animated.View>
                 </View>
@@ -1376,8 +1379,12 @@ const styles = StyleSheet.create({
         color: '#333',
         fontWeight: '300',
     },
+    menuScrollView: {
+        flex: 1,
+    },
     menuItems: {
         paddingTop: 8,
+        paddingBottom: 16,
     },
     menuItem: {
         flexDirection: 'row',
