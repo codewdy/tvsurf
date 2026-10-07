@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { ActivityIndicator, View, Text, StyleSheet, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import * as ScreenOrientation from 'expo-screen-orientation';
 import LoginScreen from './screens/LoginScreen';
 import HomeScreen from './screens/HomeScreen';
 import TVDetailsScreen from './screens/TVDetailsScreen';
@@ -17,7 +16,8 @@ import UserManagementScreen from './screens/UserManagementScreen';
 import AccountScreen from './screens/AccountScreen';
 import { getApiToken, clearApiToken, whoami } from './api/client-proxy';
 import { offlineModeManager } from './utils/offlineModeManager';
-import { ResponsiveLayoutProvider, useResponsiveLayout } from './utils/responsiveLayout';
+import { ResponsiveLayoutProvider } from './utils/responsiveLayout';
+import { OrientationProvider } from './utils/orientationPolicy';
 import type { TVInfo, WhoamiResponse } from './api/types';
 
 type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv' | 'download-monitor' | 'error-management' | 'config' | 'user-management' | 'account';
@@ -28,39 +28,12 @@ interface NavigationState {
   selectedSeriesId?: number | null;
 }
 
-/**
- * app.json 的 orientation 已放开为 default，这里按设备收回控制权：
- * 只有折叠屏内屏 / 平板放行旋转，普通手机维持竖屏锁。
- * 必须渲染在 ResponsiveLayoutProvider 内部才能读到实测尺寸。
- */
-function OrientationPolicy() {
-  const { width, isLargeScreen } = useResponsiveLayout();
-
-  // 单看尺寸判不出折叠屏展开：展开后我们若还锁着竖屏，系统会把窗口信箱化成
-  // 一条竖窗，量出来仍是手机尺寸 → 继续锁竖屏 → 永远出不来，锁和检测互相锁死。
-  // 所以另记见过的最窄宽度当作手机基线：窗口比基线宽就说明换到了更大的面板，
-  // 不管量出多少都放开旋转。手机宽度恒定不会误判（竖屏锁下分屏也只切高度），
-  // 折回外屏时宽度回到基线，又会重新锁上。
-  const baselineWidthRef = useRef(width);
-  baselineWidthRef.current = Math.min(baselineWidthRef.current, width);
-  const isOnLargerPanel = width > baselineWidthRef.current;
-
-  useEffect(() => {
-    if (isLargeScreen || isOnLargerPanel) {
-      ScreenOrientation.unlockAsync().catch(() => null);
-    } else {
-      ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
-    }
-  }, [isLargeScreen, isOnLargerPanel]);
-
-  return null;
-}
-
 export default function App() {
   return (
     <ResponsiveLayoutProvider>
-      <OrientationPolicy />
-      <AppContent />
+      <OrientationProvider>
+        <AppContent />
+      </OrientationProvider>
     </ResponsiveLayoutProvider>
   );
 }

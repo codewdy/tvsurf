@@ -15,7 +15,7 @@ import {
     Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import * as ScreenOrientation from 'expo-screen-orientation';
+import { useFullscreenOrientation } from '../utils/orientationPolicy';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import VideoPlayer from '../components/VideoPlayer';
@@ -51,7 +51,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
         isPlaying: false,
     });
     const [isFullscreen, setIsFullscreen] = useState(false);
-    const { isLargeScreen, isTwoPane } = useResponsiveLayout();
+    const { isTwoPane } = useResponsiveLayout();
     const [showMenu, setShowMenu] = useState(false);
     const [showTagSelector, setShowTagSelector] = useState(false);
     const [showCacheSelector, setShowCacheSelector] = useState(false);
@@ -429,21 +429,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
         updateWatchProgress(selectedEpisode, playbackState.currentTime);
     }, [details, selectedEpisode, playbackState, updateWatchProgress]);
 
-    // 全屏一律锁横屏，包括大屏竖屏单栏下点全屏。
-    // 退出全屏后大屏解锁交回传感器：设备物理上仍是竖屏就自己转回单栏，
-    // 本来横着拿就留在双栏，不必记录进入前的方向。
-    // 普通手机非全屏时维持竖屏锁，否则大屏解锁会让它也能横过来。
-    useEffect(() => {
-        if (isFullscreen) {
-            ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE).catch(() => null);
-            return;
-        }
-        if (isLargeScreen) {
-            ScreenOrientation.unlockAsync().catch(() => null);
-            return;
-        }
-        ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
-    }, [isFullscreen, isLargeScreen]);
+    useFullscreenOrientation(isFullscreen);
 
     useEffect(() => {
         StatusBar.setHidden(isFullscreen, 'fade');
@@ -468,17 +454,8 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
         syncNavigationBar();
     }, [isFullscreen]);
 
-    const isLargeScreenRef = useRef(isLargeScreen);
-    isLargeScreenRef.current = isLargeScreen;
-
     useEffect(() => {
         return () => {
-            // 可能是在全屏横屏锁的状态下离开的，大屏必须显式解锁而不是放任不管
-            if (isLargeScreenRef.current) {
-                ScreenOrientation.unlockAsync().catch(() => null);
-            } else {
-                ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP).catch(() => null);
-            }
             if (Platform.OS === 'android') {
                 NavigationBar.setVisibilityAsync('visible').catch(() => null);
             }
