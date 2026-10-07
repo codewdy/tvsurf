@@ -71,6 +71,7 @@ export default function VideoPlayer({
     const [playbackTime, setPlaybackTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [progressBarWidth, setProgressBarWidth] = useState(0);
+    const [scrubTime, setScrubTime] = useState<number | null>(null);
     const [showControls, setShowControls] = useState(true);
     const [seekOffset, setSeekOffset] = useState(0);
     const [showSeekIndicator, setShowSeekIndicator] = useState(false);
@@ -640,15 +641,37 @@ export default function VideoPlayer({
         [player, duration, progressBarWidth, showControlsWithAutoHide],
     );
 
-    const progressTapGesture = useMemo(
-        () =>
-            Gesture.Tap()
-                .onEnd((event, success) => {
-                    if (success) handleSeek(event.x);
-                })
-                .runOnJS(true),
-        [handleSeek],
+    const previewProgressSeek = useCallback(
+        (locationX: number) => {
+            if (duration <= 0 || progressBarWidth <= 0) return;
+            setScrubTime(clamp(locationX / progressBarWidth, 0, 1) * duration);
+        },
+        [duration, progressBarWidth],
     );
+
+    const progressGesture = useMemo(() => {
+        const drag = Gesture.Pan()
+            .minDistance(1)
+            .onStart((event) => {
+                clearAutoHide();
+                previewProgressSeek(event.x);
+            })
+            .onUpdate((event) => previewProgressSeek(event.x))
+            .onEnd((event, success) => {
+                if (success) handleSeek(event.x);
+            })
+            .onFinalize(() => {
+                setScrubTime(null);
+                showControlsWithAutoHide();
+            })
+            .runOnJS(true);
+        const tap = Gesture.Tap()
+            .onEnd((event, success) => {
+                if (success) handleSeek(event.x);
+            })
+            .runOnJS(true);
+        return Gesture.Exclusive(drag, tap);
+    }, [clearAutoHide, handleSeek, previewProgressSeek, showControlsWithAutoHide]);
 
     const formatTime = (seconds: number | undefined | null): string => {
         if (seconds === undefined || seconds === null || isNaN(seconds) || seconds < 0) {
@@ -663,7 +686,8 @@ export default function VideoPlayer({
         return `${m}:${s.toString().padStart(2, '0')}`;
     };
 
-    const progressPercent = duration > 0 ? Math.min(1, playbackTime / duration) * 100 : 0;
+    const displayedTime = scrubTime ?? playbackTime;
+    const progressPercent = duration > 0 ? Math.min(1, displayedTime / duration) * 100 : 0;
 
     useEffect(() => {
         const timer = setInterval(() => {
@@ -817,7 +841,7 @@ export default function VideoPlayer({
                         <TouchableOpacity style={styles.controlButton} onPress={togglePlay}>
                             <Ionicons name={isPlaying ? 'pause' : 'play'} size={18} color="#fff" />
                         </TouchableOpacity>
-                        <GestureDetector gesture={progressTapGesture}>
+                        <GestureDetector gesture={progressGesture}>
                             <View
                                 style={styles.progressBar}
                                 onLayout={(event) => setProgressBarWidth(event.nativeEvent.layout.width)}
@@ -827,8 +851,8 @@ export default function VideoPlayer({
                                 <View style={[styles.progressThumb, { left: `${progressPercent}%` }]} />
                             </View>
                         </GestureDetector>
-                        <Text style={styles.timeText}>
-                            {formatTime(playbackTime)} / {formatTime(duration)}
+                        <Text style={styles.timeText} numberOfLines={1}>
+                            {formatTime(displayedTime)} / {formatTime(duration)}
                         </Text>
                         <View style={styles.speedControl}>
                             <TouchableOpacity style={styles.speedButton} onPress={handleToggleSpeedMenu}>
@@ -988,6 +1012,9 @@ const styles = StyleSheet.create({
     timeText: {
         color: '#fff',
         fontSize: 12,
+        minWidth: 120,
+        flexShrink: 0,
+        textAlign: 'center',
     },
     speedControl: {
         position: 'relative',
