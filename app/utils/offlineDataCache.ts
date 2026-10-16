@@ -92,6 +92,36 @@ class OfflineDataCache {
     };
     // 使用数组存储待上传操作，按顺序执行
     private operations: Operation[] = [];
+    private pendingChangesCount = 0;
+    private pendingChangesListeners = new Set<() => void>();
+    private pendingChangesBatchDepth = 0;
+
+    getPendingChangesSnapshot = (): number => this.pendingChangesCount;
+
+    subscribePendingChanges = (listener: () => void): (() => void) => {
+        this.pendingChangesListeners.add(listener);
+        return () => { this.pendingChangesListeners.delete(listener); };
+    };
+
+    private notifyPendingChanges(): void {
+        if (this.pendingChangesBatchDepth > 0) return;
+        const count = this.operations.length;
+        if (count === this.pendingChangesCount) return;
+        this.pendingChangesCount = count;
+        this.pendingChangesListeners.forEach(listener => listener());
+    }
+
+    // Publish the remaining queue after the immediate upload attempt, not its transient entries.
+    async batchPendingChangesNotifications<T>(work: () => Promise<T>): Promise<T> {
+        this.pendingChangesBatchDepth++;
+        try {
+            return await work();
+        } finally {
+            this.pendingChangesBatchDepth--;
+            this.notifyPendingChanges();
+        }
+    }
+
     // 临时ID映射表：临时ID -> 真实ID（null表示尚未映射）
     private tempIdMapping: Record<number, number | null> = {};
     // 下一个要分配的临时ID（负数递减）
@@ -121,6 +151,7 @@ class OfflineDataCache {
             await this.loadPendingChanges();
             await this.loadTempIdMapping();
             this.initialized = true;
+            this.notifyPendingChanges();
         })();
         try { await this.initialization; } finally { this.initialization = null; }
     }
@@ -302,6 +333,7 @@ class OfflineDataCache {
                 operations: this.operations,
             };
             await AsyncStorage.setItem(this.key(PENDING_CHANGES_KEY), JSON.stringify(storage));
+            this.notifyPendingChanges();
         } catch (error) {
             console.error('保存待上传变更失败:', error);
             throw error;

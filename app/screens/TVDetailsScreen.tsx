@@ -19,6 +19,7 @@ import { useFullscreenOrientation } from '../utils/orientationPolicy';
 import * as NavigationBar from 'expo-navigation-bar';
 import { Ionicons } from '@expo/vector-icons';
 import VideoPlayer from '../components/VideoPlayer';
+import PendingSyncIndicator from '../components/PendingSyncIndicator';
 import { getTVDetails, setWatchProgress, setTVTag, setTVTracking, getApiToken, getApiBaseUrl, getSeries, searchTV, updateTVSource, updateEpisodeSource, scheduleEpisodeDownload, removeTV } from '../api/client-proxy';
 import type { GetTVDetailsResponse, Tag, Series, Source, SearchError } from '../api/types';
 import { videoCache } from '../utils/videoCache';
@@ -729,7 +730,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                         <Text style={styles.titleBarText} numberOfLines={1}>
                             {details.tv.name || ''}
                         </Text>
-
+                        <PendingSyncIndicator />
                     </View>
                     <TouchableOpacity
                         style={styles.menuButton}
@@ -2038,6 +2039,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     titleBarText: {
+        flexShrink: 1,
         fontSize: 20,
         fontWeight: 'bold',
         color: '#333',

@@ -48,25 +48,27 @@ class DataSync {
     async write<T>(record: () => Promise<T>): Promise<T> {
         return this.exclusive(async () => {
             await offlineDataCache.initialize();
-            // Finish earlier operations before recording another edit when reachable.
-            try {
-                await this.flush();
-            } catch (error) {
-                if (!isUnavailable(error)) throw error;
-                this.defer(error);
-            }
-            const snapshot = offlineDataCache.snapshotData();
-            const result = await record();
-            try {
-                await this.flush();
-            } catch (error) {
-                if (!isUnavailable(error)) {
-                    if (isRejected(error)) await offlineDataCache.restoreData(snapshot);
-                    throw error;
+            return offlineDataCache.batchPendingChangesNotifications(async () => {
+                // Finish earlier operations before recording another edit when reachable.
+                try {
+                    await this.flush();
+                } catch (error) {
+                    if (!isUnavailable(error)) throw error;
+                    this.defer(error);
                 }
-                this.defer(error);
-            }
-            return result;
+                const snapshot = offlineDataCache.snapshotData();
+                const result = await record();
+                try {
+                    await this.flush();
+                } catch (error) {
+                    if (!isUnavailable(error)) {
+                        if (isRejected(error)) await offlineDataCache.restoreData(snapshot);
+                        throw error;
+                    }
+                    this.defer(error);
+                }
+                return result;
+            });
         });
     }
 
@@ -136,6 +138,7 @@ class DataSync {
             await work();
             this.unavailableUntil = 0;
             this.retryReads.clear();
+            await offlineDataCache.initialize();
         });
     }
 

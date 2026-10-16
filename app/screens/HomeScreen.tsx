@@ -20,7 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTVInfos, getTVDetails, getApiBaseUrl, getApiToken, getMonitor, whoami } from '../api/client-proxy';
-
+import PendingSyncIndicator from '../components/PendingSyncIndicator';
 import { videoCache } from '../utils/videoCache';
 import { checkUpdate, downloadApk, installApk, isUpdateCheckEnabled } from '../utils/autoUpdate';
 import type { TVInfo, Tag, WhoamiResponse } from '../api/types';
@@ -490,7 +490,7 @@ export default function HomeScreen({
                 </TouchableOpacity>
                 <View style={styles.titleBarCenter}>
                     <Text style={styles.titleBarText}>追番小助手</Text>
-
+                    <PendingSyncIndicator />
                     {errorCount > 0 && (
                         <TouchableOpacity
                             style={styles.errorBadge}
