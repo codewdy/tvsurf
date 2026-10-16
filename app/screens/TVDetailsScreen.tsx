@@ -66,6 +66,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
     const [deleteConfirmName, setDeleteConfirmName] = useState('');
     const [seriesList, setSeriesList] = useState<Series[]>([]);
     const [selectedEpisodesForCache, setSelectedEpisodesForCache] = useState<Set<number>>(new Set());
+    const initializedPlaybackTvIdRef = useRef<number | null>(null);
     const lastUpdateTimeRef = useRef<number>(-1);
     const lastUpdateEpisodeRef = useRef<number>(-1);
 
@@ -352,9 +353,11 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
         });
     };
 
-    // 初始化选中的剧集
+    // 每次打开影片只恢复一次进度。离线缓存会原地更新 details 中的观看进度，
+    // 不能把保存进度当成新的续播请求，否则会不断 seek 并重置自动播放状态。
     useEffect(() => {
-        if (details) {
+        if (details && details.tv.id === tv.id && initializedPlaybackTvIdRef.current !== tv.id) {
+            initializedPlaybackTvIdRef.current = tv.id;
             const savedEpisode = details.info.user_data.watch_progress.episode_id;
             setSelectedEpisode(savedEpisode);
             setResumeTime(details.info.user_data.watch_progress.time);
@@ -362,7 +365,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
             lastUpdateEpisodeRef.current = savedEpisode;
             lastUpdateTimeRef.current = details.info.user_data.watch_progress.time;
         }
-    }, [details?.info.user_data.watch_progress.episode_id, details?.info.user_data.watch_progress.time]);
+    }, [details, tv.id]);
 
     // 当选中剧集变化时，检查是否有本地缓存
     useEffect(() => {
