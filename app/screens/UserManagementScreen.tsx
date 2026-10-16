@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getUsers, addUser, removeUser, updateUserGroup, setUserPassword, whoami } from '../api/client-proxy';
-import { offlineModeManager } from '../utils/offlineModeManager';
+
 import { hashPassword } from '../utils/password';
 import type { UserInfo, GetUsersResponse } from '../api/types';
 
@@ -28,7 +28,7 @@ export default function UserManagementScreen({ onBack }: UserManagementScreenPro
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [isOffline, setIsOffline] = useState(false);
+
     const [singleUserMode, setSingleUserMode] = useState(false);
     const [userInfo, setUserInfo] = useState<any>(null);
     const [checkingPermission, setCheckingPermission] = useState(true);
@@ -54,7 +54,6 @@ export default function UserManagementScreen({ onBack }: UserManagementScreenPro
 
     useEffect(() => {
         checkPermission();
-        loadOfflineStatus();
 
         // 监听安卓返回按钮
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -91,15 +90,6 @@ export default function UserManagementScreen({ onBack }: UserManagementScreenPro
         }
     };
 
-    const loadOfflineStatus = async () => {
-        try {
-            const offline = await offlineModeManager.getOfflineMode();
-            setIsOffline(offline);
-        } catch (error) {
-            console.error('加载离线模式状态失败:', error);
-        }
-    };
-
     const loadUsers = async () => {
         try {
             setLoading(true);
@@ -126,11 +116,6 @@ export default function UserManagementScreen({ onBack }: UserManagementScreenPro
     const handleAddUser = async () => {
         if (!newUsername.trim() || !newPassword.trim()) {
             Alert.alert('错误', '请输入用户名和密码');
-            return;
-        }
-
-        if (isOffline) {
-            Alert.alert('提示', '离线模式下无法添加用户，请先退出离线模式');
             return;
         }
 
@@ -165,11 +150,6 @@ export default function UserManagementScreen({ onBack }: UserManagementScreenPro
         const currentUsername = userInfo?.user?.username;
         if (username === currentUsername) {
             Alert.alert('错误', '无法删除自己的账户');
-            return;
-        }
-
-        if (isOffline) {
-            Alert.alert('提示', '离线模式下无法删除用户，请先退出离线模式');
             return;
         }
 
@@ -208,11 +188,6 @@ export default function UserManagementScreen({ onBack }: UserManagementScreenPro
             return;
         }
 
-        if (isOffline) {
-            Alert.alert('提示', '离线模式下无法更新用户组，请先退出离线模式');
-            return;
-        }
-
         try {
             await updateUserGroup({
                 username: editingUser.username,
@@ -244,11 +219,6 @@ export default function UserManagementScreen({ onBack }: UserManagementScreenPro
 
         if (newPasswordValue !== confirmPasswordValue) {
             Alert.alert('错误', '两次输入的密码不一致');
-            return;
-        }
-
-        if (isOffline) {
-            Alert.alert('提示', '离线模式下无法设置密码，请先退出离线模式');
             return;
         }
 
@@ -304,7 +274,6 @@ export default function UserManagementScreen({ onBack }: UserManagementScreenPro
         setGroups(groups.filter(g => g !== group));
     };
 
-
     if (checkingPermission || loading) {
         return (
             <SafeAreaView style={styles.container} edges={['top']}>
@@ -355,10 +324,10 @@ export default function UserManagementScreen({ onBack }: UserManagementScreenPro
                 <View style={styles.headerRight}>
                     <TouchableOpacity
                         onPress={() => setAddUserModalVisible(true)}
-                        disabled={isOffline || singleUserMode}
-                        style={[styles.headerButton, (isOffline || singleUserMode) && styles.headerButtonDisabled]}
+                        disabled={singleUserMode}
+                        style={[styles.headerButton, (singleUserMode) && styles.headerButtonDisabled]}
                     >
-                        <Ionicons name="add" size={20} color={(isOffline || singleUserMode) ? "#999999" : "#FFFFFF"} />
+                        <Ionicons name="add" size={20} color={(singleUserMode) ? "#999999" : "#FFFFFF"} />
                     </TouchableOpacity>
                 </View>
             </View>
@@ -374,19 +343,11 @@ export default function UserManagementScreen({ onBack }: UserManagementScreenPro
                 </View>
             )}
 
-            {/* 离线模式提示 */}
-            {isOffline && (
-                <View style={styles.offlineContainer}>
-                    <Ionicons name="airplane" size={20} color="#FF9500" />
-                    <Text style={styles.offlineText}>离线模式下无法管理用户</Text>
-                </View>
-            )}
-
             {/* 单用户模式提示 */}
             {singleUserMode && (
-                <View style={styles.offlineContainer}>
+                <View style={styles.noticeContainer}>
                     <Ionicons name="information-circle" size={20} color="#007AFF" />
-                    <Text style={styles.offlineText}>当前为单用户模式，无法添加新用户</Text>
+                    <Text style={styles.noticeText}>当前为单用户模式，无法添加新用户</Text>
                 </View>
             )}
 
@@ -407,7 +368,7 @@ export default function UserManagementScreen({ onBack }: UserManagementScreenPro
                     users.map((user, index) => {
                         const currentUsername = userInfo?.user?.username;
                         const isCurrentUser = user.username === currentUsername;
-                        
+
                         return (
                             <View key={index} style={styles.userCard}>
                                 <View style={styles.userInfo}>
@@ -430,24 +391,24 @@ export default function UserManagementScreen({ onBack }: UserManagementScreenPro
                                 <View style={styles.userActions}>
                                     <TouchableOpacity
                                         onPress={() => openEditModal(user)}
-                                        disabled={isOffline || isCurrentUser}
-                                        style={[styles.actionButton, styles.editButton, (isOffline || isCurrentUser) && styles.actionButtonDisabled]}
+                                        disabled={isCurrentUser}
+                                        style={[styles.actionButton, styles.editButton, (isCurrentUser) && styles.actionButtonDisabled]}
                                     >
-                                        <Ionicons name="create-outline" size={20} color={(isOffline || isCurrentUser) ? "#999999" : "#007AFF"} />
+                                        <Ionicons name="create-outline" size={20} color={(isCurrentUser) ? "#999999" : "#007AFF"} />
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         onPress={() => openPasswordModal(user)}
-                                        disabled={isOffline || isCurrentUser}
-                                        style={[styles.actionButton, styles.passwordButton, (isOffline || isCurrentUser) && styles.actionButtonDisabled]}
+                                        disabled={isCurrentUser}
+                                        style={[styles.actionButton, styles.passwordButton, (isCurrentUser) && styles.actionButtonDisabled]}
                                     >
-                                        <Ionicons name="key-outline" size={20} color={(isOffline || isCurrentUser) ? "#999999" : "#FF9500"} />
+                                        <Ionicons name="key-outline" size={20} color={(isCurrentUser) ? "#999999" : "#FF9500"} />
                                     </TouchableOpacity>
                                     <TouchableOpacity
                                         onPress={() => handleRemoveUser(user.username)}
-                                        disabled={isOffline || isCurrentUser}
-                                        style={[styles.actionButton, styles.deleteButton, (isOffline || isCurrentUser) && styles.actionButtonDisabled]}
+                                        disabled={isCurrentUser}
+                                        style={[styles.actionButton, styles.deleteButton, (isCurrentUser) && styles.actionButtonDisabled]}
                                     >
-                                        <Ionicons name="trash-outline" size={20} color={(isOffline || isCurrentUser) ? "#999999" : "#FF3B30"} />
+                                        <Ionicons name="trash-outline" size={20} color={(isCurrentUser) ? "#999999" : "#FF3B30"} />
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -744,7 +705,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '500',
     },
-    offlineContainer: {
+    noticeContainer: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFF3CD',
@@ -755,7 +716,7 @@ const styles = StyleSheet.create({
         margin: 16,
         gap: 8,
     },
-    offlineText: {
+    noticeText: {
         flex: 1,
         color: '#FF9500',
         fontSize: 14,

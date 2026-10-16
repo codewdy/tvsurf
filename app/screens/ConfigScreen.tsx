@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { getConfig, setConfig, whoami } from '../api/client-proxy';
-import { offlineModeManager } from '../utils/offlineModeManager';
+
 import type { Config, WhoamiResponse } from '../api/types';
 
 interface ConfigScreenProps {
@@ -105,14 +105,13 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
-    const [isOffline, setIsOffline] = useState(false);
+
     const [dnsInput, setDnsInput] = useState<string>('');
     const [userInfo, setUserInfo] = useState<WhoamiResponse | null>(null);
     const [checkingPermission, setCheckingPermission] = useState(true);
 
     useEffect(() => {
         checkPermission();
-        loadOfflineStatus();
 
         // 监听安卓返回按钮
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -149,15 +148,6 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
         }
     };
 
-    const loadOfflineStatus = async () => {
-        try {
-            const offline = await offlineModeManager.getOfflineMode();
-            setIsOffline(offline);
-        } catch (error) {
-            console.error('加载离线模式状态失败:', error);
-        }
-    };
-
     const loadConfig = async () => {
         try {
             setLoading(true);
@@ -183,11 +173,6 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
 
     const handleSave = async () => {
         if (!config) return;
-
-        if (isOffline) {
-            Alert.alert('提示', '离线模式下无法保存配置，请先退出离线模式');
-            return;
-        }
 
         Alert.alert(
             '确认保存',
@@ -236,7 +221,7 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
     };
 
     const updateConfig = (path: string[], value: string | number) => {
-        if (!config || isOffline) return;
+        if (!config) return;
 
         const newConfig = JSON.parse(JSON.stringify(config)); // 深拷贝
         let current: any = newConfig;
@@ -258,7 +243,7 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
     };
 
     const removeNameserver = (index: number) => {
-        if (!config || isOffline) return;
+        if (!config) return;
         const newConfig = JSON.parse(JSON.stringify(config));
         if (!newConfig.network || !Array.isArray(newConfig.network.nameservers)) {
             return;
@@ -268,7 +253,7 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
     };
 
     const addNameserverFromInput = () => {
-        if (!config || isOffline) return;
+        if (!config) return;
         const value = dnsInput.trim();
         if (!value) return;
 
@@ -357,19 +342,19 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
                 <View style={styles.headerRight}>
                     <TouchableOpacity
                         onPress={handleReset}
-                        disabled={saving || loading || isOffline}
-                        style={[styles.headerButton, (saving || loading || isOffline) && styles.headerButtonDisabled]}
+                        disabled={saving || loading}
+                        style={[styles.headerButton, (saving || loading) && styles.headerButtonDisabled]}
                     >
-                        <Text style={[styles.headerButtonText, (saving || loading || isOffline) && styles.headerButtonTextDisabled]}>
+                        <Text style={[styles.headerButtonText, (saving || loading) && styles.headerButtonTextDisabled]}>
                             重置
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         onPress={handleSave}
-                        disabled={saving || loading || !config || isOffline}
-                        style={[styles.headerButton, (saving || loading || !config || isOffline) && styles.headerButtonDisabled]}
+                        disabled={saving || loading || !config}
+                        style={[styles.headerButton, (saving || loading || !config) && styles.headerButtonDisabled]}
                     >
-                        <Text style={[styles.headerButtonText, (saving || loading || !config || isOffline) && styles.headerButtonTextDisabled]}>
+                        <Text style={[styles.headerButtonText, (saving || loading || !config) && styles.headerButtonTextDisabled]}>
                             {saving ? '保存中...' : '保存'}
                         </Text>
                     </TouchableOpacity>
@@ -392,14 +377,6 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
                 </View>
             )}
 
-            {/* 离线模式提示 */}
-            {isOffline && (
-                <View style={styles.offlineContainer}>
-                    <Ionicons name="airplane" size={20} color="#FF9500" />
-                    <Text style={styles.offlineText}>离线模式下无法编辑和保存配置</Text>
-                </View>
-            )}
-
             {/* 内容 */}
             {config && (
                 <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
@@ -409,36 +386,36 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
                         <View style={styles.field}>
                             <Text style={styles.fieldLabel}>更新间隔 (TimeDelta格式)</Text>
                             <TextInput
-                                style={[styles.input, isOffline && styles.inputDisabled]}
+                                style={[styles.input]}
                                 value={config.updater.update_interval}
                                 onChangeText={(text) => updateConfig(['updater', 'update_interval'], text)}
                                 placeholder="1d"
-                                editable={!isOffline}
+                                editable={true}
                             />
                             <Text style={styles.fieldHint}>例如: 1d, 1h30m, PT1H</Text>
                         </View>
                         <View style={styles.field}>
                             <Text style={styles.fieldLabel}>追踪超时 (TimeDelta格式)</Text>
                             <TextInput
-                                style={[styles.input, isOffline && styles.inputDisabled]}
+                                style={[styles.input]}
                                 value={config.updater.tracking_timeout}
                                 onChangeText={(text) => updateConfig(['updater', 'tracking_timeout'], text)}
                                 placeholder="14d"
-                                editable={!isOffline}
+                                editable={true}
                             />
                             <Text style={styles.fieldHint}>例如: 14d, 2w</Text>
                         </View>
                         <View style={styles.field}>
                             <Text style={styles.fieldLabel}>并行更新数</Text>
                             <TextInput
-                                style={[styles.input, isOffline && styles.inputDisabled]}
+                                style={[styles.input]}
                                 value={config.updater.update_parallel.toString()}
                                 onChangeText={(text) => {
                                     const num = parseInt(text) || 0;
                                     updateConfig(['updater', 'update_parallel'], num);
                                 }}
                                 keyboardType="numeric"
-                                editable={!isOffline}
+                                editable={true}
                             />
                         </View>
                     </View>
@@ -449,83 +426,83 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
                         <View style={styles.field}>
                             <Text style={styles.fieldLabel}>连接超时 (TimeDelta格式)</Text>
                             <TextInput
-                                style={[styles.input, isOffline && styles.inputDisabled]}
+                                style={[styles.input]}
                                 value={config.download.connect_timeout}
                                 onChangeText={(text) => updateConfig(['download', 'connect_timeout'], text)}
                                 placeholder="1m"
-                                editable={!isOffline}
+                                editable={true}
                             />
                             <Text style={styles.fieldHint}>例如: 1m, 30s</Text>
                         </View>
                         <View style={styles.field}>
                             <Text style={styles.fieldLabel}>块大小 (ByteSize格式)</Text>
                             <TextInput
-                                style={[styles.input, isOffline && styles.inputDisabled]}
+                                style={[styles.input]}
                                 value={config.download.chunk_size}
                                 onChangeText={(text) => updateConfig(['download', 'chunk_size'], text)}
                                 placeholder="1MB"
-                                editable={!isOffline}
+                                editable={true}
                             />
                             <Text style={styles.fieldHint}>例如: 1MB, 512KB</Text>
                         </View>
                         <View style={styles.field}>
                             <Text style={styles.fieldLabel}>最大并发片段数</Text>
                             <TextInput
-                                style={[styles.input, isOffline && styles.inputDisabled]}
+                                style={[styles.input]}
                                 value={config.download.max_concurrent_fragments.toString()}
                                 onChangeText={(text) => {
                                     const num = parseInt(text) || 0;
                                     updateConfig(['download', 'max_concurrent_fragments'], num);
                                 }}
                                 keyboardType="numeric"
-                                editable={!isOffline}
+                                editable={true}
                             />
                         </View>
                         <View style={styles.field}>
                             <Text style={styles.fieldLabel}>最大并发下载数</Text>
                             <TextInput
-                                style={[styles.input, isOffline && styles.inputDisabled]}
+                                style={[styles.input]}
                                 value={config.download.max_concurrent_downloads.toString()}
                                 onChangeText={(text) => {
                                     const num = parseInt(text) || 0;
                                     updateConfig(['download', 'max_concurrent_downloads'], num);
                                 }}
                                 keyboardType="numeric"
-                                editable={!isOffline}
+                                editable={true}
                             />
                         </View>
                         <View style={styles.field}>
                             <Text style={styles.fieldLabel}>最大重试次数</Text>
                             <TextInput
-                                style={[styles.input, isOffline && styles.inputDisabled]}
+                                style={[styles.input]}
                                 value={config.download.max_retries.toString()}
                                 onChangeText={(text) => {
                                     const num = parseInt(text) || 0;
                                     updateConfig(['download', 'max_retries'], num);
                                 }}
                                 keyboardType="numeric"
-                                editable={!isOffline}
+                                editable={true}
                             />
                         </View>
                         <View style={styles.field}>
                             <Text style={styles.fieldLabel}>下载超时 (TimeDelta格式)</Text>
                             <TextInput
-                                style={[styles.input, isOffline && styles.inputDisabled]}
+                                style={[styles.input]}
                                 value={config.download.download_timeout}
                                 onChangeText={(text) => updateConfig(['download', 'download_timeout'], text)}
                                 placeholder="1h"
-                                editable={!isOffline}
+                                editable={true}
                             />
                             <Text style={styles.fieldHint}>例如: 1h, 30m</Text>
                         </View>
                         <View style={styles.field}>
                             <Text style={styles.fieldLabel}>重试间隔 (TimeDelta格式)</Text>
                             <TextInput
-                                style={[styles.input, isOffline && styles.inputDisabled]}
+                                style={[styles.input]}
                                 value={config.download.retry_interval}
                                 onChangeText={(text) => updateConfig(['download', 'retry_interval'], text)}
                                 placeholder="1m"
-                                editable={!isOffline}
+                                editable={true}
                             />
                             <Text style={styles.fieldHint}>例如: 1m, 30s</Text>
                         </View>
@@ -537,11 +514,11 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
                         <View style={styles.field}>
                             <Text style={styles.fieldLabel}>保存间隔 (TimeDelta格式)</Text>
                             <TextInput
-                                style={[styles.input, isOffline && styles.inputDisabled]}
+                                style={[styles.input]}
                                 value={config.db.save_interval}
                                 onChangeText={(text) => updateConfig(['db', 'save_interval'], text)}
                                 placeholder="10s"
-                                editable={!isOffline}
+                                editable={true}
                             />
                             <Text style={styles.fieldHint}>例如: 10s, 1m</Text>
                         </View>
@@ -559,7 +536,7 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
                                     {(config.network?.nameservers ?? []).map((ns, index) => (
                                         <View key={index} style={styles.dnsItem}>
                                             <Text style={styles.dnsItemText}>{ns}</Text>
-                                            {!isOffline && (
+                                            {(
                                                 <TouchableOpacity
                                                     onPress={() => removeNameserver(index)}
                                                     style={styles.dnsRemoveButton}
@@ -573,19 +550,19 @@ export default function ConfigScreen({ onBack }: ConfigScreenProps) {
                             )}
                             <View style={styles.dnsInputContainer}>
                                 <TextInput
-                                    style={[styles.dnsInput, isOffline && styles.inputDisabled]}
+                                    style={[styles.dnsInput]}
                                     value={dnsInput}
                                     onChangeText={setDnsInput}
                                     placeholder="输入 DNS 地址，例如: 8.8.8.8"
-                                    editable={!isOffline}
+                                    editable={true}
                                     onSubmitEditing={addNameserverFromInput}
                                 />
                                 <TouchableOpacity
                                     onPress={addNameserverFromInput}
-                                    disabled={isOffline || !dnsInput.trim()}
-                                    style={[styles.dnsAddButton, (isOffline || !dnsInput.trim()) && styles.dnsAddButtonDisabled]}
+                                    disabled={!dnsInput.trim()}
+                                    style={[styles.dnsAddButton, (!dnsInput.trim()) && styles.dnsAddButtonDisabled]}
                                 >
-                                    <Text style={[styles.dnsAddButtonText, (isOffline || !dnsInput.trim()) && styles.dnsAddButtonTextDisabled]}>
+                                    <Text style={[styles.dnsAddButtonText, (!dnsInput.trim()) && styles.dnsAddButtonTextDisabled]}>
                                         添加
                                     </Text>
                                 </TouchableOpacity>
@@ -696,22 +673,6 @@ const styles = StyleSheet.create({
     successText: {
         flex: 1,
         color: '#059669',
-        fontSize: 14,
-    },
-    offlineContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#FFF3CD',
-        borderColor: '#FFE69C',
-        borderWidth: 1,
-        borderRadius: 8,
-        padding: 12,
-        margin: 16,
-        gap: 8,
-    },
-    offlineText: {
-        flex: 1,
-        color: '#FF9500',
         fontSize: 14,
     },
     scrollView: {

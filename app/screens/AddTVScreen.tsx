@@ -19,7 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { searchTV, addTV, getSeries, addSeries, setTVTag, getTVInfos, getApiBaseUrl, getApiToken } from '../api/client-proxy';
 import type { Source, SearchError, Tag, Series, TVInfo } from '../api/types';
-import { offlineModeManager } from '../utils/offlineModeManager';
+
 import { TAG_NAMES } from '../constants/tagNames';
 
 interface AddTVScreenProps {
@@ -56,12 +56,12 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
     const [namePathCharError, setNamePathCharError] = useState<string | null>(null);
     const [baseUrl, setBaseUrl] = useState<string | null>(null);
     const [token, setToken] = useState<string | null>(null);
-    const [isOffline, setIsOffline] = useState(false);
+
     const [episodesDetailIndex, setEpisodesDetailIndex] = useState<number | null>(null);
 
     useEffect(() => {
         loadConfig();
-        loadOfflineStatus();
+
         fetchTVList();
     }, []);
 
@@ -86,15 +86,6 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
         const apiToken = await getApiToken();
         setBaseUrl(url);
         setToken(apiToken);
-    };
-
-    const loadOfflineStatus = async () => {
-        try {
-            const offline = await offlineModeManager.getOfflineMode();
-            setIsOffline(offline);
-        } catch (error) {
-            console.error('加载离线模式状态失败:', error);
-        }
     };
 
     const fetchTVList = async () => {
@@ -151,11 +142,6 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
 
     const handleSearch = async () => {
         if (!keyword.trim()) {
-            return;
-        }
-
-        if (isOffline) {
-            Alert.alert('提示', '离线模式下无法搜索TV，请先退出离线模式');
             return;
         }
 
@@ -225,10 +211,6 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
     };
 
     const handleAddTV = (source: Source, index: number) => {
-        if (isOffline) {
-            Alert.alert('提示', '离线模式下无法添加TV，请先退出离线模式');
-            return;
-        }
 
         setConfirmSource(source);
         setConfirmIndex(index);
@@ -390,12 +372,12 @@ export default function AddTVScreen({ onBack }: AddTVScreenProps) {
                         onChangeText={setKeyword}
                         placeholder="输入TV名称..."
                         placeholderTextColor="#999"
-                        editable={!loading && !isOffline}
+                        editable={!loading}
                     />
                     <TouchableOpacity
-                        style={[styles.searchButton, (loading || !keyword.trim() || isOffline) && styles.searchButtonDisabled]}
+                        style={[styles.searchButton, (loading || !keyword.trim()) && styles.searchButtonDisabled]}
                         onPress={handleSearch}
-                        disabled={loading || !keyword.trim() || isOffline}
+                        disabled={loading || !keyword.trim()}
                         activeOpacity={0.7}
                     >
                         {loading ? (

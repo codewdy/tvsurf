@@ -14,7 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { whoami, setMyPassword } from '../api/client-proxy';
-import { offlineModeManager } from '../utils/offlineModeManager';
+
 import { hashPassword } from '../utils/password';
 import type { WhoamiResponse } from '../api/types';
 
@@ -31,11 +31,10 @@ export default function AccountScreen({ onBack, onLogout }: AccountScreenProps) 
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [changingPassword, setChangingPassword] = useState(false);
-    const [isOffline, setIsOffline] = useState(false);
 
     useEffect(() => {
         loadUserInfo();
-        loadOfflineStatus();
+
     }, []);
 
     // 监听 Android 后退按钮
@@ -51,15 +50,6 @@ export default function AccountScreen({ onBack, onLogout }: AccountScreenProps) 
 
         return () => backHandler.remove();
     }, [changePasswordVisible, onBack]);
-
-    const loadOfflineStatus = async () => {
-        try {
-            const offline = await offlineModeManager.getOfflineMode();
-            setIsOffline(offline);
-        } catch (error) {
-            console.error('加载离线模式状态失败:', error);
-        }
-    };
 
     const loadUserInfo = async () => {
         try {
@@ -82,11 +72,6 @@ export default function AccountScreen({ onBack, onLogout }: AccountScreenProps) 
 
         if (newPassword !== confirmPassword) {
             Alert.alert('提示', '新密码和确认密码不一致');
-            return;
-        }
-
-        if (isOffline) {
-            Alert.alert('提示', '离线模式下无法修改密码，请先退出离线模式');
             return;
         }
 
@@ -128,10 +113,6 @@ export default function AccountScreen({ onBack, onLogout }: AccountScreenProps) 
     };
 
     const handleLogout = () => {
-        if (isOffline) {
-            Alert.alert('提示', '离线模式下无法退出登录，请先退出离线模式');
-            return;
-        }
 
         Alert.alert(
             '退出登录',
@@ -215,7 +196,7 @@ export default function AccountScreen({ onBack, onLogout }: AccountScreenProps) 
                     <TouchableOpacity
                         style={[
                             styles.actionButton,
-                            (isOffline || userInfo?.single_user_mode) && styles.actionButtonDisabled
+                            (userInfo?.single_user_mode) && styles.actionButtonDisabled
                         ]}
                         onPress={() => {
                             if (userInfo?.single_user_mode) {
@@ -225,17 +206,17 @@ export default function AccountScreen({ onBack, onLogout }: AccountScreenProps) 
                             setChangePasswordVisible(true);
                         }}
                         activeOpacity={0.7}
-                        disabled={isOffline || userInfo?.single_user_mode}
+                        disabled={userInfo?.single_user_mode}
                     >
                         <Ionicons
                             name="lock-closed-outline"
                             size={22}
-                            color={(isOffline || userInfo?.single_user_mode) ? '#999' : '#007AFF'}
+                            color={(userInfo?.single_user_mode) ? '#999' : '#007AFF'}
                         />
                         <Text
                             style={[
                                 styles.actionButtonText,
-                                (isOffline || userInfo?.single_user_mode) && styles.actionButtonTextDisabled,
+                                (userInfo?.single_user_mode) && styles.actionButtonTextDisabled,
                             ]}
                         >
                             修改密码
@@ -243,7 +224,7 @@ export default function AccountScreen({ onBack, onLogout }: AccountScreenProps) 
                         <Ionicons
                             name="chevron-forward"
                             size={20}
-                            color={(isOffline || userInfo?.single_user_mode) ? '#999' : '#999'}
+                            color={(userInfo?.single_user_mode) ? '#999' : '#999'}
                         />
                     </TouchableOpacity>
 
@@ -253,22 +234,22 @@ export default function AccountScreen({ onBack, onLogout }: AccountScreenProps) 
                         style={[
                             styles.actionButton,
                             styles.actionButtonDanger,
-                            isOffline && styles.actionButtonDisabled,
+                            false,
                         ]}
                         onPress={handleLogout}
                         activeOpacity={0.7}
-                        disabled={isOffline}
+
                     >
                         <Ionicons
                             name="log-out-outline"
                             size={22}
-                            color={isOffline ? '#999' : '#FF3B30'}
+                            color={'#FF3B30'}
                         />
                         <Text
                             style={[
                                 styles.actionButtonText,
                                 styles.actionButtonTextDanger,
-                                isOffline && styles.actionButtonTextDisabled,
+                                false,
                             ]}
                         >
                             退出登录

@@ -131,11 +131,18 @@ async function apiCall<TRequest, TResponse>(
         headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(request),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000);
+    let response: Response;
+    try {
+        response = await fetch(url, {
+            method: 'POST', headers, body: JSON.stringify(request), signal: controller.signal,
+        });
+    } catch (cause) {
+        throw Object.assign(new Error('数据暂时不可用，请稍后重试'), { unavailable: true, cause });
+    } finally {
+        clearTimeout(timeout);
+    }
 
     if (!response.ok) {
         const errorText = await response.text();
@@ -145,7 +152,10 @@ async function apiCall<TRequest, TResponse>(
             (error as any).status = 401;
             throw error;
         }
-        throw new Error(`API error: ${response.statusText} - ${errorText}`);
+        throw Object.assign(new Error(`API error: ${response.statusText} - ${errorText}`), {
+            status: response.status,
+            unavailable: response.status >= 500 || response.status === 408 || response.status === 429,
+        });
     }
 
     return response.json();

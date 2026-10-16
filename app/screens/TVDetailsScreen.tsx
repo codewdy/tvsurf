@@ -22,7 +22,7 @@ import VideoPlayer from '../components/VideoPlayer';
 import { getTVDetails, setWatchProgress, setTVTag, setTVTracking, getApiToken, getApiBaseUrl, getSeries, searchTV, updateTVSource, updateEpisodeSource, scheduleEpisodeDownload, removeTV } from '../api/client-proxy';
 import type { GetTVDetailsResponse, Tag, Series, Source, SearchError } from '../api/types';
 import { videoCache } from '../utils/videoCache';
-import { offlineModeManager } from '../utils/offlineModeManager';
+
 import { useResponsiveLayout } from '../utils/responsiveLayout';
 import { getTagName, TAG_NAMES } from '../constants/tagNames';
 
@@ -76,9 +76,6 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
     const [pendingEpisodes, setPendingEpisodes] = useState<Set<number>>(new Set()); // 排队中的剧集
     const [failedDownloads, setFailedDownloads] = useState<Map<number, string>>(new Map()); // 存储下载失败的剧集和错误信息
     const [currentEpisodeLocalUri, setCurrentEpisodeLocalUri] = useState<string | null>(null);
-
-    // 离线模式状态
-    const [isOffline, setIsOffline] = useState(false);
 
     // 追更状态更新中
     const [updatingTracking, setUpdatingTracking] = useState(false);
@@ -166,7 +163,6 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
         loadTVDetails();
         loadCacheStatus();
         loadDownloadingTasks();
-        loadOfflineStatus();
 
         // 清理函数：组件卸载时清除所有监听器
         return () => {
@@ -222,16 +218,6 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
         } catch (err) {
             console.error('Error loading series info:', err);
             setSeriesList([]);
-        }
-    };
-
-    // 加载离线模式状态
-    const loadOfflineStatus = async () => {
-        try {
-            const offline = await offlineModeManager.getOfflineMode();
-            setIsOffline(offline);
-        } catch (error) {
-            console.error('加载离线模式状态失败:', error);
         }
     };
 
@@ -728,7 +714,6 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
 
     const twoPane = isTwoPane && !isFullscreen;
 
-
     return (
         <SafeAreaView style={styles.container}>
             {!isFullscreen && (
@@ -744,11 +729,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                         <Text style={styles.titleBarText} numberOfLines={1}>
                             {details.tv.name || ''}
                         </Text>
-                        {isOffline && (
-                            <View style={styles.offlineBadge}>
-                                <Ionicons name="airplane" size={14} color="#FF9500" />
-                            </View>
-                        )}
+
                     </View>
                     <TouchableOpacity
                         style={styles.menuButton}
@@ -940,29 +921,25 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                         <TouchableOpacity
                             style={[
                                 styles.menuItem,
-                                isOffline && styles.menuItemDisabled
+                                false
                             ]}
                             onPress={() => {
-                                if (isOffline) {
-                                    Alert.alert('提示', '离线模式下无法添加新的缓存');
-                                    return;
-                                }
+
                                 setShowMenu(false);
                                 setShowCacheSelector(true);
                                 setSelectedEpisodesForCache(new Set());
                             }}
-                            disabled={isOffline}
+
                         >
-                            <Ionicons name="download-outline" size={20} color={isOffline ? "#999" : "#333"} />
+                            <Ionicons name="download-outline" size={20} color={"#333"} />
                             <Text style={[
                                 styles.menuItemText,
-                                isOffline && styles.menuItemTextDisabled
+                                false
                             ]}>添加缓存</Text>
                         </TouchableOpacity>
                     </View>
                 </TouchableOpacity>
             </Modal>
-
 
             {/* 缓存选择器弹窗 */}
             <Modal
@@ -1613,10 +1590,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                     <TouchableOpacity
                                         style={styles.sourceButton}
                                         onPress={() => {
-                                            if (isOffline) {
-                                                Alert.alert('提示', '离线模式下无法更换源');
-                                                return;
-                                            }
+
                                             setShowDetailsModal(false);
                                             setShowSourceSelector(true);
                                             // 使用当前TV名称作为搜索关键词
@@ -1628,7 +1602,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                             setSelectedEpisodeForSource(0);
                                             setSelectedEpisodeInNewSource(0);
                                         }}
-                                        disabled={isOffline}
+
                                     >
                                         <View style={styles.sourceInfo}>
                                             <Text style={styles.detailsText}>
@@ -1641,7 +1615,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                         <Ionicons
                                             name="chevron-forward"
                                             size={20}
-                                            color={isOffline ? "#ccc" : "#999"}
+                                            color={"#999"}
                                         />
                                     </TouchableOpacity>
                                 </View>
@@ -1686,26 +1660,23 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                     <TouchableOpacity
                                         style={[
                                             styles.redownloadButton,
-                                            isOffline && styles.buttonDisabled
+                                            false
                                         ]}
                                         onPress={() => {
-                                            if (isOffline) {
-                                                Alert.alert('提示', '离线模式下无法添加新的缓存');
-                                                return;
-                                            }
+
                                             setShowCacheSelector(true);
                                             setSelectedEpisodesForCache(new Set());
                                         }}
-                                        disabled={isOffline}
+
                                     >
                                         <Ionicons
                                             name="download-outline"
                                             size={18}
-                                            color={isOffline ? "#999" : "#007AFF"}
+                                            color={"#007AFF"}
                                         />
                                         <Text style={[
                                             styles.redownloadButtonText,
-                                            isOffline && styles.buttonTextDisabled
+                                            false
                                         ]}>添加缓存</Text>
                                         <Ionicons name="chevron-forward" size={20} color="#999" />
                                     </TouchableOpacity>
@@ -1719,27 +1690,24 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                     <TouchableOpacity
                                         style={[
                                             styles.redownloadButton,
-                                            isOffline && styles.buttonDisabled
+                                            false
                                         ]}
                                         onPress={() => {
-                                            if (isOffline) {
-                                                Alert.alert('提示', '离线模式下无法重新下载剧集，请先退出离线模式');
-                                                return;
-                                            }
+
                                             setSelectedEpisodesForRedownload(new Set());
                                             setRedownloadError(null);
                                             setShowRedownloadModal(true);
                                         }}
-                                        disabled={isOffline}
+
                                     >
                                         <Ionicons
                                             name="refresh"
                                             size={18}
-                                            color={isOffline ? "#999" : "#007AFF"}
+                                            color={"#007AFF"}
                                         />
                                         <Text style={[
                                             styles.redownloadButtonText,
-                                            isOffline && styles.buttonTextDisabled
+                                            false
                                         ]}>服务端重新下载剧集</Text>
                                         <Ionicons name="chevron-forward" size={20} color="#999" />
                                     </TouchableOpacity>
@@ -1754,13 +1722,10 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                         style={[
                                             styles.redownloadButton,
                                             styles.deleteButton,
-                                            (isOffline || deleting) && styles.buttonDisabled
+                                            (deleting) && styles.buttonDisabled
                                         ]}
                                         onPress={() => {
-                                            if (isOffline) {
-                                                Alert.alert('提示', '离线模式下无法删除TV，请先退出离线模式');
-                                                return;
-                                            }
+
                                             if (!details) return;
                                             Alert.alert(
                                                 '确认删除',
@@ -1794,7 +1759,7 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                                 ]
                                             );
                                         }}
-                                        disabled={isOffline || deleting}
+                                        disabled={deleting}
                                     >
                                         {deleting ? (
                                             <ActivityIndicator size="small" color="#f44336" />
@@ -1802,13 +1767,13 @@ export default function TVDetailsScreen({ tv, onBack, onSeriesPress }: TVDetails
                                             <Ionicons
                                                 name="trash-outline"
                                                 size={18}
-                                                color={isOffline ? "#999" : "#f44336"}
+                                                color={"#f44336"}
                                             />
                                         )}
                                         <Text style={[
                                             styles.redownloadButtonText,
                                             styles.deleteButtonText,
-                                            isOffline && styles.buttonTextDisabled
+                                            false
                                         ]}>
                                             {deleting ? '删除中...' : '删除剧集'}
                                         </Text>
@@ -2077,14 +2042,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#333',
         textAlign: 'center',
-    },
-    offlineBadge: {
-        marginLeft: 8,
-        padding: 4,
-        backgroundColor: '#FFF3CD',
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     menuButton: {
         width: 40,

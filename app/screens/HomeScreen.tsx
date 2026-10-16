@@ -20,7 +20,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTVInfos, getTVDetails, getApiBaseUrl, getApiToken, getMonitor, whoami } from '../api/client-proxy';
-import { offlineModeManager } from '../utils/offlineModeManager';
+
 import { videoCache } from '../utils/videoCache';
 import { checkUpdate, downloadApk, installApk, isUpdateCheckEnabled } from '../utils/autoUpdate';
 import type { TVInfo, Tag, WhoamiResponse } from '../api/types';
@@ -78,12 +78,6 @@ export default function HomeScreen({
         not_tagged: true,
     });
 
-    // 离线模式状态
-    const [isOffline, setIsOffline] = useState(false);
-    const [pendingChangesCount, setPendingChangesCount] = useState({ watchProgress: 0, tags: 0, total: 0 });
-    const [offlineModeDialogVisible, setOfflineModeDialogVisible] = useState(false);
-    const [offlineOperationProgress, setOfflineOperationProgress] = useState({ current: 0, total: 0, message: '' });
-    const [offlineOperationInProgress, setOfflineOperationInProgress] = useState(false);
     // 存储有缓存视频的 TV ID 集合
     const [cachedTVIds, setCachedTVIds] = useState<Set<number>>(new Set());
     // 错误数量
@@ -119,7 +113,7 @@ export default function HomeScreen({
 
     useEffect(() => {
         loadData();
-        loadOfflineStatus();
+
         loadCachedVideos();
         loadErrorCount();
         loadUserInfo();
@@ -129,20 +123,12 @@ export default function HomeScreen({
     // 监听 Android 后退按钮
     useEffect(() => {
         const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-            // 如果离线模式操作正在进行，不允许返回（防止中断操作）
-            if (offlineOperationInProgress) {
-                return true; // 返回true表示已处理返回事件，阻止返回
-            }
+
             // 如果更新下载正在进行，不允许返回
             if (updateDownloadVisible) {
                 return true;
             }
-            // 如果离线模式对话框打开，关闭对话框
-            if (offlineModeDialogVisible) {
-                setOfflineModeDialogVisible(false);
-                setOfflineOperationInProgress(false);
-                return true; // 返回true表示已处理返回事件
-            }
+
             // 如果菜单打开，关闭菜单
             if (menuVisible) {
                 closeMenu();
@@ -158,20 +144,7 @@ export default function HomeScreen({
         });
 
         return () => backHandler.remove();
-    }, [menuVisible, tvCardMenuTarget, offlineModeDialogVisible, offlineOperationInProgress, updateDownloadVisible]);
-
-    // 加载离线模式状态
-    const loadOfflineStatus = async () => {
-        try {
-            const offline = await offlineModeManager.getOfflineMode();
-            setIsOffline(offline);
-
-            const count = await offlineModeManager.getPendingChangesCount();
-            setPendingChangesCount(count);
-        } catch (error) {
-            console.error('加载离线模式状态失败:', error);
-        }
-    };
+    }, [menuVisible, tvCardMenuTarget, updateDownloadVisible]);
 
     // 加载缓存的视频信息
     const loadCachedVideos = async () => {
@@ -376,10 +349,7 @@ export default function HomeScreen({
         const tv = tvCardMenuTarget;
         if (!tv) return;
         setTvCardMenuTarget(null);
-        if (isOffline) {
-            Alert.alert('提示', '离线模式下无法添加新的缓存');
-            return;
-        }
+
         (async () => {
             try {
                 const url = await getApiBaseUrl();
@@ -427,123 +397,6 @@ export default function HomeScreen({
         })();
     };
 
-    // 切换离线模式
-    const handleToggleOfflineMode = () => {
-        if (isOffline) {
-            // 退出离线模式
-            handleExitOfflineMode();
-        } else {
-            // 进入离线模式
-            handleEnterOfflineMode();
-        }
-    };
-
-    // 进入离线模式
-    const handleEnterOfflineMode = async () => {
-        setOfflineModeDialogVisible(true);
-        setOfflineOperationInProgress(true);
-        setOfflineOperationProgress({ current: 0, total: 3, message: '准备下载数据...' });
-
-        try {
-            await offlineModeManager.enterOfflineMode((current, total, message) => {
-                setOfflineOperationProgress({ current, total, message });
-            });
-
-            await loadOfflineStatus();
-            setOfflineModeDialogVisible(false);
-
-            // 刷新页面数据
-            await onRefresh();
-        } catch (error) {
-            setOfflineModeDialogVisible(false);
-            const errorMsg = error instanceof Error ? error.message : '进入离线模式失败';
-            Alert.alert('错误', errorMsg);
-        } finally {
-            setOfflineOperationInProgress(false);
-        }
-    };
-
-    // 退出离线模式
-    const handleExitOfflineMode = async () => {
-        setOfflineModeDialogVisible(true);
-        setOfflineOperationInProgress(true);
-        setOfflineOperationProgress({ current: 0, total: pendingChangesCount.total || 1, message: '准备上传数据...' });
-
-        try {
-            const result = await offlineModeManager.exitOfflineMode((current, total, message) => {
-                setOfflineOperationProgress({ current, total, message });
-            });
-
-            if (result.success) {
-                await loadOfflineStatus();
-                setOfflineModeDialogVisible(false);
-
-                // 刷新页面数据
-                await onRefresh();
-            } else {
-                setOfflineModeDialogVisible(false);
-                const errorMessages = result.errors.map((e) => {
-                    if (e.type === 'watch_progress') {
-                        return `TV ${e.tvId} 第${e.episodeId}集观看进度: ${e.error}`;
-                    } else {
-                        return `TV ${e.tvId} 标签: ${e.error}`;
-                    }
-                }).join('\n');
-                Alert.alert(
-                    '上传失败',
-                    `无法退出离线模式，以下数据上传失败：\n\n${errorMessages}\n\n请检查网络连接后重试，或选择强制退出（将丢失未同步的数据）。`,
-                    [
-                        { text: '取消', style: 'cancel' },
-                        {
-                            text: '强制退出',
-                            style: 'destructive',
-                            onPress: () => handleForceExitOfflineMode(),
-                        },
-                    ]
-                );
-            }
-        } catch (error) {
-            setOfflineModeDialogVisible(false);
-            const errorMsg = error instanceof Error ? error.message : '退出离线模式失败';
-            Alert.alert('错误', errorMsg);
-        } finally {
-            setOfflineOperationInProgress(false);
-        }
-    };
-
-    // 强制退出离线模式（删除未同步数据）
-    const handleForceExitOfflineMode = async () => {
-        setOfflineModeDialogVisible(true);
-        setOfflineOperationInProgress(true);
-        setOfflineOperationProgress({ current: 0, total: 1, message: '强制退出离线模式...' });
-
-        try {
-            const result = await offlineModeManager.exitOfflineMode((current, total, message) => {
-                setOfflineOperationProgress({ current, total, message });
-            }, true); // force = true
-
-            // 无论成功或失败，强制模式下都已经退出了离线模式
-            await loadOfflineStatus();
-            setOfflineModeDialogVisible(false);
-
-            if (result.success) {
-                Alert.alert('成功', '已退出离线模式');
-            } else {
-                Alert.alert('警告', '已强制退出离线模式，未同步的数据已被删除');
-            }
-
-            // 刷新页面数据
-            await onRefresh();
-        } catch (error) {
-            setOfflineModeDialogVisible(false);
-            const errorMsg = error instanceof Error ? error.message : '强制退出失败';
-            Alert.alert('错误', errorMsg);
-        } finally {
-            setOfflineOperationInProgress(false);
-        }
-    };
-
-
     // 检查更新（仅 Android）
     const handleCheckUpdate = async (isAutoCheck = false) => {
         if (Platform.OS !== 'android') return;
@@ -554,20 +407,6 @@ export default function HomeScreen({
             return;
         }
 
-        // 如果是自动检查，重新获取一次离线状态，确保准确
-        let currentIsOffline = isOffline;
-        if (isAutoCheck) {
-            try {
-                currentIsOffline = await offlineModeManager.getOfflineMode();
-            } catch { /* ignore */ }
-        }
-
-        if (currentIsOffline) {
-            if (!isAutoCheck) {
-                Alert.alert('提示', '离线模式下无法检查更新，请先退出离线模式');
-            }
-            return;
-        }
         setUpdateCheckInProgress(true);
         try {
             const result = await checkUpdate();
@@ -651,12 +490,8 @@ export default function HomeScreen({
                 </TouchableOpacity>
                 <View style={styles.titleBarCenter}>
                     <Text style={styles.titleBarText}>追番小助手</Text>
-                    {isOffline && (
-                        <View style={styles.offlineBadge}>
-                            <Ionicons name="airplane" size={14} color="#FF9500" />
-                        </View>
-                    )}
-                    {errorCount > 0 && !isOffline && (
+
+                    {errorCount > 0 && (
                         <TouchableOpacity
                             style={styles.errorBadge}
                             onPress={() => onNavigateToErrorManagement?.()}
@@ -676,7 +511,7 @@ export default function HomeScreen({
                     <RefreshControl
                         refreshing={refreshing}
                         onRefresh={onRefresh}
-                        enabled={!isOffline}
+                        enabled={true}
                     />
                 }
             >
@@ -819,17 +654,17 @@ export default function HomeScreen({
                                     style={styles.menuItem}
                                     onPress={() => handleMenuItemPress(() => onNavigateToAddTV?.())}
                                     activeOpacity={0.7}
-                                    disabled={isOffline}
+
                                 >
                                     <Ionicons
                                         name="add-circle-outline"
                                         size={22}
-                                        color={isOffline ? '#999' : '#007AFF'}
+                                        color={'#007AFF'}
                                         style={styles.menuItemIconComponent}
                                     />
                                     <Text style={[
                                         styles.menuItemText,
-                                        isOffline && styles.menuItemTextDisabled
+                                        false
                                     ]}>添加TV</Text>
                                     <Text style={styles.menuItemArrow}>›</Text>
                                 </TouchableOpacity>
@@ -868,79 +703,60 @@ export default function HomeScreen({
                                     style={styles.menuItem}
                                     onPress={() => handleMenuItemPress(() => onNavigateToDownloadMonitor?.())}
                                     activeOpacity={0.7}
-                                    disabled={isOffline}
+
                                 >
                                     <Ionicons
                                         name="download-outline"
                                         size={22}
-                                        color={isOffline ? '#999' : '#007AFF'}
+                                        color={'#007AFF'}
                                         style={styles.menuItemIconComponent}
                                     />
                                     <Text style={[
                                         styles.menuItemText,
-                                        isOffline && styles.menuItemTextDisabled
+                                        false
                                     ]}>下载监控</Text>
-                                    <Text style={styles.menuItemArrow}>›</Text>
-                                </TouchableOpacity>
-
-                                <TouchableOpacity
-                                    style={styles.menuItem}
-                                    onPress={() => handleMenuItemPress(handleToggleOfflineMode)}
-                                    activeOpacity={0.7}
-                                >
-                                    <Ionicons
-                                        name="airplane-outline"
-                                        size={22}
-                                        color="#007AFF"
-                                        style={styles.menuItemIconComponent}
-                                    />
-                                    <View style={styles.menuItemContent}>
-                                        <Text style={styles.menuItemText}>
-                                            {isOffline ? '退出离线模式' : '进入离线模式'}
-                                        </Text>
-                                    </View>
                                     <Text style={styles.menuItemArrow}>›</Text>
                                 </TouchableOpacity>
 
                                 {isAdmin && (
                                     <>
                                         <TouchableOpacity
-                                            style={[styles.menuItem, isOffline && styles.menuItemDisabled]}
+                                            style={[styles.menuItem]}
                                             onPress={() => handleMenuItemPress(() => onNavigateToConfig?.())}
                                             activeOpacity={0.7}
-                                            disabled={isOffline}
+
                                         >
                                             <Ionicons
                                                 name="settings-outline"
                                                 size={22}
-                                                color={isOffline ? '#999' : '#007AFF'}
+                                                color={'#007AFF'}
                                                 style={styles.menuItemIconComponent}
                                             />
                                             <View style={styles.menuItemContent}>
                                                 <Text style={[
                                                     styles.menuItemText,
-                                                    isOffline && styles.menuItemTextDisabled
+                                                    false
                                                 ]}>系统配置</Text>
                                             </View>
                                             <Text style={styles.menuItemArrow}>›</Text>
                                         </TouchableOpacity>
                                         {isAdmin && !isSingleUserMode && (
                                             <TouchableOpacity
-                                                style={[styles.menuItem, isOffline && styles.menuItemDisabled]}
+                                                style={[styles.menuItem]}
                                                 onPress={() => handleMenuItemPress(() => onNavigateToUserManagement?.())}
                                                 activeOpacity={0.7}
-                                                disabled={isOffline}
+
                                             >
                                                 <Ionicons
                                                     name="people-outline"
                                                     size={22}
-                                                    color={isOffline ? '#999' : '#007AFF'}
+                                                    color={'#007AFF'}
                                                     style={styles.menuItemIconComponent}
                                                 />
                                                 <View style={styles.menuItemContent}>
                                                     <Text style={[
                                                         styles.menuItemText,
-                                                        isOffline && styles.menuItemTextDisabled
+                                                        false
                                                     ]}>用户管理</Text>
                                                 </View>
                                                 <Text style={styles.menuItemArrow}>›</Text>
@@ -951,20 +767,20 @@ export default function HomeScreen({
 
                                 {Platform.OS === 'android' && (
                                     <TouchableOpacity
-                                        style={[styles.menuItem, isOffline && styles.menuItemDisabled]}
+                                        style={[styles.menuItem]}
                                         onPress={() => handleMenuItemPress(() => handleCheckUpdate(false))}
                                         activeOpacity={0.7}
-                                        disabled={isOffline || updateCheckInProgress}
+                                        disabled={updateCheckInProgress}
                                     >
                                         <Ionicons
                                             name="refresh-outline"
                                             size={22}
-                                            color={(isOffline || updateCheckInProgress) ? '#999' : '#007AFF'}
+                                            color={(updateCheckInProgress) ? '#999' : '#007AFF'}
                                             style={styles.menuItemIconComponent}
                                         />
                                         <Text style={[
                                             styles.menuItemText,
-                                            (isOffline || updateCheckInProgress) && styles.menuItemTextDisabled
+                                            (updateCheckInProgress) && styles.menuItemTextDisabled
                                         ]}>
                                             {updateCheckInProgress ? '检查中...' : '检查版本'}
                                         </Text>
@@ -1005,64 +821,42 @@ export default function HomeScreen({
                             style={styles.tvCardMenuPanel}
                             onStartShouldSetResponder={() => true}
                         >
-                            {isOffline && (
-                                <Text style={styles.tvCardMenuHint}>离线模式下无法添加缓存</Text>
-                            )}
+
                             <TouchableOpacity
-                                style={[styles.tvCardMenuItem, isOffline && styles.tvCardMenuItemDisabled]}
+                                style={[styles.tvCardMenuItem]}
                                 onPress={() => tvCardMenuTarget && handleTvCardCacheMenuAction('fromCurrent')}
                                 activeOpacity={0.7}
-                                disabled={isOffline}
+
                             >
                                 <Ionicons
                                     name="play-forward-outline"
                                     size={22}
-                                    color={isOffline ? '#999' : '#007AFF'}
+                                    color={'#007AFF'}
                                     style={styles.tvCardMenuIcon}
                                 />
-                                <Text style={[styles.tvCardMenuText, isOffline && styles.tvCardMenuTextDisabled]}>
+                                <Text style={[styles.tvCardMenuText]}>
                                     缓存后续集
                                 </Text>
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.tvCardMenuItem, isOffline && styles.tvCardMenuItemDisabled]}
+                                style={[styles.tvCardMenuItem]}
                                 onPress={() => tvCardMenuTarget && handleTvCardCacheMenuAction('all')}
                                 activeOpacity={0.7}
-                                disabled={isOffline}
+
                             >
                                 <Ionicons
                                     name="list-outline"
                                     size={22}
-                                    color={isOffline ? '#999' : '#007AFF'}
+                                    color={'#007AFF'}
                                     style={styles.tvCardMenuIcon}
                                 />
-                                <Text style={[styles.tvCardMenuText, isOffline && styles.tvCardMenuTextDisabled]}>
+                                <Text style={[styles.tvCardMenuText]}>
                                     缓存所有集
                                 </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
                 </TouchableWithoutFeedback>
-            </Modal>
-
-            {/* 离线模式操作进度对话框 */}
-            <Modal
-                visible={offlineModeDialogVisible}
-                transparent
-                animationType="fade"
-            >
-                <View style={styles.progressDialogOverlay}>
-                    <View style={styles.progressDialogContainer}>
-                        <Text style={styles.progressDialogTitle}>
-                            {isOffline ? '退出离线模式' : '进入离线模式'}
-                        </Text>
-                        <ActivityIndicator size="large" color="#007AFF" style={styles.progressIndicator} />
-                        <Text style={styles.progressMessage}>{offlineOperationProgress.message}</Text>
-                        <Text style={styles.progressText}>
-                            {offlineOperationProgress.current} / {offlineOperationProgress.total}
-                        </Text>
-                    </View>
-                </View>
             </Modal>
 
             {/* 更新下载进度对话框 */}
@@ -1080,7 +874,6 @@ export default function HomeScreen({
         </SafeAreaView>
     );
 }
-
 
 // 获取标签样式
 function getTagStyle(tag: string) {
@@ -1146,14 +939,6 @@ const styles = StyleSheet.create({
         color: '#333',
         textAlign: 'center',
     },
-    offlineBadge: {
-        marginLeft: 8,
-        padding: 4,
-        backgroundColor: '#FFF3CD',
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     errorBadge: {
         marginLeft: 8,
         flexDirection: 'row',
@@ -1171,14 +956,6 @@ const styles = StyleSheet.create({
     },
     titleBarPlaceholder: {
         width: 40,
-    },
-    offlineIndicator: {
-        marginLeft: 8,
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    offlineIcon: {
-        fontSize: 16,
     },
     pendingBadge: {
         marginLeft: 4,

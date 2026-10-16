@@ -22,7 +22,7 @@ import {
     getApiToken,
     addSeries,
     removeSeries,
-    OfflineModeError
+
 } from '../api/client-proxy';
 import type { Series, TVInfo } from '../api/types';
 
@@ -264,9 +264,7 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
             await loadData();
         } catch (error) {
             console.error('Error adding series:', error);
-            if (error instanceof OfflineModeError) {
-                Alert.alert('错误', error.message);
-            } else {
+            {
                 Alert.alert('错误', error instanceof Error ? error.message : '创建播放列表失败');
             }
         } finally {
@@ -281,9 +279,7 @@ export default function SeriesListScreen({ onBack, onTVPress, onSeriesPress }: S
             await loadData();
         } catch (error) {
             console.error('Error removing series:', error);
-            if (error instanceof OfflineModeError) {
-                Alert.alert('错误', error.message);
-            } else {
+            {
                 Alert.alert('错误', error instanceof Error ? error.message : '删除播放列表失败');
             }
         }

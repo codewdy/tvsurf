@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getApiBaseUrl, getApiToken } from '../api/client';
 import type { TVInfo, GetTVDetailsResponse, Tag, Series, WhoamiResponse } from '../api/types';
 
 // 存储键
@@ -13,6 +14,8 @@ interface OfflineData {
     tvDetails: Record<number, GetTVDetailsResponse>; // tvId -> TVDetails
     series: Record<number, Series>; // seriesId -> Series
     userInfo: WhoamiResponse | null; // 用户信息
+    tvInfosComplete?: boolean;
+    seriesComplete?: boolean;
     lastSync: string; // ISO datetime string
 }
 
@@ -76,6 +79,10 @@ interface OperationQueueStorage {
 // 离线数据缓存类
 class OfflineDataCache {
     private initialized = false;
+    private scope = '';
+    private initialization: Promise<void> | null = null;
+
+    private key(key: string): string { return `${key}:${this.scope}`; }
     private offlineData: OfflineData = {
         tvInfos: {},
         tvDetails: {},
@@ -92,12 +99,30 @@ class OfflineDataCache {
 
     // 初始化缓存系统
     async initialize(): Promise<void> {
-        if (this.initialized) return;
-
-        await this.loadOfflineData();
-        await this.loadPendingChanges();
-        await this.loadTempIdMapping();
-        this.initialized = true;
+        const scope = JSON.stringify([await getApiBaseUrl(), await getApiToken()]);
+        if (this.initialized && scope === this.scope) return;
+        if (this.initialization) await this.initialization;
+        if (this.initialized && scope === this.scope) return;
+        this.initialization = (async () => {
+            this.scope = scope;
+            this.offlineData = { tvInfos: {}, tvDetails: {}, series: {}, userInfo: null, lastSync: '' };
+            this.operations = [];
+            this.tempIdMapping = {};
+            this.nextTempSeriesId = -1;
+            // Bind the previous unscoped cache to the first account that upgrades.
+            if ((await getApiBaseUrl()) && !(await AsyncStorage.getItem('@tvsurf_cache_migrated'))) {
+                for (const key of [OFFLINE_DATA_KEY, PENDING_CHANGES_KEY, TEMP_ID_MAPPING_KEY, NEXT_TEMP_ID_KEY]) {
+                    const value = await AsyncStorage.getItem(key);
+                    if (value !== null) await AsyncStorage.setItem(this.key(key), value);
+                }
+                await AsyncStorage.setItem('@tvsurf_cache_migrated', 'true');
+            }
+            await this.loadOfflineData();
+            await this.loadPendingChanges();
+            await this.loadTempIdMapping();
+            this.initialized = true;
+        })();
+        try { await this.initialization; } finally { this.initialization = null; }
     }
 
     // ==================== 离线数据管理 ====================
@@ -105,7 +130,7 @@ class OfflineDataCache {
     // 加载离线数据
     private async loadOfflineData(): Promise<void> {
         try {
-            const dataStr = await AsyncStorage.getItem(OFFLINE_DATA_KEY);
+            const dataStr = await AsyncStorage.getItem(this.key(OFFLINE_DATA_KEY));
             if (dataStr) {
                 const parsed = JSON.parse(dataStr);
                 // 兼容旧数据格式（没有userInfo字段）
@@ -115,6 +140,8 @@ class OfflineDataCache {
                     series: parsed.series || {},
                     userInfo: parsed.userInfo || null,
                     lastSync: parsed.lastSync || '',
+                    tvInfosComplete: parsed.tvInfosComplete ?? false,
+                    seriesComplete: parsed.seriesComplete ?? false,
                 };
             }
         } catch (error) {
@@ -133,7 +160,7 @@ class OfflineDataCache {
     // 保存离线数据
     private async saveOfflineData(): Promise<void> {
         try {
-            await AsyncStorage.setItem(OFFLINE_DATA_KEY, JSON.stringify(this.offlineData));
+            await AsyncStorage.setItem(this.key(OFFLINE_DATA_KEY), JSON.stringify(this.offlineData));
         } catch (error) {
             console.error('保存离线数据失败:', error);
             throw error;
@@ -141,8 +168,9 @@ class OfflineDataCache {
     }
 
     // 批量保存 TVInfo
-    async saveTVInfos(tvInfos: TVInfo[]): Promise<void> {
+    async saveTVInfos(tvInfos: TVInfo[], complete = false): Promise<void> {
         await this.initialize();
+        if (complete) { this.offlineData.tvInfos = {}; this.offlineData.tvInfosComplete = true; }
         tvInfos.forEach((tvInfo) => {
             this.offlineData.tvInfos[tvInfo.id] = tvInfo;
         });
@@ -161,13 +189,33 @@ class OfflineDataCache {
     }
 
     // 批量保存 Series
-    async saveSeries(seriesList: Series[]): Promise<void> {
+    async saveSeries(seriesList: Series[], complete = false): Promise<void> {
         await this.initialize();
+        if (complete) { this.offlineData.series = {}; this.offlineData.seriesComplete = true; }
         seriesList.forEach((series) => {
             this.offlineData.series[series.id] = series;
         });
         this.offlineData.lastSync = new Date().toISOString();
         await this.saveOfflineData();
+    }
+
+    snapshotData(): string {
+        return JSON.stringify(this.offlineData);
+    }
+
+    async restoreData(snapshot: string): Promise<void> {
+        this.offlineData = JSON.parse(snapshot);
+        await this.saveOfflineData();
+    }
+
+    async hasTVInfos(ids: number[] | null): Promise<boolean> {
+        await this.initialize();
+        return ids === null ? (!!this.offlineData.tvInfosComplete || Object.keys(this.offlineData.tvInfos).length > 0) : ids.every(id => !!this.offlineData.tvInfos[id]);
+    }
+
+    async hasSeries(ids: number[] | null): Promise<boolean> {
+        await this.initialize();
+        return ids === null ? (!!this.offlineData.seriesComplete || Object.keys(this.offlineData.series).length > 0) : ids.every(id => !!this.offlineData.series[this.resolveId(id)]);
     }
 
     // 获取缓存的 TVInfos（支持按 ID 筛选）
@@ -197,7 +245,7 @@ class OfflineDataCache {
             return allSeries;
         }
 
-        return allSeries.filter((series) => ids.includes(series.id));
+        return allSeries.filter((series) => ids.map(id => this.resolveId(id)).includes(series.id));
     }
 
     // 保存用户信息
@@ -235,7 +283,7 @@ class OfflineDataCache {
     // 加载待上传变更
     private async loadPendingChanges(): Promise<void> {
         try {
-            const changesStr = await AsyncStorage.getItem(PENDING_CHANGES_KEY);
+            const changesStr = await AsyncStorage.getItem(this.key(PENDING_CHANGES_KEY));
             if (changesStr) {
                 const storage: OperationQueueStorage = JSON.parse(changesStr);
                 this.operations = storage.operations || [];
@@ -253,7 +301,7 @@ class OfflineDataCache {
             const storage: OperationQueueStorage = {
                 operations: this.operations,
             };
-            await AsyncStorage.setItem(PENDING_CHANGES_KEY, JSON.stringify(storage));
+            await AsyncStorage.setItem(this.key(PENDING_CHANGES_KEY), JSON.stringify(storage));
         } catch (error) {
             console.error('保存待上传变更失败:', error);
             throw error;
@@ -413,12 +461,12 @@ class OfflineDataCache {
     // 加载临时ID映射表
     private async loadTempIdMapping(): Promise<void> {
         try {
-            const mappingStr = await AsyncStorage.getItem(TEMP_ID_MAPPING_KEY);
+            const mappingStr = await AsyncStorage.getItem(this.key(TEMP_ID_MAPPING_KEY));
             if (mappingStr) {
                 this.tempIdMapping = JSON.parse(mappingStr);
             }
 
-            const nextIdStr = await AsyncStorage.getItem(NEXT_TEMP_ID_KEY);
+            const nextIdStr = await AsyncStorage.getItem(this.key(NEXT_TEMP_ID_KEY));
             if (nextIdStr) {
                 this.nextTempSeriesId = parseInt(nextIdStr, 10);
             }
@@ -433,8 +481,8 @@ class OfflineDataCache {
     // 保存临时ID映射表
     private async saveTempIdMapping(): Promise<void> {
         try {
-            await AsyncStorage.setItem(TEMP_ID_MAPPING_KEY, JSON.stringify(this.tempIdMapping));
-            await AsyncStorage.setItem(NEXT_TEMP_ID_KEY, this.nextTempSeriesId.toString());
+            await AsyncStorage.setItem(this.key(TEMP_ID_MAPPING_KEY), JSON.stringify(this.tempIdMapping));
+            await AsyncStorage.setItem(this.key(NEXT_TEMP_ID_KEY), this.nextTempSeriesId.toString());
         } catch (error) {
             console.error('保存临时ID映射失败:', error);
             throw error;
@@ -469,9 +517,12 @@ class OfflineDataCache {
         this.tempIdMapping[tempId] = realId;
         await this.saveTempIdMapping();
 
-        // 注意：不更新本地缓存和操作队列
-        // 操作队列中保持临时ID，上传时通过 resolveId 解析
-        // 本地缓存中保持临时ID，退出离线模式后会清空所有离线数据
+        const series = this.offlineData.series[tempId];
+        if (series) {
+            this.offlineData.series[realId] = { ...series, id: realId };
+            delete this.offlineData.series[tempId];
+            await this.saveOfflineData();
+        }
     }
 
     // 获取真实ID（如果已映射）
@@ -500,6 +551,7 @@ class OfflineDataCache {
     // 记录更新播放列表TV操作
     async recordUpdateSeriesTVs(seriesId: number, tvs: number[]): Promise<void> {
         await this.initialize();
+        seriesId = this.resolveId(seriesId);
 
         // 删除该Series之前的所有更新操作（去重）
         this.operations = this.operations.filter(op =>
@@ -553,6 +605,7 @@ class OfflineDataCache {
     // 记录删除播放列表操作
     async recordRemoveSeries(seriesId: number): Promise<void> {
         await this.initialize();
+        seriesId = this.resolveId(seriesId);
 
         // 删除该Series之前的所有操作（包括创建、更新）
         this.operations = this.operations.filter(op => {
