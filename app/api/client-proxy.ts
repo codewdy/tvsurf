@@ -147,8 +147,7 @@ export async function getTVDetails(
 ): Promise<GetTVDetailsResponse> {
     const response = await dataSync.read('getTVDetails' + JSON.stringify(request), async () => {
         const details = await getTVDetailsBase(request);
-        await offlineDataCache.saveTVDetails([details]);
-        await offlineDataCache.saveTVInfos([details.info]);
+        await offlineDataCache.saveTVDetails(details);
         return details;
     }, () => offlineDataCache.getTVDetails(request.id));
     return processGetTVDetailsResponse(response, await getApiBaseUrl());

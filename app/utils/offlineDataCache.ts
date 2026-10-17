@@ -14,9 +14,19 @@ interface OfflineData {
     tvDetails: Record<number, GetTVDetailsResponse>; // tvId -> TVDetails
     series: Record<number, Series>; // seriesId -> Series
     userInfo: WhoamiResponse | null; // 用户信息
-    tvInfosComplete?: boolean;
-    seriesComplete?: boolean;
-    lastSync: string; // ISO datetime string
+    tvInfosComplete: boolean;
+    seriesComplete: boolean;
+}
+
+function createEmptyOfflineData(): OfflineData {
+    return {
+        tvInfos: {},
+        tvDetails: {},
+        series: {},
+        userInfo: null,
+        tvInfosComplete: false,
+        seriesComplete: false,
+    };
 }
 
 // 操作类型
@@ -83,13 +93,7 @@ class OfflineDataCache {
     private initialization: Promise<void> | null = null;
 
     private key(key: string): string { return `${key}:${this.scope}`; }
-    private offlineData: OfflineData = {
-        tvInfos: {},
-        tvDetails: {},
-        series: {},
-        userInfo: null,
-        lastSync: '',
-    };
+    private offlineData: OfflineData = createEmptyOfflineData();
     // 使用数组存储待上传操作，按顺序执行
     private operations: Operation[] = [];
     private pendingChangesCount = 0;
@@ -135,7 +139,7 @@ class OfflineDataCache {
         if (this.initialized && scope === this.scope) return;
         this.initialization = (async () => {
             this.scope = scope;
-            this.offlineData = { tvInfos: {}, tvDetails: {}, series: {}, userInfo: null, lastSync: '' };
+            this.offlineData = createEmptyOfflineData();
             this.operations = [];
             this.tempIdMapping = {};
             this.nextTempSeriesId = -1;
@@ -170,21 +174,13 @@ class OfflineDataCache {
                     tvDetails: parsed.tvDetails || {},
                     series: parsed.series || {},
                     userInfo: parsed.userInfo || null,
-                    lastSync: parsed.lastSync || '',
                     tvInfosComplete: parsed.tvInfosComplete ?? false,
                     seriesComplete: parsed.seriesComplete ?? false,
                 };
             }
         } catch (error) {
             console.error('加载离线数据失败:', error);
-            // 数据损坏时重置
-            this.offlineData = {
-                tvInfos: {},
-                tvDetails: {},
-                series: {},
-                userInfo: null,
-                lastSync: '',
-            };
+            this.offlineData = createEmptyOfflineData();
         }
     }
 
@@ -205,17 +201,14 @@ class OfflineDataCache {
         tvInfos.forEach((tvInfo) => {
             this.offlineData.tvInfos[tvInfo.id] = tvInfo;
         });
-        this.offlineData.lastSync = new Date().toISOString();
         await this.saveOfflineData();
     }
 
-    // 批量保存 TVDetails
-    async saveTVDetails(tvDetails: GetTVDetailsResponse[]): Promise<void> {
+    // 详情和摘要一起更新，只持久化一次。
+    async saveTVDetails(detail: GetTVDetailsResponse): Promise<void> {
         await this.initialize();
-        tvDetails.forEach((detail) => {
-            this.offlineData.tvDetails[detail.tv.id] = detail;
-        });
-        this.offlineData.lastSync = new Date().toISOString();
+        this.offlineData.tvDetails[detail.tv.id] = detail;
+        this.offlineData.tvInfos[detail.info.id] = detail.info;
         await this.saveOfflineData();
     }
 
@@ -226,7 +219,6 @@ class OfflineDataCache {
         seriesList.forEach((series) => {
             this.offlineData.series[series.id] = series;
         });
-        this.offlineData.lastSync = new Date().toISOString();
         await this.saveOfflineData();
     }
 
@@ -241,7 +233,6 @@ class OfflineDataCache {
             userInfo: snapshot.user_info,
             tvInfosComplete: true,
             seriesComplete: true,
-            lastSync: new Date().toISOString(),
         };
         try {
             await this.saveOfflineData();
@@ -297,14 +288,14 @@ class OfflineDataCache {
             return allSeries;
         }
 
-        return allSeries.filter((series) => ids.map(id => this.resolveId(id)).includes(series.id));
+        const resolvedIds = new Set(ids.map(id => this.resolveId(id)));
+        return allSeries.filter(series => resolvedIds.has(series.id));
     }
 
     // 保存用户信息
     async saveUserInfo(userInfo: WhoamiResponse): Promise<void> {
         await this.initialize();
         this.offlineData.userInfo = userInfo;
-        this.offlineData.lastSync = new Date().toISOString();
         await this.saveOfflineData();
     }
 
@@ -312,22 +303,6 @@ class OfflineDataCache {
     async getUserInfo(): Promise<WhoamiResponse | null> {
         await this.initialize();
         return this.offlineData.userInfo;
-    }
-
-    // 清除所有离线数据（包括临时ID映射表）
-    async clearOfflineData(): Promise<void> {
-        await this.initialize();
-        this.offlineData = {
-            tvInfos: {},
-            tvDetails: {},
-            series: {},
-            userInfo: null,
-            lastSync: '',
-        };
-        await this.saveOfflineData();
-
-        // 同时清空临时ID映射表
-        await this.clearTempIdMapping();
     }
 
     // ==================== 待上传变更管理 ====================
@@ -465,20 +440,6 @@ class OfflineDataCache {
         return [...this.operations];
     }
 
-    // 获取待同步数据总数
-    async getPendingChangesCount(): Promise<{ watchProgress: number; tags: number; tracking: number; total: number }> {
-        await this.initialize();
-        const watchProgressCount = this.operations.filter(op => op.type === OperationType.WATCH_PROGRESS).length;
-        const tagsCount = this.operations.filter(op => op.type === OperationType.TAG_CHANGE).length;
-        const trackingCount = this.operations.filter(op => op.type === OperationType.TRACKING_CHANGE).length;
-        return {
-            watchProgress: watchProgressCount,
-            tags: tagsCount,
-            tracking: trackingCount,
-            total: this.operations.length,
-        };
-    }
-
     // 按索引删除操作
     async removeOperationAt(index: number): Promise<void> {
         await this.initialize();
@@ -486,27 +447,6 @@ class OfflineDataCache {
             this.operations.splice(index, 1);
             await this.savePendingChanges();
         }
-    }
-
-    // 清除所有待上传变更
-    async clearPendingChanges(): Promise<void> {
-        await this.initialize();
-        this.operations = [];
-        await this.savePendingChanges();
-    }
-
-    // ==================== 统计信息 ====================
-
-    // 获取缓存的 TV 数量
-    async getCachedTVCount(): Promise<number> {
-        await this.initialize();
-        return Object.keys(this.offlineData.tvInfos).length;
-    }
-
-    // 检查是否有离线数据
-    async hasOfflineData(): Promise<boolean> {
-        await this.initialize();
-        return Object.keys(this.offlineData.tvInfos).length > 0;
     }
 
     // ==================== 临时ID映射表管理 ====================
@@ -552,11 +492,11 @@ class OfflineDataCache {
     }
 
     // 判断是否是临时ID
-    isTempId(id: number): boolean {
+    private isTempId(id: number): boolean {
         return id < 0;
     }
 
-    // 设置真实ID（仅更新映射表）
+    // 保存真实 ID，并迁移对应的播放列表缓存。
     async setRealId(tempId: number, realId: number): Promise<void> {
         await this.initialize();
         if (!this.isTempId(tempId)) {
@@ -566,7 +506,6 @@ class OfflineDataCache {
             throw new Error(`临时ID ${tempId} 不在映射表中`);
         }
 
-        // 只更新映射表
         this.tempIdMapping[tempId] = realId;
         await this.saveTempIdMapping();
 
@@ -578,25 +517,9 @@ class OfflineDataCache {
         }
     }
 
-    // 获取真实ID（如果已映射）
-    getRealId(tempId: number): number | null {
-        return this.tempIdMapping[tempId] || null;
-    }
-
-    // 解析ID：如果是临时ID且已映射，返回真实ID；否则返回原ID
+    // 已上传的临时 ID 映射到服务端 ID。
     resolveId(id: number): number {
-        if (this.isTempId(id)) {
-            const realId = this.getRealId(id);
-            return realId !== null ? realId : id;
-        }
-        return id;
-    }
-
-    // 清空临时ID映射表
-    async clearTempIdMapping(): Promise<void> {
-        this.tempIdMapping = {};
-        this.nextTempSeriesId = -1;
-        await this.saveTempIdMapping();
+        return this.tempIdMapping[id] ?? id;
     }
 
     // ==================== Series 编辑操作记录 ====================
