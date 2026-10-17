@@ -27,6 +27,7 @@ __all__ = [
     "SystemSetup",
     "Login",
     "Whoami",
+    "Snapshot",
     "AddSeries",
     "RemoveSeries",
     "UpdateSeriesTVs",
@@ -200,6 +201,16 @@ class Whoami(BaseModel):
     class Response(BaseModel):
         user: UserInfo
         single_user_mode: bool
+
+
+class Snapshot(BaseModel):
+    class Request(BaseModel):
+        pass
+
+    class Response(BaseModel):
+        tv_details: list[TVDetails]
+        series: list[Series]
+        user_info: Whoami.Response
 
 
 class AddSeries(BaseModel):

@@ -1,6 +1,7 @@
 // API 客户端
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type {
+    SnapshotResponse,
     LoginRequest,
     LoginResponse,
     GetTVInfosRequest,
@@ -167,6 +168,15 @@ export async function login(
     request: LoginRequest
 ): Promise<LoginResponse> {
     return apiCall<LoginRequest, LoginResponse>(baseUrl, '/api/login', request);
+}
+
+// 一次获取完整离线数据
+export async function snapshot(): Promise<SnapshotResponse> {
+    const baseUrl = await getApiBaseUrl();
+    if (!baseUrl) throw new Error('API base URL not set');
+    return apiCall<Record<string, never>, SnapshotResponse>(
+        baseUrl, '/api/snapshot', {}, await getApiToken()
+    );
 }
 
 // 获取 TV 信息列表 API

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getApiBaseUrl, getApiToken } from '../api/client';
-import type { TVInfo, GetTVDetailsResponse, Tag, Series, WhoamiResponse } from '../api/types';
+import type { TVInfo, GetTVDetailsResponse, Tag, Series, WhoamiResponse, SnapshotResponse } from '../api/types';
 
 // 存储键
 const OFFLINE_DATA_KEY = '@tvsurf_offline_data';
@@ -231,14 +231,14 @@ class OfflineDataCache {
     }
 
     // Only replace the cache after the entire download succeeds.
-    async replaceOfflineData(tvInfos: TVInfo[], tvDetails: GetTVDetailsResponse[], series: Series[], userInfo: WhoamiResponse): Promise<void> {
+    async replaceOfflineData(snapshot: SnapshotResponse): Promise<void> {
         await this.initialize();
         const previous = this.offlineData;
         this.offlineData = {
-            tvInfos: Object.fromEntries(tvInfos.map(tv => [tv.id, tv])),
-            tvDetails: Object.fromEntries(tvDetails.map(detail => [detail.tv.id, detail])),
-            series: Object.fromEntries(series.map(item => [item.id, item])),
-            userInfo,
+            tvInfos: Object.fromEntries(snapshot.tv_details.map(detail => [detail.info.id, detail.info])),
+            tvDetails: Object.fromEntries(snapshot.tv_details.map(detail => [detail.tv.id, detail])),
+            series: Object.fromEntries(snapshot.series.map(item => [item.id, item])),
+            userInfo: snapshot.user_info,
             tvInfosComplete: true,
             seriesComplete: true,
             lastSync: new Date().toISOString(),

@@ -498,3 +498,10 @@ export interface SetMyPasswordRequest {
 export interface SetMyPasswordResponse {
     // 空响应
 }
+
+// Full offline metadata; TV summaries are included in each detail's info field.
+export interface SnapshotResponse {
+    tv_details: TVDetails[];
+    series: Series[];
+    user_info: WhoamiResponse;
+}

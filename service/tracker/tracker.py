@@ -246,6 +246,21 @@ class Tracker:
             )
 
     @api("user")
+    async def snapshot(self, user: User, request: Snapshot.Request) -> Snapshot.Response:
+        user_data = self.user_data_manager.get_user_data(user.username)
+        return Snapshot.Response(
+            tv_details=[
+                self.build_tv_details(user_data, tv)
+                for tv in self.local_manager.get_tvs()
+            ],
+            series=self.series_manager.get_series(),
+            user_info=Whoami.Response(
+                user=UserInfo(username=user.username, group=user.group),
+                single_user_mode=self.user_manager.single_user_mode,
+            ),
+        )
+
+    @api("user")
     async def get_download_progress(
         self, user: User, request: GetDownloadProgress.Request
     ) -> GetDownloadProgress.Response:

@@ -1,7 +1,7 @@
 import { AppState } from 'react-native';
 import * as api from '../api/client';
 import { offlineDataCache } from './offlineDataCache';
-import type { GetTVDetailsResponse, Tag } from '../api/types';
+import type { Tag } from '../api/types';
 
 export function isUnavailable(error: unknown): boolean {
     return !!error && typeof error === 'object' && 'unavailable' in error && error.unavailable === true;
@@ -145,15 +145,8 @@ class DataSync {
     }
 
     private async refreshOfflineData(): Promise<void> {
-        const { tvs } = await api.getTVInfos({ ids: null });
-        const { series } = await api.getSeries({ ids: null });
-        const userInfo = await api.whoami({});
-        const details: GetTVDetailsResponse[] = [];
-        // Bound concurrent requests while keeping cache replacement atomic.
-        for (let index = 0; index < tvs.length; index += 5) {
-            details.push(...await Promise.all(tvs.slice(index, index + 5).map(tv => api.getTVDetails({ id: tv.id }))));
-        }
-        await offlineDataCache.replaceOfflineData(tvs, details, series, userInfo);
+        const snapshot = await api.snapshot();
+        await offlineDataCache.replaceOfflineData(snapshot);
     }
 
     retry(refreshAll = false): Promise<void> {
