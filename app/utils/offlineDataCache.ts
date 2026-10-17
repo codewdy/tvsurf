@@ -230,6 +230,27 @@ class OfflineDataCache {
         await this.saveOfflineData();
     }
 
+    // Only replace the cache after the entire download succeeds.
+    async replaceOfflineData(tvInfos: TVInfo[], tvDetails: GetTVDetailsResponse[], series: Series[], userInfo: WhoamiResponse): Promise<void> {
+        await this.initialize();
+        const previous = this.offlineData;
+        this.offlineData = {
+            tvInfos: Object.fromEntries(tvInfos.map(tv => [tv.id, tv])),
+            tvDetails: Object.fromEntries(tvDetails.map(detail => [detail.tv.id, detail])),
+            series: Object.fromEntries(series.map(item => [item.id, item])),
+            userInfo,
+            tvInfosComplete: true,
+            seriesComplete: true,
+            lastSync: new Date().toISOString(),
+        };
+        try {
+            await this.saveOfflineData();
+        } catch (error) {
+            this.offlineData = previous;
+            throw error;
+        }
+    }
+
     snapshotData(): string {
         return JSON.stringify(this.offlineData);
     }

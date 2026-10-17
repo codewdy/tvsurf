@@ -1,7 +1,7 @@
 import { AppState } from 'react-native';
 import * as api from '../api/client';
 import { offlineDataCache } from './offlineDataCache';
-import type { Tag } from '../api/types';
+import type { GetTVDetailsResponse, Tag } from '../api/types';
 
 export function isUnavailable(error: unknown): boolean {
     return !!error && typeof error === 'object' && 'unavailable' in error && error.unavailable === true;
@@ -14,6 +14,7 @@ function isRejected(error: unknown): boolean {
 
 // Serialize cache changes and uploads so a completed upload cannot remove a newer edit.
 class DataSync {
+    private refreshPending = false;
     private unavailableUntil = 0;
     private unavailableError: unknown;
     private tail: Promise<unknown> = Promise.resolve();
@@ -138,15 +139,39 @@ class DataSync {
             await work();
             this.unavailableUntil = 0;
             this.retryReads.clear();
+            this.refreshPending = false;
             await offlineDataCache.initialize();
         });
     }
 
-    retry(): Promise<void> {
+    private async refreshOfflineData(): Promise<void> {
+        const { tvs } = await api.getTVInfos({ ids: null });
+        const { series } = await api.getSeries({ ids: null });
+        const userInfo = await api.whoami({});
+        const details: GetTVDetailsResponse[] = [];
+        // Bound concurrent requests while keeping cache replacement atomic.
+        for (let index = 0; index < tvs.length; index += 5) {
+            details.push(...await Promise.all(tvs.slice(index, index + 5).map(tv => api.getTVDetails({ id: tv.id }))));
+        }
+        await offlineDataCache.replaceOfflineData(tvs, details, series, userInfo);
+    }
+
+    retry(refreshAll = false): Promise<void> {
         return this.exclusive(async () => {
+            if (!(await api.getApiToken())) return;
+            this.refreshPending ||= refreshAll;
             this.unavailableUntil = 0;
             await offlineDataCache.initialize();
             await this.flush();
+            if (this.refreshPending) {
+                try {
+                    await this.refreshOfflineData();
+                    this.refreshPending = false;
+                } catch (error) {
+                    if (isUnavailable(error)) this.defer(error);
+                    throw error;
+                }
+            }
             const scope = await this.scope();
             for (const [key, pending] of this.retryReads) {
                 if (pending.scope !== scope) { this.retryReads.delete(key); continue; }
@@ -162,13 +187,15 @@ class DataSync {
     }
 
     start(): () => void {
-        const retry = () => { void this.retry().catch(error => console.warn('数据同步稍后重试:', error)); };
-        retry();
+        const retry = (refreshAll = false) => { void this.retry(refreshAll).catch(error => console.warn('数据同步稍后重试:', error)); };
+        retry(true);
         const timer = setInterval(() => {
             if (AppState.currentState === 'active') retry();
         }, 30000);
+        let previousState = AppState.currentState;
         const subscription = AppState.addEventListener('change', state => {
-            if (state === 'active') retry();
+            if (state === 'active' && previousState !== 'active') retry(true);
+            previousState = state;
         });
         return () => { clearInterval(timer); subscription.remove(); };
     }

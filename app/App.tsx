@@ -56,7 +56,9 @@ function AppContent() {
     checkLoginStatus();
   }, []);
 
-  useEffect(() => dataSync.start(), []);
+  useEffect(() => {
+    if (isLoggedIn) return dataSync.start();
+  }, [isLoggedIn]);
 
   // 当登录状态改变时，加载用户信息
   useEffect(() => {
