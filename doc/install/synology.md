@@ -9,7 +9,7 @@
 请阅读 yaml 中的提示，修改需要的部分。同时，推荐修改镜像到南京大学的镜像站（即注释掉的那行）。
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   tvsurf:
@@ -37,7 +37,7 @@ services:
 
 ![新增项目细节](/doc/image/synology/new-docker-compose-details.png)
 
-点击下一步，然后 *** 不要 *** 选择通过 Web Station 创建门户。点击下一步直到完成。
+点击下一步，然后 **_ 不要 _** 选择通过 Web Station 创建门户。点击下一步直到完成。
 
 ![等待1](/doc/image/synology/waiting-1.png)
 

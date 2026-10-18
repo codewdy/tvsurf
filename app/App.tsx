@@ -1,26 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { ActivityIndicator, View, Text, StyleSheet, Alert } from 'react-native';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import LoginScreen from './screens/LoginScreen';
-import HomeScreen from './screens/HomeScreen';
-import TVDetailsScreen from './screens/TVDetailsScreen';
-import VideoCacheScreen from './screens/VideoCacheScreen';
-import SeriesListScreen from './screens/SeriesListScreen';
-import SeriesDetailsScreen from './screens/SeriesDetailsScreen';
-import AddTVScreen from './screens/AddTVScreen';
-import DownloadMonitorScreen from './screens/DownloadMonitorScreen';
-import ErrorManagementScreen from './screens/ErrorManagementScreen';
-import ConfigScreen from './screens/ConfigScreen';
-import UserManagementScreen from './screens/UserManagementScreen';
-import AccountScreen from './screens/AccountScreen';
-import { getApiToken, clearApiToken, whoami } from './api/client-proxy';
-import { dataSync } from './utils/dataSync';
-import { ResponsiveLayoutProvider } from './utils/responsiveLayout';
-import { OrientationProvider } from './utils/orientationPolicy';
-import type { TVInfo, WhoamiResponse } from './api/types';
+import React, { useState, useEffect } from "react";
+import { StatusBar } from "expo-status-bar";
+import { ActivityIndicator, View, Text, StyleSheet, Alert } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import LoginScreen from "./screens/LoginScreen";
+import HomeScreen from "./screens/HomeScreen";
+import TVDetailsScreen from "./screens/TVDetailsScreen";
+import VideoCacheScreen from "./screens/VideoCacheScreen";
+import SeriesListScreen from "./screens/SeriesListScreen";
+import SeriesDetailsScreen from "./screens/SeriesDetailsScreen";
+import AddTVScreen from "./screens/AddTVScreen";
+import DownloadMonitorScreen from "./screens/DownloadMonitorScreen";
+import ErrorManagementScreen from "./screens/ErrorManagementScreen";
+import ConfigScreen from "./screens/ConfigScreen";
+import UserManagementScreen from "./screens/UserManagementScreen";
+import AccountScreen from "./screens/AccountScreen";
+import { getApiToken, clearApiToken, whoami } from "./api/client-proxy";
+import { dataSync } from "./utils/dataSync";
+import { ResponsiveLayoutProvider } from "./utils/responsiveLayout";
+import { OrientationProvider } from "./utils/orientationPolicy";
+import type { TVInfo, WhoamiResponse } from "./api/types";
 
-type Screen = 'home' | 'tv-details' | 'cache' | 'series-list' | 'series-details' | 'add-tv' | 'download-monitor' | 'error-management' | 'config' | 'user-management' | 'account';
+type Screen =
+  | "home"
+  | "tv-details"
+  | "cache"
+  | "series-list"
+  | "series-details"
+  | "add-tv"
+  | "download-monitor"
+  | "error-management"
+  | "config"
+  | "user-management"
+  | "account";
 
 interface NavigationState {
   screen: Screen;
@@ -40,7 +51,7 @@ export default function App() {
 
 function AppContent() {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-  const [currentScreen, setCurrentScreen] = useState<Screen>('home');
+  const [currentScreen, setCurrentScreen] = useState<Screen>("home");
   const [selectedTV, setSelectedTV] = useState<TVInfo | null>(null);
   const [selectedSeriesId, setSelectedSeriesId] = useState<number | null>(null);
 
@@ -50,7 +61,7 @@ function AppContent() {
   const [userInfo, setUserInfo] = useState<WhoamiResponse | null>(null);
 
   // 检查用户是否是admin
-  const isAdmin = userInfo?.user?.group?.includes('admin') ?? false;
+  const isAdmin = userInfo?.user?.group?.includes("admin") ?? false;
 
   useEffect(() => {
     checkLoginStatus();
@@ -74,7 +85,7 @@ function AppContent() {
       const info = await whoami({});
       setUserInfo(info);
     } catch (error) {
-      console.error('加载用户信息失败:', error);
+      console.error("加载用户信息失败:", error);
       // 如果获取用户信息失败，不设置userInfo，isAdmin会默认为false
     }
   };
@@ -84,7 +95,7 @@ function AppContent() {
       const token = await getApiToken();
       setIsLoggedIn(!!token);
     } catch (error) {
-      console.error('Error checking login status:', error);
+      console.error("Error checking login status:", error);
       setIsLoggedIn(false);
     }
   };
@@ -98,10 +109,10 @@ function AppContent() {
       // 清除存储的 token
       await clearApiToken();
     } catch (error) {
-      console.error('Error clearing token:', error);
+      console.error("Error clearing token:", error);
     }
     setIsLoggedIn(false);
-    setCurrentScreen('home');
+    setCurrentScreen("home");
     setSelectedTV(null);
     setSelectedSeriesId(null);
     // 清空导航栈
@@ -109,25 +120,31 @@ function AppContent() {
   };
 
   // 导航到新屏幕（推入栈）
-  const navigateTo = (screen: Screen, state?: { selectedTV?: TVInfo | null; selectedSeriesId?: number | null }) => {
+  const navigateTo = (
+    screen: Screen,
+    state?: { selectedTV?: TVInfo | null; selectedSeriesId?: number | null },
+  ) => {
     // 将当前屏幕状态推入栈
-    setNavigationStack(prev => [...prev, {
-      screen: currentScreen,
-      selectedTV: selectedTV,
-      selectedSeriesId: selectedSeriesId,
-    }]);
+    setNavigationStack((prev) => [
+      ...prev,
+      {
+        screen: currentScreen,
+        selectedTV: selectedTV,
+        selectedSeriesId: selectedSeriesId,
+      },
+    ]);
 
     // 设置新屏幕和状态
     setCurrentScreen(screen);
     if (state?.selectedTV !== undefined) {
       setSelectedTV(state.selectedTV);
-    } else if (screen !== 'tv-details') {
+    } else if (screen !== "tv-details") {
       // 如果不是导航到 tv-details，清空 selectedTV
       setSelectedTV(null);
     }
     if (state?.selectedSeriesId !== undefined) {
       setSelectedSeriesId(state.selectedSeriesId);
-    } else if (screen !== 'series-details') {
+    } else if (screen !== "series-details") {
       // 如果不是导航到 series-details，清空 selectedSeriesId
       setSelectedSeriesId(null);
     }
@@ -137,7 +154,7 @@ function AppContent() {
   const navigateBack = () => {
     if (navigationStack.length === 0) {
       // 如果栈为空，返回到 home
-      setCurrentScreen('home');
+      setCurrentScreen("home");
       setSelectedTV(null);
       setSelectedSeriesId(null);
       return;
@@ -145,7 +162,7 @@ function AppContent() {
 
     // 从栈中弹出上一个屏幕状态
     const prevState = navigationStack[navigationStack.length - 1];
-    setNavigationStack(prev => prev.slice(0, -1));
+    setNavigationStack((prev) => prev.slice(0, -1));
 
     // 恢复上一个屏幕的状态
     setCurrentScreen(prevState.screen);
@@ -154,53 +171,53 @@ function AppContent() {
   };
 
   const handleTVPress = (tv: TVInfo) => {
-    navigateTo('tv-details', { selectedTV: tv });
+    navigateTo("tv-details", { selectedTV: tv });
   };
 
   const handleNavigateToCache = () => {
-    navigateTo('cache');
+    navigateTo("cache");
   };
 
   const handleNavigateToSeriesList = () => {
-    navigateTo('series-list');
+    navigateTo("series-list");
   };
 
   const handleNavigateToAddTV = () => {
-    navigateTo('add-tv');
+    navigateTo("add-tv");
   };
 
   const handleNavigateToDownloadMonitor = () => {
-    navigateTo('download-monitor');
+    navigateTo("download-monitor");
   };
 
   const handleNavigateToErrorManagement = () => {
-    navigateTo('error-management');
+    navigateTo("error-management");
   };
 
   const handleNavigateToConfig = async () => {
     // 检查用户是否是admin
     if (!isAdmin) {
-      Alert.alert('权限不足', '只有管理员可以访问系统配置页面');
+      Alert.alert("权限不足", "只有管理员可以访问系统配置页面");
       return;
     }
-    navigateTo('config');
+    navigateTo("config");
   };
 
   const handleNavigateToUserManagement = async () => {
     // 检查用户是否是admin
     if (!isAdmin) {
-      Alert.alert('权限不足', '只有管理员可以访问用户管理页面');
+      Alert.alert("权限不足", "只有管理员可以访问用户管理页面");
       return;
     }
-    navigateTo('user-management');
+    navigateTo("user-management");
   };
 
   const handleNavigateToAccount = () => {
-    navigateTo('account');
+    navigateTo("account");
   };
 
   const handleSeriesPress = (seriesId: number) => {
-    navigateTo('series-details', { selectedSeriesId: seriesId });
+    navigateTo("series-details", { selectedSeriesId: seriesId });
   };
 
   // 显示加载状态
@@ -217,7 +234,7 @@ function AppContent() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       {isLoggedIn ? (
-        currentScreen === 'home' ? (
+        currentScreen === "home" ? (
           <HomeScreen
             onLogout={handleLogout}
             onTVPress={handleTVPress}
@@ -230,27 +247,27 @@ function AppContent() {
             onNavigateToUserManagement={handleNavigateToUserManagement}
             onNavigateToAccount={handleNavigateToAccount}
           />
-        ) : currentScreen === 'cache' ? (
+        ) : currentScreen === "cache" ? (
           <VideoCacheScreen onBack={navigateBack} />
-        ) : currentScreen === 'series-list' ? (
+        ) : currentScreen === "series-list" ? (
           <SeriesListScreen
             onBack={navigateBack}
             onTVPress={handleTVPress}
             onSeriesPress={handleSeriesPress}
           />
-        ) : currentScreen === 'series-details' && selectedSeriesId !== null ? (
+        ) : currentScreen === "series-details" && selectedSeriesId !== null ? (
           <SeriesDetailsScreen
             seriesId={selectedSeriesId}
             onBack={navigateBack}
             onTVPress={handleTVPress}
           />
-        ) : currentScreen === 'add-tv' ? (
+        ) : currentScreen === "add-tv" ? (
           <AddTVScreen onBack={navigateBack} />
-        ) : currentScreen === 'download-monitor' ? (
+        ) : currentScreen === "download-monitor" ? (
           <DownloadMonitorScreen onBack={navigateBack} />
-        ) : currentScreen === 'error-management' ? (
+        ) : currentScreen === "error-management" ? (
           <ErrorManagementScreen onBack={navigateBack} />
-        ) : currentScreen === 'config' ? (
+        ) : currentScreen === "config" ? (
           isAdmin ? (
             <ConfigScreen onBack={navigateBack} />
           ) : (
@@ -267,7 +284,7 @@ function AppContent() {
               onNavigateToAccount={handleNavigateToAccount}
             />
           )
-        ) : currentScreen === 'user-management' ? (
+        ) : currentScreen === "user-management" ? (
           isAdmin ? (
             <UserManagementScreen onBack={navigateBack} />
           ) : (
@@ -284,7 +301,7 @@ function AppContent() {
               onNavigateToAccount={handleNavigateToAccount}
             />
           )
-        ) : currentScreen === 'account' ? (
+        ) : currentScreen === "account" ? (
           <AccountScreen onBack={navigateBack} onLogout={handleLogout} />
         ) : selectedTV ? (
           <TVDetailsScreen
@@ -317,13 +334,13 @@ function AppContent() {
 const styles = StyleSheet.create({
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: '#666',
+    color: "#666",
   },
 });

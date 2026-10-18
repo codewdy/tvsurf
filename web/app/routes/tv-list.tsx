@@ -6,9 +6,15 @@ import type { Tag } from "../api/types";
 import { TAG_NAMES } from "../api/types";
 
 // Tag 顺序
-const TAG_ORDER: Tag[] = ["watching", "wanted", "watched", "on_hold", "not_tagged"];
+const TAG_ORDER: Tag[] = [
+  "watching",
+  "wanted",
+  "watched",
+  "on_hold",
+  "not_tagged",
+];
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "TV 列表" },
     { name: "description", content: "所有 TV 列表，按标签分组" },
@@ -77,11 +83,11 @@ export default function TVList() {
       groups[tag as Tag].sort((a, b) => {
         const aMaxTime = Math.max(
           new Date(a.last_update).getTime(),
-          new Date(a.user_data.last_update).getTime()
+          new Date(a.user_data.last_update).getTime(),
         );
         const bMaxTime = Math.max(
           new Date(b.last_update).getTime(),
-          new Date(b.user_data.last_update).getTime()
+          new Date(b.user_data.last_update).getTime(),
         );
         return bMaxTime - aMaxTime; // 降序，最新的在前
       });
@@ -145,8 +151,9 @@ export default function TVList() {
               className="flex items-center gap-2 mb-4 text-gray-800 dark:text-gray-200 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
             >
               <svg
-                className={`w-5 h-5 transition-transform ${isExpanded ? "rotate-90" : ""
-                  }`}
+                className={`w-5 h-5 transition-transform ${
+                  isExpanded ? "rotate-90" : ""
+                }`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"

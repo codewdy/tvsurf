@@ -7,7 +7,7 @@ function simpleHash(str: string): number {
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // 转换为 32 位整数
   }
   return Math.abs(hash);
@@ -20,7 +20,8 @@ function simpleHash(str: string): number {
  */
 function generateSalt(username: string): string {
   // bcrypt 支持的字符集
-  const bcryptChars = "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const bcryptChars =
+    "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
   // 使用 username 生成一个确定性的哈希值
   const hash = simpleHash(username);
@@ -43,7 +44,10 @@ function generateSalt(username: string): string {
  * @param username 用户名（用于生成唯一的 salt）
  * @returns 密码哈希值
  */
-export async function hashPassword(password: string, username: string): Promise<string> {
+export async function hashPassword(
+  password: string,
+  username: string,
+): Promise<string> {
   const salt = generateSalt(username);
   return await bcrypt.hash(password, salt);
 }

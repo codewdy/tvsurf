@@ -1,9 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type {
-  GetTVDetailsResponse,
-  Source,
-  SearchError,
-} from "../api/types";
+import type { GetTVDetailsResponse, Source, SearchError } from "../api/types";
 import {
   setTVTracking,
   searchTV,
@@ -26,7 +22,9 @@ export default function TVSettingsModal({
   onClose,
   onUpdate,
 }: TVSettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<"general" | "source" | "delete">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "source" | "delete">(
+    "general",
+  );
   // 删除相关状态
   const [deleteConfirmName, setDeleteConfirmName] = useState("");
   const [deleting, setDeleting] = useState(false);
@@ -34,11 +32,17 @@ export default function TVSettingsModal({
   const [sourceSearchKeyword, setSourceSearchKeyword] = useState("");
   const [sourceSearchLoading, setSourceSearchLoading] = useState(false);
   const [sourceSearchResults, setSourceSearchResults] = useState<Source[]>([]);
-  const [sourceSearchErrors, setSourceSearchErrors] = useState<SearchError[]>([]);
+  const [sourceSearchErrors, setSourceSearchErrors] = useState<SearchError[]>(
+    [],
+  );
   const [sourceType, setSourceType] = useState<"tv" | "episode">("tv");
-  const [selectedEpisodeForSource, setSelectedEpisodeForSource] = useState<number>(0);
-  const [selectedSourceIndex, setSelectedSourceIndex] = useState<number | null>(null);
-  const [selectedEpisodeInNewSource, setSelectedEpisodeInNewSource] = useState<number>(0);
+  const [selectedEpisodeForSource, setSelectedEpisodeForSource] =
+    useState<number>(0);
+  const [selectedSourceIndex, setSelectedSourceIndex] = useState<number | null>(
+    null,
+  );
+  const [selectedEpisodeInNewSource, setSelectedEpisodeInNewSource] =
+    useState<number>(0);
   // 确认对话框相关状态
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   // 追更相关状态
@@ -57,32 +61,40 @@ export default function TVSettingsModal({
   const [hasAutoSearched, setHasAutoSearched] = useState(false);
 
   // 执行搜索的通用函数
-  const performSearch = useCallback(async (keyword: string, updateKeyword: boolean = false) => {
-    const trimmedKeyword = keyword.trim();
-    if (!trimmedKeyword) return;
+  const performSearch = useCallback(
+    async (keyword: string, updateKeyword: boolean = false) => {
+      const trimmedKeyword = keyword.trim();
+      if (!trimmedKeyword) return;
 
-    if (updateKeyword) {
-      setSourceSearchKeyword(trimmedKeyword);
-    }
-    setSourceSearchLoading(true);
-    setSourceSearchResults([]);
-    setSourceSearchErrors([]);
+      if (updateKeyword) {
+        setSourceSearchKeyword(trimmedKeyword);
+      }
+      setSourceSearchLoading(true);
+      setSourceSearchResults([]);
+      setSourceSearchErrors([]);
 
-    try {
-      const data = await searchTV({ keyword: trimmedKeyword });
-      setSourceSearchResults(data.source || []);
-      setSourceSearchErrors(data.search_error || []);
-    } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : "搜索时发生错误");
-      console.error("Search error:", err);
-    } finally {
-      setSourceSearchLoading(false);
-    }
-  }, []);
+      try {
+        const data = await searchTV({ keyword: trimmedKeyword });
+        setSourceSearchResults(data.source || []);
+        setSourceSearchErrors(data.search_error || []);
+      } catch (err) {
+        setErrorMessage(err instanceof Error ? err.message : "搜索时发生错误");
+        console.error("Search error:", err);
+      } finally {
+        setSourceSearchLoading(false);
+      }
+    },
+    [],
+  );
 
   // 当切换到换源标签页时，自动搜索TV名称
   useEffect(() => {
-    if (show && activeTab === "source" && !hasAutoSearched && details?.tv?.name) {
+    if (
+      show &&
+      activeTab === "source" &&
+      !hasAutoSearched &&
+      details?.tv?.name
+    ) {
       const tvName = details.tv.name.trim();
       if (tvName) {
         performSearch(tvName, true).then(() => {
@@ -121,22 +133,32 @@ export default function TVSettingsModal({
 
   return (
     <>
-      <div
-        className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-      >
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div
           className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="p-6">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">编辑</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                编辑
+              </h2>
               <button
                 onClick={handleClose}
                 className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -146,19 +168,21 @@ export default function TVSettingsModal({
               <nav className="flex space-x-8">
                 <button
                   onClick={() => setActiveTab("general")}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "general"
-                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                    }`}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === "general"
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                  }`}
                 >
                   常规
                 </button>
                 <button
                   onClick={() => setActiveTab("source")}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "source"
-                    ? "border-blue-500 text-blue-600 dark:text-blue-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                    }`}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === "source"
+                      ? "border-blue-500 text-blue-600 dark:text-blue-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                  }`}
                 >
                   换源
                 </button>
@@ -167,10 +191,11 @@ export default function TVSettingsModal({
                     setActiveTab("delete");
                     setDeleteConfirmName("");
                   }}
-                  className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === "delete"
-                    ? "border-red-500 text-red-600 dark:text-red-400"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
-                    }`}
+                  className={`py-4 px-1 border-b-2 font-medium text-sm ${
+                    activeTab === "delete"
+                      ? "border-red-500 text-red-600 dark:text-red-400"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300"
+                  }`}
                 >
                   删除
                 </button>
@@ -194,8 +219,18 @@ export default function TVSettingsModal({
                     className="ml-4 text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
                     aria-label="关闭错误信息"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -239,7 +274,7 @@ export default function TVSettingsModal({
                             setErrorMessage(
                               err instanceof Error
                                 ? err.message
-                                : "更新追更状态时发生错误"
+                                : "更新追更状态时发生错误",
                             );
                             console.error("Set tracking error:", err);
                           } finally {
@@ -278,7 +313,8 @@ export default function TVSettingsModal({
                           disabled={reschedulingDownload}
                         >
                           {details.tv.source.episodes.map((episode, index) => {
-                            const storageEp = details.tv.storage.episodes[index];
+                            const storageEp =
+                              details.tv.storage.episodes[index];
                             const statusText =
                               storageEp?.status === "success"
                                 ? "✓ 已下载"
@@ -297,7 +333,7 @@ export default function TVSettingsModal({
                         <button
                           onClick={async () => {
                             const selectElement = document.getElementById(
-                              "reschedule-episode-select"
+                              "reschedule-episode-select",
                             ) as HTMLSelectElement;
                             const episodeId = selectElement
                               ? parseInt(selectElement.value)
@@ -321,7 +357,7 @@ export default function TVSettingsModal({
                               setErrorMessage(
                                 err instanceof Error
                                   ? err.message
-                                  : "重新提交下载任务时发生错误"
+                                  : "重新提交下载任务时发生错误",
                               );
                               console.error("Schedule download error:", err);
                             } finally {
@@ -373,7 +409,7 @@ export default function TVSettingsModal({
                               setErrorMessage(
                                 err instanceof Error
                                   ? err.message
-                                  : "重新提交下载任务时发生错误"
+                                  : "重新提交下载任务时发生错误",
                               );
                               console.error("Schedule download error:", err);
                             } finally {
@@ -388,7 +424,10 @@ export default function TVSettingsModal({
                         <button
                           onClick={async () => {
                             // 获取所有剧集的ID
-                            const allEpisodeIds = details.tv.source.episodes.map((_, index) => index);
+                            const allEpisodeIds =
+                              details.tv.source.episodes.map(
+                                (_, index) => index,
+                              );
 
                             if (allEpisodeIds.length === 0) {
                               setErrorMessage("没有可下载的剧集");
@@ -396,7 +435,11 @@ export default function TVSettingsModal({
                             }
 
                             // 确认操作
-                            if (!confirm(`确定要重新下载所有 ${allEpisodeIds.length} 集吗？这将取消所有当前下载任务并重新开始下载。`)) {
+                            if (
+                              !confirm(
+                                `确定要重新下载所有 ${allEpisodeIds.length} 集吗？这将取消所有当前下载任务并重新开始下载。`,
+                              )
+                            ) {
                               return;
                             }
 
@@ -413,7 +456,7 @@ export default function TVSettingsModal({
                               setErrorMessage(
                                 err instanceof Error
                                   ? err.message
-                                  : "重新提交下载任务时发生错误"
+                                  : "重新提交下载任务时发生错误",
                               );
                               console.error("Schedule download error:", err);
                             } finally {
@@ -445,20 +488,28 @@ export default function TVSettingsModal({
                         type="radio"
                         value="tv"
                         checked={sourceType === "tv"}
-                        onChange={(e) => setSourceType(e.target.value as "tv" | "episode")}
+                        onChange={(e) =>
+                          setSourceType(e.target.value as "tv" | "episode")
+                        }
                         className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                       />
-                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">更换整部剧源</span>
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                        更换整部剧源
+                      </span>
                     </label>
                     <label className="flex items-center cursor-pointer">
                       <input
                         type="radio"
                         value="episode"
                         checked={sourceType === "episode"}
-                        onChange={(e) => setSourceType(e.target.value as "tv" | "episode")}
+                        onChange={(e) =>
+                          setSourceType(e.target.value as "tv" | "episode")
+                        }
                         className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
                       />
-                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">更换单集源</span>
+                      <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                        更换单集源
+                      </span>
                     </label>
                   </div>
                 </div>
@@ -471,7 +522,9 @@ export default function TVSettingsModal({
                     </label>
                     <select
                       value={selectedEpisodeForSource}
-                      onChange={(e) => setSelectedEpisodeForSource(parseInt(e.target.value))}
+                      onChange={(e) =>
+                        setSelectedEpisodeForSource(parseInt(e.target.value))
+                      }
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                     >
                       {details.tv.source.episodes.map((episode, index) => (
@@ -505,7 +558,9 @@ export default function TVSettingsModal({
                     />
                     <button
                       type="submit"
-                      disabled={sourceSearchLoading || !sourceSearchKeyword.trim()}
+                      disabled={
+                        sourceSearchLoading || !sourceSearchKeyword.trim()
+                      }
                       className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-blue-700 dark:hover:bg-blue-600"
                     >
                       {sourceSearchLoading ? "搜索中..." : "搜索"}
@@ -540,15 +595,22 @@ export default function TVSettingsModal({
                     <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">
                       找到 {sourceSearchResults.length} 个结果
                     </h3>
-                    <div className="overflow-x-auto pb-2" style={{ maxHeight: "400px" }}>
-                      <div className="flex gap-4 pb-2" style={{ minWidth: "max-content" }}>
+                    <div
+                      className="overflow-x-auto pb-2"
+                      style={{ maxHeight: "400px" }}
+                    >
+                      <div
+                        className="flex gap-4 pb-2"
+                        style={{ minWidth: "max-content" }}
+                      >
                         {sourceSearchResults.map((source, index) => (
                           <div
                             key={index}
-                            className={`bg-gray-50 dark:bg-gray-700 rounded-lg border-2 transition-colors flex-shrink-0 ${selectedSourceIndex === index
-                              ? "border-blue-500 dark:border-blue-400"
-                              : "border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer"
-                              }`}
+                            className={`bg-gray-50 dark:bg-gray-700 rounded-lg border-2 transition-colors flex-shrink-0 ${
+                              selectedSourceIndex === index
+                                ? "border-blue-500 dark:border-blue-400"
+                                : "border-gray-200 dark:border-gray-600 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer"
+                            }`}
                             style={{ width: "320px", height: "180px" }}
                             onClick={() => {
                               if (sourceType === "tv") {
@@ -574,7 +636,9 @@ export default function TVSettingsModal({
                                     alt={source.name}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
-                                      (e.target as HTMLImageElement).style.display = "none";
+                                      (
+                                        e.target as HTMLImageElement
+                                      ).style.display = "none";
                                     }}
                                   />
                                 ) : (
@@ -590,16 +654,21 @@ export default function TVSettingsModal({
                                     {source.name}
                                   </div>
                                   <div className="text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                                    <p className="truncate">来源: {source.source.source_name}</p>
-                                    <p className="truncate">频道: {source.source.channel_name}</p>
+                                    <p className="truncate">
+                                      来源: {source.source.source_name}
+                                    </p>
+                                    <p className="truncate">
+                                      频道: {source.source.channel_name}
+                                    </p>
                                     <p>剧集数: {source.episodes.length}</p>
                                   </div>
                                 </div>
-                                {selectedSourceIndex === index && sourceType === "episode" && (
-                                  <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 font-medium">
-                                    已选择
-                                  </div>
-                                )}
+                                {selectedSourceIndex === index &&
+                                  sourceType === "episode" && (
+                                    <div className="mt-2 text-xs text-blue-600 dark:text-blue-400 font-medium">
+                                      已选择
+                                    </div>
+                                  )}
                               </div>
                             </div>
                           </div>
@@ -608,61 +677,78 @@ export default function TVSettingsModal({
                     </div>
 
                     {/* Episode 源选择剧集 */}
-                    {sourceType === "episode" && selectedSourceIndex !== null && (
-                      <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                        <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                          选择新源中的剧集（当前要更换的剧集：{details.tv.source.episodes[selectedEpisodeForSource]?.name}）
-                        </h4>
-                        <div className="mb-4">
-                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            选择剧集
-                          </label>
-                          <select
-                            value={selectedEpisodeInNewSource}
-                            onChange={(e) => setSelectedEpisodeInNewSource(parseInt(e.target.value))}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          >
-                            {sourceSearchResults[selectedSourceIndex]?.episodes.map((episode, index) => (
-                              <option key={index} value={index}>
-                                {episode.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                        <div className="flex gap-3">
-                          <button
-                            onClick={() => {
-                              const selectedSource = sourceSearchResults[selectedSourceIndex];
-                              const selectedEp = selectedSource.episodes[selectedEpisodeInNewSource];
-                              if (!selectedEp) {
-                                setErrorMessage("所选剧集不存在");
-                                return;
+                    {sourceType === "episode" &&
+                      selectedSourceIndex !== null && (
+                        <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                          <h4 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-3">
+                            选择新源中的剧集（当前要更换的剧集：
+                            {
+                              details.tv.source.episodes[
+                                selectedEpisodeForSource
+                              ]?.name
+                            }
+                            ）
+                          </h4>
+                          <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                              选择剧集
+                            </label>
+                            <select
+                              value={selectedEpisodeInNewSource}
+                              onChange={(e) =>
+                                setSelectedEpisodeInNewSource(
+                                  parseInt(e.target.value),
+                                )
                               }
-                              // 显示确认对话框
-                              setPendingSourceChange({
-                                type: "episode",
-                                sourceIndex: selectedSourceIndex,
-                                episodeIndex: selectedEpisodeForSource,
-                                newEpisodeIndex: selectedEpisodeInNewSource,
-                              });
-                              setShowConfirmDialog(true);
-                            }}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors dark:bg-green-700 dark:hover:bg-green-600"
-                          >
-                            确认更换
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedSourceIndex(null);
-                              setSelectedEpisodeInNewSource(0);
-                            }}
-                            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
-                          >
-                            取消
-                          </button>
+                              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                            >
+                              {sourceSearchResults[
+                                selectedSourceIndex
+                              ]?.episodes.map((episode, index) => (
+                                <option key={index} value={index}>
+                                  {episode.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="flex gap-3">
+                            <button
+                              onClick={() => {
+                                const selectedSource =
+                                  sourceSearchResults[selectedSourceIndex];
+                                const selectedEp =
+                                  selectedSource.episodes[
+                                    selectedEpisodeInNewSource
+                                  ];
+                                if (!selectedEp) {
+                                  setErrorMessage("所选剧集不存在");
+                                  return;
+                                }
+                                // 显示确认对话框
+                                setPendingSourceChange({
+                                  type: "episode",
+                                  sourceIndex: selectedSourceIndex,
+                                  episodeIndex: selectedEpisodeForSource,
+                                  newEpisodeIndex: selectedEpisodeInNewSource,
+                                });
+                                setShowConfirmDialog(true);
+                              }}
+                              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors dark:bg-green-700 dark:hover:bg-green-600"
+                            >
+                              确认更换
+                            </button>
+                            <button
+                              onClick={() => {
+                                setSelectedSourceIndex(null);
+                                setSelectedEpisodeInNewSource(0);
+                              }}
+                              className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
+                            >
+                              取消
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
                   </div>
                 )}
 
@@ -690,7 +776,9 @@ export default function TVSettingsModal({
                     请输入TV名称以确认删除
                   </label>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                    请输入 "<span className="font-semibold">{details.tv.name}</span>" 以确认删除
+                    请输入 "
+                    <span className="font-semibold">{details.tv.name}</span>"
+                    以确认删除
                   </p>
                   <input
                     type="text"
@@ -717,7 +805,9 @@ export default function TVSettingsModal({
                         // 删除成功后跳转到列表页
                         window.location.href = "/";
                       } catch (err) {
-                        setErrorMessage(err instanceof Error ? err.message : "删除时发生错误");
+                        setErrorMessage(
+                          err instanceof Error ? err.message : "删除时发生错误",
+                        );
                         console.error("Remove TV error:", err);
                         setDeleting(false);
                       }
@@ -746,9 +836,7 @@ export default function TVSettingsModal({
 
       {/* 换源确认对话框 */}
       {showConfirmDialog && pendingSourceChange && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-        >
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
             className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4"
             onClick={(e) => e.stopPropagation()}
@@ -767,7 +855,8 @@ export default function TVSettingsModal({
                     <div className="text-sm text-gray-900 dark:text-gray-100">
                       <p className="font-medium">{details.tv.source.name}</p>
                       <p className="text-gray-600 dark:text-gray-400 mt-1">
-                        来源: {details.tv.source.source.source_name} | 频道: {details.tv.source.source.channel_name}
+                        来源: {details.tv.source.source.source_name} | 频道:{" "}
+                        {details.tv.source.source.channel_name}
                       </p>
                       <p className="text-gray-600 dark:text-gray-400">
                         剧集数: {details.tv.source.episodes.length}
@@ -780,19 +869,38 @@ export default function TVSettingsModal({
                       新源
                     </h3>
                     <div className="text-sm text-gray-900 dark:text-gray-100">
-                      <p className="font-medium">{sourceSearchResults[pendingSourceChange.sourceIndex]?.name}</p>
+                      <p className="font-medium">
+                        {
+                          sourceSearchResults[pendingSourceChange.sourceIndex]
+                            ?.name
+                        }
+                      </p>
                       <p className="text-gray-600 dark:text-gray-400 mt-1">
-                        来源: {sourceSearchResults[pendingSourceChange.sourceIndex]?.source.source_name} | 频道: {sourceSearchResults[pendingSourceChange.sourceIndex]?.source.channel_name}
+                        来源:{" "}
+                        {
+                          sourceSearchResults[pendingSourceChange.sourceIndex]
+                            ?.source.source_name
+                        }{" "}
+                        | 频道:{" "}
+                        {
+                          sourceSearchResults[pendingSourceChange.sourceIndex]
+                            ?.source.channel_name
+                        }
                       </p>
                       <p className="text-gray-600 dark:text-gray-400">
-                        剧集数: {sourceSearchResults[pendingSourceChange.sourceIndex]?.episodes.length}
+                        剧集数:{" "}
+                        {
+                          sourceSearchResults[pendingSourceChange.sourceIndex]
+                            ?.episodes.length
+                        }
                       </p>
                     </div>
                   </div>
 
                   <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
                     <p className="text-sm text-yellow-800 dark:text-yellow-300">
-                      ⚠️ 更换整部剧源将替换所有剧集的源，已下载的剧集可能需要重新下载。
+                      ⚠️
+                      更换整部剧源将替换所有剧集的源，已下载的剧集可能需要重新下载。
                     </p>
                   </div>
                 </div>
@@ -803,12 +911,29 @@ export default function TVSettingsModal({
                       当前剧集
                     </h3>
                     <div className="text-sm text-gray-900 dark:text-gray-100">
-                      <p className="font-medium text-base mb-1">{details.tv.name}</p>
+                      <p className="font-medium text-base mb-1">
+                        {details.tv.name}
+                      </p>
                       <p className="font-medium">
-                        {details.tv.source.episodes[pendingSourceChange.episodeIndex || 0]?.name}
+                        {
+                          details.tv.source.episodes[
+                            pendingSourceChange.episodeIndex || 0
+                          ]?.name
+                        }
                       </p>
                       <p className="text-gray-600 dark:text-gray-400 mt-1">
-                        来源: {details.tv.source.episodes[pendingSourceChange.episodeIndex || 0]?.source.source_name} | 频道: {details.tv.source.episodes[pendingSourceChange.episodeIndex || 0]?.source.channel_name}
+                        来源:{" "}
+                        {
+                          details.tv.source.episodes[
+                            pendingSourceChange.episodeIndex || 0
+                          ]?.source.source_name
+                        }{" "}
+                        | 频道:{" "}
+                        {
+                          details.tv.source.episodes[
+                            pendingSourceChange.episodeIndex || 0
+                          ]?.source.channel_name
+                        }
                       </p>
                     </div>
                   </div>
@@ -818,12 +943,32 @@ export default function TVSettingsModal({
                       新源剧集
                     </h3>
                     <div className="text-sm text-gray-900 dark:text-gray-100">
-                      <p className="font-medium text-base mb-1">{sourceSearchResults[pendingSourceChange.sourceIndex]?.name}</p>
+                      <p className="font-medium text-base mb-1">
+                        {
+                          sourceSearchResults[pendingSourceChange.sourceIndex]
+                            ?.name
+                        }
+                      </p>
                       <p className="font-medium">
-                        {sourceSearchResults[pendingSourceChange.sourceIndex]?.episodes[pendingSourceChange.newEpisodeIndex || 0]?.name}
+                        {
+                          sourceSearchResults[pendingSourceChange.sourceIndex]
+                            ?.episodes[pendingSourceChange.newEpisodeIndex || 0]
+                            ?.name
+                        }
                       </p>
                       <p className="text-gray-600 dark:text-gray-400 mt-1">
-                        来源: {sourceSearchResults[pendingSourceChange.sourceIndex]?.episodes[pendingSourceChange.newEpisodeIndex || 0]?.source.source_name} | 频道: {sourceSearchResults[pendingSourceChange.sourceIndex]?.episodes[pendingSourceChange.newEpisodeIndex || 0]?.source.channel_name}
+                        来源:{" "}
+                        {
+                          sourceSearchResults[pendingSourceChange.sourceIndex]
+                            ?.episodes[pendingSourceChange.newEpisodeIndex || 0]
+                            ?.source.source_name
+                        }{" "}
+                        | 频道:{" "}
+                        {
+                          sourceSearchResults[pendingSourceChange.sourceIndex]
+                            ?.episodes[pendingSourceChange.newEpisodeIndex || 0]
+                            ?.source.channel_name
+                        }
                       </p>
                     </div>
                   </div>
@@ -835,14 +980,19 @@ export default function TVSettingsModal({
                   onClick={async () => {
                     try {
                       if (pendingSourceChange.type === "tv") {
-                        const selectedSource = sourceSearchResults[pendingSourceChange.sourceIndex];
+                        const selectedSource =
+                          sourceSearchResults[pendingSourceChange.sourceIndex];
                         await updateTVSource({
                           id: details.tv.id,
                           source: selectedSource,
                         });
                       } else {
-                        const selectedSource = sourceSearchResults[pendingSourceChange.sourceIndex];
-                        const selectedEp = selectedSource.episodes[pendingSourceChange.newEpisodeIndex || 0];
+                        const selectedSource =
+                          sourceSearchResults[pendingSourceChange.sourceIndex];
+                        const selectedEp =
+                          selectedSource.episodes[
+                            pendingSourceChange.newEpisodeIndex || 0
+                          ];
                         if (!selectedEp) {
                           setErrorMessage("所选剧集不存在");
                           return;
@@ -857,7 +1007,9 @@ export default function TVSettingsModal({
                       await onUpdate();
                       handleClose();
                     } catch (err) {
-                      setErrorMessage(err instanceof Error ? err.message : "更新源时发生错误");
+                      setErrorMessage(
+                        err instanceof Error ? err.message : "更新源时发生错误",
+                      );
                       console.error("Update source error:", err);
                       setShowConfirmDialog(false);
                       setPendingSourceChange(null);

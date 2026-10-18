@@ -246,7 +246,9 @@ class Tracker:
             )
 
     @api("user")
-    async def snapshot(self, user: User, request: Snapshot.Request) -> Snapshot.Response:
+    async def snapshot(
+        self, user: User, request: Snapshot.Request
+    ) -> Snapshot.Response:
         user_data = self.user_data_manager.get_user_data(user.username)
         return Snapshot.Response(
             tv_details=[

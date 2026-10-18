@@ -55,7 +55,7 @@ function formatTime(seconds: number): string {
   return `${hours}小时${mins}分${secs}秒`;
 }
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "下载进度" },
     { name: "description", content: "监控下载进度" },
@@ -63,7 +63,9 @@ export function meta({ }: Route.MetaArgs) {
 }
 
 export default function Downloads() {
-  const [progressList, setProgressList] = useState<DownloadProgressWithName[]>([]);
+  const [progressList, setProgressList] = useState<DownloadProgressWithName[]>(
+    [],
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -91,11 +93,18 @@ export default function Downloads() {
 
   const getProgressPercentage = (progress: DownloadProgress): number => {
     if (!progress.downloading || progress.total_size <= 0) return 0;
-    return Math.min((progress.downloaded_size / progress.total_size) * 100, 100);
+    return Math.min(
+      (progress.downloaded_size / progress.total_size) * 100,
+      100,
+    );
   };
 
   const getRemainingTime = (progress: DownloadProgress): string => {
-    if (!progress.downloading || progress.speed <= 0 || progress.total_size <= 0) {
+    if (
+      !progress.downloading ||
+      progress.speed <= 0 ||
+      progress.total_size <= 0
+    ) {
       return "未知";
     }
     const remainingBytes = progress.total_size - progress.downloaded_size;
@@ -106,7 +115,6 @@ export default function Downloads() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-
       {/* 错误信息 */}
       {error && (
         <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-400">
@@ -177,14 +185,18 @@ export default function Downloads() {
                 {/* 详细信息 */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
-                    <span className="text-gray-500 dark:text-gray-400">已下载:</span>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      已下载:
+                    </span>
                     <p className="font-medium text-gray-900 dark:text-gray-100">
                       {formatBytes(progress.downloaded_size)}
                     </p>
                   </div>
                   {progress.total_size > 0 && (
                     <div>
-                      <span className="text-gray-500 dark:text-gray-400">总大小:</span>
+                      <span className="text-gray-500 dark:text-gray-400">
+                        总大小:
+                      </span>
                       <p className="font-medium text-gray-900 dark:text-gray-100">
                         {formatBytes(progress.total_size)}
                       </p>
@@ -192,7 +204,9 @@ export default function Downloads() {
                   )}
                   {progress.downloading && (
                     <div>
-                      <span className="text-gray-500 dark:text-gray-400">下载速度:</span>
+                      <span className="text-gray-500 dark:text-gray-400">
+                        下载速度:
+                      </span>
                       <p className="font-medium text-gray-900 dark:text-gray-100">
                         {formatSpeed(progress.speed)}
                       </p>
@@ -200,7 +214,9 @@ export default function Downloads() {
                   )}
                   {progress.downloading && progress.total_size > 0 && (
                     <div>
-                      <span className="text-gray-500 dark:text-gray-400">剩余时间:</span>
+                      <span className="text-gray-500 dark:text-gray-400">
+                        剩余时间:
+                      </span>
                       <p className="font-medium text-gray-900 dark:text-gray-100">
                         {remainingTime}
                       </p>

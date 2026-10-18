@@ -1,13 +1,9 @@
 import { useState, useEffect } from "react";
 import type { Route } from "./+types/config";
 import { getConfig, setConfig } from "../api/client";
-import type {
-  Config,
-  GetConfigResponse,
-  SetConfigRequest,
-} from "../api/types";
+import type { Config, GetConfigResponse, SetConfigRequest } from "../api/types";
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "系统配置" },
     { name: "description", content: "查看和修改系统配置信息" },
@@ -35,11 +31,60 @@ function TimeDeltaTooltip() {
       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 p-3 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
         <div className="space-y-1">
           <div className="font-semibold mb-2">支持的TimeDelta格式：</div>
-          <div>• 简单格式：<code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">1d</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">2h</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">30m</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">45s</code></div>
-          <div>• 组合格式：<code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">1d2h30m</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">2h30m</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">1h30m15s</code></div>
-          <div>• ISO 8601格式：<code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">P1D</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">PT1H</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">PT30M</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">P1DT2H30M</code></div>
+          <div>
+            • 简单格式：
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              1d
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              2h
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              30m
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              45s
+            </code>
+          </div>
+          <div>
+            • 组合格式：
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              1d2h30m
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              2h30m
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              1h30m15s
+            </code>
+          </div>
+          <div>
+            • ISO 8601格式：
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              P1D
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              PT1H
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              PT30M
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              P1DT2H30M
+            </code>
+          </div>
           <div className="mt-2 pt-2 border-t border-gray-700">
-            <div className="text-gray-300">单位：d=天, h=小时, m=分钟, s=秒</div>
+            <div className="text-gray-300">
+              单位：d=天, h=小时, m=分钟, s=秒
+            </div>
           </div>
         </div>
         <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
@@ -71,11 +116,62 @@ function ByteSizeTooltip() {
       <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 p-3 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
         <div className="space-y-1">
           <div className="font-semibold mb-2">支持的ByteSize格式：</div>
-          <div>• 纯数字（字节数）：<code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">1024</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">1048576</code></div>
-          <div>• 带单位格式：<code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">1KB</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">1MB</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">512KB</code></div>
-          <div>• 支持单位：<code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">B</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">KB</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">MB</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">GB</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">TB</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">PB</code>, <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">EB</code></div>
+          <div>
+            • 纯数字（字节数）：
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              1024
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              1048576
+            </code>
+          </div>
+          <div>
+            • 带单位格式：
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              1KB
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              1MB
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              512KB
+            </code>
+          </div>
+          <div>
+            • 支持单位：
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">B</code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              KB
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              MB
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              GB
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              TB
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              PB
+            </code>
+            ,{" "}
+            <code className="bg-gray-800 dark:bg-gray-600 px-1 rounded">
+              EB
+            </code>
+          </div>
           <div className="mt-2 pt-2 border-t border-gray-700">
-            <div className="text-gray-300">单位换算：1KB=1024B, 1MB=1024KB, 1GB=1024MB, 以此类推</div>
+            <div className="text-gray-300">
+              单位换算：1KB=1024B, 1MB=1024KB, 1GB=1024MB, 以此类推
+            </div>
           </div>
         </div>
         <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
@@ -96,7 +192,9 @@ function parseTimeDelta(isoString: string): string {
 
   // ISO 8601 持续时间格式: P[n]D T[n]H[n]M[n]S
   // 完整匹配: P(?:(\d+)D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?
-  const fullMatch = isoString.match(/^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/);
+  const fullMatch = isoString.match(
+    /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/,
+  );
 
   if (!fullMatch) {
     return isoString; // 如果无法解析，返回原值
@@ -152,15 +250,27 @@ function normalizeConfig(config: Config): Config {
   const normalized = JSON.parse(JSON.stringify(config)); // 深拷贝
 
   // 转换TimeDelta字段
-  normalized.updater.update_interval = parseTimeDelta(normalized.updater.update_interval);
-  normalized.updater.tracking_timeout = parseTimeDelta(normalized.updater.tracking_timeout);
-  normalized.download.connect_timeout = parseTimeDelta(normalized.download.connect_timeout);
-  normalized.download.download_timeout = parseTimeDelta(normalized.download.download_timeout);
-  normalized.download.retry_interval = parseTimeDelta(normalized.download.retry_interval);
+  normalized.updater.update_interval = parseTimeDelta(
+    normalized.updater.update_interval,
+  );
+  normalized.updater.tracking_timeout = parseTimeDelta(
+    normalized.updater.tracking_timeout,
+  );
+  normalized.download.connect_timeout = parseTimeDelta(
+    normalized.download.connect_timeout,
+  );
+  normalized.download.download_timeout = parseTimeDelta(
+    normalized.download.download_timeout,
+  );
+  normalized.download.retry_interval = parseTimeDelta(
+    normalized.download.retry_interval,
+  );
   normalized.db.save_interval = parseTimeDelta(normalized.db.save_interval);
 
   // 转换ByteSize字段
-  normalized.download.chunk_size = parseByteSize(normalized.download.chunk_size);
+  normalized.download.chunk_size = parseByteSize(
+    normalized.download.chunk_size,
+  );
 
   return normalized;
 }
@@ -379,7 +489,9 @@ export default function Config() {
                 <input
                   type="text"
                   value={config.updater.update_interval}
-                  onChange={(e) => updateConfig(["updater", "update_interval"], e.target.value)}
+                  onChange={(e) =>
+                    updateConfig(["updater", "update_interval"], e.target.value)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="1d"
                 />
@@ -392,7 +504,12 @@ export default function Config() {
                 <input
                   type="text"
                   value={config.updater.tracking_timeout}
-                  onChange={(e) => updateConfig(["updater", "tracking_timeout"], e.target.value)}
+                  onChange={(e) =>
+                    updateConfig(
+                      ["updater", "tracking_timeout"],
+                      e.target.value,
+                    )
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="14d"
                 />
@@ -405,7 +522,12 @@ export default function Config() {
                   type="number"
                   min="1"
                   value={config.updater.update_parallel}
-                  onChange={(e) => updateConfig(["updater", "update_parallel"], parseInt(e.target.value) || 0)}
+                  onChange={(e) =>
+                    updateConfig(
+                      ["updater", "update_parallel"],
+                      parseInt(e.target.value) || 0,
+                    )
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -426,7 +548,12 @@ export default function Config() {
                 <input
                   type="text"
                   value={config.download.connect_timeout}
-                  onChange={(e) => updateConfig(["download", "connect_timeout"], e.target.value)}
+                  onChange={(e) =>
+                    updateConfig(
+                      ["download", "connect_timeout"],
+                      e.target.value,
+                    )
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="1m"
                 />
@@ -439,7 +566,9 @@ export default function Config() {
                 <input
                   type="text"
                   value={config.download.chunk_size}
-                  onChange={(e) => updateConfig(["download", "chunk_size"], e.target.value)}
+                  onChange={(e) =>
+                    updateConfig(["download", "chunk_size"], e.target.value)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="1MB"
                 />
@@ -452,7 +581,12 @@ export default function Config() {
                   type="number"
                   min="1"
                   value={config.download.max_concurrent_fragments}
-                  onChange={(e) => updateConfig(["download", "max_concurrent_fragments"], parseInt(e.target.value) || 0)}
+                  onChange={(e) =>
+                    updateConfig(
+                      ["download", "max_concurrent_fragments"],
+                      parseInt(e.target.value) || 0,
+                    )
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -464,7 +598,12 @@ export default function Config() {
                   type="number"
                   min="1"
                   value={config.download.max_concurrent_downloads}
-                  onChange={(e) => updateConfig(["download", "max_concurrent_downloads"], parseInt(e.target.value) || 0)}
+                  onChange={(e) =>
+                    updateConfig(
+                      ["download", "max_concurrent_downloads"],
+                      parseInt(e.target.value) || 0,
+                    )
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -476,7 +615,12 @@ export default function Config() {
                   type="number"
                   min="0"
                   value={config.download.max_retries}
-                  onChange={(e) => updateConfig(["download", "max_retries"], parseInt(e.target.value) || 0)}
+                  onChange={(e) =>
+                    updateConfig(
+                      ["download", "max_retries"],
+                      parseInt(e.target.value) || 0,
+                    )
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -488,7 +632,12 @@ export default function Config() {
                 <input
                   type="text"
                   value={config.download.download_timeout}
-                  onChange={(e) => updateConfig(["download", "download_timeout"], e.target.value)}
+                  onChange={(e) =>
+                    updateConfig(
+                      ["download", "download_timeout"],
+                      e.target.value,
+                    )
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="1h"
                 />
@@ -501,7 +650,9 @@ export default function Config() {
                 <input
                   type="text"
                   value={config.download.retry_interval}
-                  onChange={(e) => updateConfig(["download", "retry_interval"], e.target.value)}
+                  onChange={(e) =>
+                    updateConfig(["download", "retry_interval"], e.target.value)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="1m"
                 />
@@ -523,7 +674,9 @@ export default function Config() {
                 <input
                   type="text"
                   value={config.db.save_interval}
-                  onChange={(e) => updateConfig(["db", "save_interval"], e.target.value)}
+                  onChange={(e) =>
+                    updateConfig(["db", "save_interval"], e.target.value)
+                  }
                   className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="1m"
                 />

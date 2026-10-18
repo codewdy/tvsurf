@@ -10,7 +10,7 @@ interface TVCardProps {
 function getWatchedLabel(
   episodeId: number,
   time: number,
-  totalEpisodes: number
+  totalEpisodes: number,
 ): string {
   const total = totalEpisodes;
   const suffix = ` / 共 ${total} 集`;

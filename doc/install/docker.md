@@ -7,7 +7,7 @@
 注意:请仔细阅读其中的注释，选择你觉得合适的方式安装。同时，推荐修改镜像到南京大学的镜像站（即注释掉的那行）。
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   tvsurf:
@@ -62,4 +62,4 @@ export PORT=9399
 docker run -d -e PUID=$(id -u ${USER}) -e PGID=$(id -g ${USER}) -v ${DATA_DIR}:/app/tvsurf/data -p ${PORT}:9399 -ti ghcr.io/codewdy/tvsurf:latest
 # 如果上面的太慢，也可以选择国内的镜像站：
 # docker run -d -e PUID=${PUID} -e PGID=${PGID} -v ${DATA_DIR}:/app/tvsurf/data -p ${PORT}:9399 -ti ghcr.nju.edu.cn/codewdy/tvsurf:latest
- ```
+```

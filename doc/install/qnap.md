@@ -22,9 +22,8 @@
 
 注意：以下的配置有一些需要根据你的实际情况进行改动的，请仔细阅读里面的注释。同时，推荐修改镜像到南京大学的镜像站（即注释掉的那行）。
 
-
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   tvsurf:
@@ -54,7 +53,6 @@ services:
 ![container-station](/doc/image/qnap/container-station.png)
 
 ![docker-compose](/doc/image/qnap/create-docker-compose.png)
-
 
 ### 安装成功
 

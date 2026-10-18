@@ -4,9 +4,9 @@
  * 用法: node change-password.cjs <用户名> <新密码> [数据库目录]
  */
 
-const bcrypt = require('../app/node_modules/bcryptjs');
-const fs = require('fs');
-const path = require('path');
+const bcrypt = require("../app/node_modules/bcryptjs");
+const fs = require("fs");
+const path = require("path");
 
 function simpleHash(str) {
   let hash = 0;
@@ -19,9 +19,10 @@ function simpleHash(str) {
 }
 
 function generateSalt(username) {
-  const bcryptChars = './ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const bcryptChars =
+    "./ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
   const hash = simpleHash(username);
-  let saltPart = '';
+  let saltPart = "";
   let currentHash = hash;
   for (let i = 0; i < 22; i++) {
     saltPart += bcryptChars[currentHash % bcryptChars.length];
@@ -38,17 +39,19 @@ async function hashPassword(password, username) {
 async function main() {
   const [username, newPassword, dbDir] = process.argv.slice(2);
   if (!username || !newPassword) {
-    console.error('用法: node change-password.cjs <用户名> <新密码> [数据库目录]');
+    console.error(
+      "用法: node change-password.cjs <用户名> <新密码> [数据库目录]",
+    );
     process.exit(1);
   }
 
-  const userDbPath = path.join(dbDir, 'user_db.json');
+  const userDbPath = path.join(dbDir, "user_db.json");
   if (!fs.existsSync(userDbPath)) {
     console.error(`错误: 找不到数据库文件 ${userDbPath}`);
     process.exit(1);
   }
 
-  const userDb = JSON.parse(fs.readFileSync(userDbPath, 'utf-8'));
+  const userDb = JSON.parse(fs.readFileSync(userDbPath, "utf-8"));
   if (!userDb.users || !userDb.users[username]) {
     console.error(`错误: 用户 ${username} 不存在`);
     process.exit(1);
@@ -57,7 +60,7 @@ async function main() {
   const passwordHash = await hashPassword(newPassword, username);
   userDb.users[username].password_hash = passwordHash;
 
-  fs.writeFileSync(userDbPath, JSON.stringify(userDb, null, 2), 'utf-8');
+  fs.writeFileSync(userDbPath, JSON.stringify(userDb, null, 2), "utf-8");
   console.log(`密码已成功修改，用户: ${username}`);
 }
 

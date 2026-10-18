@@ -5,11 +5,8 @@ import { useNavigate, useSearchParams } from "react-router";
 import { hashPassword } from "../utils/password";
 import { isValidUsername } from "../utils/username";
 
-export function meta({ }: Route.MetaArgs) {
-  return [
-    { title: "用户登录" },
-    { name: "description", content: "登录系统" },
-  ];
+export function meta({}: Route.MetaArgs) {
+  return [{ title: "用户登录" }, { name: "description", content: "登录系统" }];
 }
 
 export default function Login() {

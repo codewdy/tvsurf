@@ -10,7 +10,10 @@ import type {
 // 无时区后缀的 ISO 字符串按 UTC 解析（后端存的是 UTC）
 function parseTimestamp(timestamp: string): Date {
   const s = timestamp.trim();
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/i.test(s) && !/[Z+\-]\d{2}:?\d{2}$/.test(s)) {
+  if (
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/i.test(s) &&
+    !/[Z+\-]\d{2}:?\d{2}$/.test(s)
+  ) {
     return new Date(s + "Z");
   }
   return new Date(timestamp);
@@ -44,7 +47,7 @@ function formatDateTime(dateString: string): string {
   }
 }
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "错误日志" },
     { name: "description", content: "查看系统错误日志" },
@@ -66,7 +69,10 @@ export default function Errors() {
       const data = await getErrors({});
       // 按时间倒序排序，最新的在前
       const sortedErrors = [...(data.errors || [])].sort((a, b) => {
-        return parseTimestamp(b.timestamp).getTime() - parseTimestamp(a.timestamp).getTime();
+        return (
+          parseTimestamp(b.timestamp).getTime() -
+          parseTimestamp(a.timestamp).getTime()
+        );
       });
       setErrors(sortedErrors);
     } catch (err) {
@@ -199,10 +205,11 @@ export default function Errors() {
             return (
               <div
                 key={error.id}
-                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow border-l-4 ${error.type === "critical"
-                  ? "border-red-500"
-                  : "border-orange-500"
-                  }`}
+                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow border-l-4 ${
+                  error.type === "critical"
+                    ? "border-red-500"
+                    : "border-orange-500"
+                }`}
               >
                 <div className="flex items-start gap-4">
                   <input
@@ -221,10 +228,11 @@ export default function Errors() {
                           {error.title}
                         </h3>
                         <span
-                          className={`px-2 py-1 text-xs font-medium rounded ${error.type === "critical"
-                            ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
-                            : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
-                            }`}
+                          className={`px-2 py-1 text-xs font-medium rounded ${
+                            error.type === "critical"
+                              ? "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                              : "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400"
+                          }`}
                         >
                           {error.type === "critical" ? "严重" : "错误"}
                         </span>
@@ -243,7 +251,10 @@ export default function Errors() {
                           </p>
                         </div>
                         <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                          ID: {error.id} | 时间: {parseTimestamp(error.timestamp).toLocaleString("zh-CN")}
+                          ID: {error.id} | 时间:{" "}
+                          {parseTimestamp(error.timestamp).toLocaleString(
+                            "zh-CN",
+                          )}
                         </div>
                       </>
                     )}

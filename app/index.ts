@@ -1,12 +1,12 @@
-import { registerRootComponent } from 'expo';
-import Constants from 'expo-constants';
+import { registerRootComponent } from "expo";
+import Constants from "expo-constants";
 
-import App from './App';
+import App from "./App";
 
 // 仅在非 Expo Go 环境下注册 Notifee 前台服务（Expo Go 无原生 Notifee，不加载避免报错）
-if (Constants.executionEnvironment !== 'storeClient') {
+if (Constants.executionEnvironment !== "storeClient") {
   try {
-    const notifee = require('@notifee/react-native').default;
+    const notifee = require("@notifee/react-native").default;
     notifee.registerForegroundService(() => {
       return new Promise(() => {
         // Promise 永不 resolve，由 stopForegroundService 停止服务

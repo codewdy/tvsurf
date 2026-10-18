@@ -2,13 +2,13 @@
 
 
 a = Analysis(
-    ['../../service/main.py'],
-    pathex=['../..'],
+    ["../../service/main.py"],
+    pathex=["../.."],
     binaries=[],
     datas=[
-        ('../../deps', 'deps'),
-        ('../../web/build/client', 'web'),
-        ('../../service/searcher.json', 'searcher')
+        ("../../deps", "deps"),
+        ("../../web/build/client", "web"),
+        ("../../service/searcher.json", "searcher"),
     ],
     hiddenimports=[],
     hookspath=[],
@@ -25,7 +25,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='tvsurf',
+    name="tvsurf",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -44,5 +44,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='tvsurf',
+    name="tvsurf",
 )

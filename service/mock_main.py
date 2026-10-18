@@ -3,6 +3,7 @@ import sys
 import asyncio
 from aiohttp import web
 
+
 async def test():
     async with Context() as ctx:
         page = await ctx.browser.new_page()
@@ -11,25 +12,30 @@ async def test():
         await page.close()
         return rst
 
+
 async def handle_test(request):
     """处理测试请求"""
     result = await test()
     return web.Response(text=result)
 
+
 async def handle_health(request):
     """健康检查端点"""
     return web.json_response({"status": "ok"})
 
+
 async def on_cleanup(app):
     print("on_cleanup")
+
 
 async def on_startup(app):
     print("on_startup")
 
+
 def start():
     """启动 HTTP 服务"""
     app = web.Application()
-    
+
     # 注册路由
     app.router.add_get("/", handle_test)
     app.router.add_get("/health", handle_health)
@@ -37,9 +43,10 @@ def start():
 
     app.on_cleanup.append(on_cleanup)
     app.on_startup.append(on_startup)
-    
+
     # 启动服务
     web.run_app(app, host="0.0.0.0", port=9399)
+
 
 if __name__ == "__main__":
     start()

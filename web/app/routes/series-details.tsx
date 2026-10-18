@@ -9,7 +9,7 @@ import type {
 } from "../api/types";
 import Sortable from "sortablejs";
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "播放列表详情" },
     { name: "description", content: "播放列表详情和编辑" },
@@ -151,7 +151,11 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
 
   // 初始化 SortableJS
   useEffect(() => {
-    if (isEditing && sortableContainerRef.current && !sortableInstance.current) {
+    if (
+      isEditing &&
+      sortableContainerRef.current &&
+      !sortableInstance.current
+    ) {
       sortableInstance.current = Sortable.create(sortableContainerRef.current, {
         animation: 150,
         ghostClass: "opacity-50",
@@ -159,7 +163,11 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
         handle: ".sortable-item",
         onEnd: (evt) => {
           const { oldIndex, newIndex } = evt;
-          if (oldIndex !== undefined && newIndex !== undefined && oldIndex !== newIndex) {
+          if (
+            oldIndex !== undefined &&
+            newIndex !== undefined &&
+            oldIndex !== newIndex
+          ) {
             setSelectedTVs((prev) => {
               const newTVs = [...prev];
               const [movedItem] = newTVs.splice(oldIndex, 1);
@@ -187,30 +195,37 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
       sortableInstance.current = null;
 
       if (sortableContainerRef.current) {
-        sortableInstance.current = Sortable.create(sortableContainerRef.current, {
-          animation: 150,
-          ghostClass: "opacity-50",
-          draggable: ".sortable-item",
-          handle: ".sortable-item",
-          onEnd: (evt) => {
-            const { oldIndex, newIndex } = evt;
-            if (oldIndex !== undefined && newIndex !== undefined && oldIndex !== newIndex) {
-              setSelectedTVs((prev) => {
-                const newTVs = [...prev];
-                const [movedItem] = newTVs.splice(oldIndex, 1);
-                newTVs.splice(newIndex, 0, movedItem);
-                return newTVs;
-              });
-            }
+        sortableInstance.current = Sortable.create(
+          sortableContainerRef.current,
+          {
+            animation: 150,
+            ghostClass: "opacity-50",
+            draggable: ".sortable-item",
+            handle: ".sortable-item",
+            onEnd: (evt) => {
+              const { oldIndex, newIndex } = evt;
+              if (
+                oldIndex !== undefined &&
+                newIndex !== undefined &&
+                oldIndex !== newIndex
+              ) {
+                setSelectedTVs((prev) => {
+                  const newTVs = [...prev];
+                  const [movedItem] = newTVs.splice(oldIndex, 1);
+                  newTVs.splice(newIndex, 0, movedItem);
+                  return newTVs;
+                });
+              }
+            },
           },
-        });
+        );
       }
     }
   }, [isEditing, selectedTVs.length]);
 
   // 过滤 TV 列表
   const filteredAllTVs = allTVInfos.filter((tv) =>
-    tv.name.toLowerCase().includes(searchKeyword.toLowerCase())
+    tv.name.toLowerCase().includes(searchKeyword.toLowerCase()),
   );
 
   // 已选 TV 列表（按照 selectedTVs 的顺序）
@@ -221,7 +236,7 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
 
   // 可用 TV 列表（未选中的）
   const availableTVInfos = filteredAllTVs.filter(
-    (tv) => !selectedTVs.includes(tv.id)
+    (tv) => !selectedTVs.includes(tv.id),
   );
 
   if (loading) {
@@ -303,7 +318,9 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
             <div className="mb-4">
               <p className="text-gray-600 dark:text-gray-400">
                 包含 {selectedTVInfos.length} 个 TV
-                <span className="text-gray-500 dark:text-gray-500">（拖拽卡片以排序）</span>
+                <span className="text-gray-500 dark:text-gray-500">
+                  （拖拽卡片以排序）
+                </span>
               </p>
             </div>
             <div
@@ -311,10 +328,7 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
               className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4"
             >
               {selectedTVInfos.map((tv) => (
-                <div
-                  key={tv.id}
-                  className="sortable-item relative cursor-move"
-                >
+                <div key={tv.id} className="sortable-item relative cursor-move">
                   <div className="relative [&_a]:pointer-events-none">
                     {/* 删除角标 */}
                     <button
@@ -353,9 +367,7 @@ export default function SeriesDetails({ params }: Route.ComponentProps) {
 
           {/* 添加 TV 模态框 */}
           {showAddTVModal && (
-            <div
-              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            >
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
               <div
                 className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-4xl w-full max-h-[80vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}

@@ -21,7 +21,7 @@ import type {
 } from "../api/types";
 import { TAG_NAMES } from "../api/types";
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "添加TV" },
     { name: "description", content: "搜索并添加新的TV" },
@@ -57,7 +57,9 @@ export default function AddTV() {
   // TV 名称验证
   const [tvList, setTvList] = useState<TVInfo[]>([]);
   const [nameExists, setNameExists] = useState(false);
-  const [namePathCharError, setNamePathCharError] = useState<string | null>(null);
+  const [namePathCharError, setNamePathCharError] = useState<string | null>(
+    null,
+  );
 
   // Windows + Linux 路径不允许字符：<>:"/\|?* 和控制字符（包含 \0）
   const validateTVNamePathChars = (name: string): string | null => {
@@ -66,11 +68,21 @@ export default function AddTV() {
       return null;
     }
 
-    const invalidChars = new Set(["<", ">", ":", "\"", "/", "\\", "|", "?", "*"]);
+    const invalidChars = new Set([
+      "<",
+      ">",
+      ":",
+      '"',
+      "/",
+      "\\",
+      "|",
+      "?",
+      "*",
+    ]);
     for (const char of trimmedName) {
       const code = char.charCodeAt(0);
       if (invalidChars.has(char) || code <= 31) {
-        return "名称包含路径非法字符（Windows/Linux）：<>:\"/\\|?* 或控制字符";
+        return '名称包含路径非法字符（Windows/Linux）：<>:"/\\|?* 或控制字符';
       }
     }
     return null;
@@ -141,7 +153,7 @@ export default function AddTV() {
     try {
       const trimmedName = name.trim();
       const exists = tvList.some(
-        (tv) => tv.name.trim().toLowerCase() === trimmedName.toLowerCase()
+        (tv) => tv.name.trim().toLowerCase() === trimmedName.toLowerCase(),
       );
       setNameExists(exists);
     } catch (err) {
@@ -157,7 +169,7 @@ export default function AddTV() {
     }
     const trimmedName = name.trim();
     return tvList.some(
-      (tv) => tv.name.trim().toLowerCase() === trimmedName.toLowerCase()
+      (tv) => tv.name.trim().toLowerCase() === trimmedName.toLowerCase(),
     );
   };
 
@@ -169,7 +181,7 @@ export default function AddTV() {
       return;
     }
 
-    const exists = seriesList.some(series => series.name === trimmedName);
+    const exists = seriesList.some((series) => series.name === trimmedName);
     if (exists) {
       setSeriesNameError(`播放列表名称 '${trimmedName}' 已存在`);
     } else {
@@ -350,9 +362,7 @@ export default function AddTV() {
     const filtered = seriesList.filter(
       (series) =>
         !confirmSeries.includes(series.id) &&
-        series.name
-          .toLowerCase()
-          .includes(seriesSearchKeyword.toLowerCase())
+        series.name.toLowerCase().includes(seriesSearchKeyword.toLowerCase()),
     );
     const allIds = filtered.map((s) => s.id);
     setConfirmSeries((prev) => {
@@ -442,13 +452,15 @@ export default function AddTV() {
                     handleAddTV(source, index);
                   }
                 }}
-                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative flex flex-col ${isNameExistsInTVList(source.name)
-                  ? "border-2 border-green-500 dark:border-green-600"
-                  : ""
-                  } ${addedIds.has(index) || addingIds.has(index)
+                className={`bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow overflow-visible relative flex flex-col ${
+                  isNameExistsInTVList(source.name)
+                    ? "border-2 border-green-500 dark:border-green-600"
+                    : ""
+                } ${
+                  addedIds.has(index) || addingIds.has(index)
                     ? ""
                     : "cursor-pointer"
-                  }`}
+                }`}
               >
                 <div className="aspect-[2/3] bg-gray-200 dark:bg-gray-700 overflow-hidden relative">
                   {source.cover_url ? (
@@ -483,10 +495,12 @@ export default function AddTV() {
                       <div className="flex items-center justify-between gap-2">
                         <div>
                           <p>
-                            <span className="font-medium">来源:</span> {source.source.source_name}
+                            <span className="font-medium">来源:</span>{" "}
+                            {source.source.source_name}
                           </p>
                           <p>
-                            <span className="font-medium">频道:</span> {source.source.channel_name}
+                            <span className="font-medium">频道:</span>{" "}
+                            {source.source.channel_name}
                           </p>
                         </div>
                         <a
@@ -502,7 +516,10 @@ export default function AddTV() {
                       </div>
                     </div>
                     {source.episodes && source.episodes.length > 0 && (
-                      <details className="mb-2" onClick={(e) => e.stopPropagation()}>
+                      <details
+                        className="mb-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <summary className="cursor-pointer text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300">
                           {source.episodes?.length || 0} 集
                         </summary>
@@ -567,9 +584,7 @@ export default function AddTV() {
 
       {/* 确认对话框 */}
       {showConfirmDialog && confirmSource && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-        >
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div
             className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -586,12 +601,15 @@ export default function AddTV() {
                   onChange={(e) => {
                     setConfirmName(e.target.value);
                     checkNameExists(e.target.value);
-                    setNamePathCharError(validateTVNamePathChars(e.target.value));
+                    setNamePathCharError(
+                      validateTVNamePathChars(e.target.value),
+                    );
                   }}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${(nameExists || namePathCharError)
-                    ? "border-red-500 focus:ring-red-500 dark:border-red-500"
-                    : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                    }`}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                    nameExists || namePathCharError
+                      ? "border-red-500 focus:ring-red-500 dark:border-red-500"
+                      : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                  }`}
                   placeholder="输入TV名称"
                 />
                 {nameExists && (
@@ -688,7 +706,9 @@ export default function AddTV() {
                       </svg>
                       <div className="absolute bottom-full left-0 mb-2 w-64 p-3 bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
                         <div className="space-y-1">
-                          <div className="font-semibold mb-1">播放列表说明：</div>
+                          <div className="font-semibold mb-1">
+                            播放列表说明：
+                          </div>
                           <div className="text-gray-300">
                             播放列表用于管理一系列番剧或电视剧，可以将相关的TV归类到同一个播放列表中，方便统一管理和查看。
                           </div>
@@ -717,15 +737,20 @@ export default function AddTV() {
                             checkSeriesName(e.target.value);
                           }}
                           placeholder="搜索播放列表或输入新播放列表名称..."
-                          className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm ${seriesNameError
-                            ? "border-red-500 focus:ring-red-500 dark:border-red-500"
-                            : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                            }`}
+                          className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm ${
+                            seriesNameError
+                              ? "border-red-500 focus:ring-red-500 dark:border-red-500"
+                              : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                          }`}
                         />
                         <button
                           type="button"
                           onClick={handleCreateSeries}
-                          disabled={!seriesSearchKeyword.trim() || creatingSeries || !!seriesNameError}
+                          disabled={
+                            !seriesSearchKeyword.trim() ||
+                            creatingSeries ||
+                            !!seriesNameError
+                          }
                           className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors dark:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
                         >
                           {creatingSeries ? "创建中..." : "新建"}
@@ -753,8 +778,8 @@ export default function AddTV() {
                                   series.name
                                     .toLowerCase()
                                     .includes(
-                                      seriesSearchKeyword.toLowerCase()
-                                    )
+                                      seriesSearchKeyword.toLowerCase(),
+                                    ),
                               )
                               .map((series) => (
                                 <div
@@ -772,16 +797,15 @@ export default function AddTV() {
                                 !confirmSeries.includes(series.id) &&
                                 series.name
                                   .toLowerCase()
-                                  .includes(seriesSearchKeyword.toLowerCase())
+                                  .includes(seriesSearchKeyword.toLowerCase()),
                             ).length === 0 && (
-                                <div className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">
-                                  无可用播放列表
-                                </div>
-                              )}
+                              <div className="px-3 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">
+                                无可用播放列表
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
-
 
                       {/* 已选播放列表 */}
                       <div className="flex-1">
@@ -791,7 +815,9 @@ export default function AddTV() {
                         <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
                           <div className="h-48 overflow-y-auto">
                             {seriesList
-                              .filter((series) => confirmSeries.includes(series.id))
+                              .filter((series) =>
+                                confirmSeries.includes(series.id),
+                              )
                               .map((series) => (
                                 <div
                                   key={series.id}
@@ -826,7 +852,9 @@ export default function AddTV() {
                 </button>
                 <button
                   onClick={handleConfirmAdd}
-                  disabled={!confirmName.trim() || nameExists || !!namePathCharError}
+                  disabled={
+                    !confirmName.trim() || nameExists || !!namePathCharError
+                  }
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors dark:bg-green-700 dark:hover:bg-green-600"
                 >
                   确认添加

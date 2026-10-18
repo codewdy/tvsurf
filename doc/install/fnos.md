@@ -7,7 +7,7 @@
 注意：请仔细阅读下面的文件中的注释，确保符合你的预期。同时，推荐修改镜像到南京大学的镜像站（即注释掉的那行）。
 
 ```yaml
-version: '3.8'
+version: "3.8"
 
 services:
   tvsurf:
@@ -38,7 +38,6 @@ services:
 ![docker](/doc/image/fnos/docker.png)
 
 ![docker-create](/doc/image/fnos/docker-create.png)
-
 
 ### 安装成功
 

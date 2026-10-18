@@ -1,16 +1,15 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 winapp = Analysis(
-    ['../../winapp/main.py'],
-    pathex=['../..'],
-    binaries=[
-    ],
+    ["../../winapp/main.py"],
+    pathex=["../.."],
+    binaries=[],
     datas=[
-        ('../../deps', 'deps'),
+        ("../../deps", "deps"),
         ("../../web/build/client", "web"),
         ("../../service/searcher.json", "searcher"),
         ("../../winapp/icon.ico", "assets"),
-        ],
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -27,7 +26,7 @@ winapp_exe = EXE(
     [],
     icon="../../winapp/icon.ico",
     exclude_binaries=True,
-    name='tvsurf',
+    name="tvsurf",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -41,13 +40,13 @@ winapp_exe = EXE(
 )
 
 console = Analysis(
-    ['../../service/main.py'],
-    pathex=['../..'],
+    ["../../service/main.py"],
+    pathex=["../.."],
     binaries=[],
     datas=[
-        ('../../deps', 'deps'),
-        ('../../web/build/client', 'web'),
-        ('../../service/searcher.json', 'searcher')
+        ("../../deps", "deps"),
+        ("../../web/build/client", "web"),
+        ("../../service/searcher.json", "searcher"),
     ],
     hiddenimports=[],
     hookspath=[],
@@ -65,7 +64,7 @@ console_exe = EXE(
     [],
     icon="../../winapp/icon.ico",
     exclude_binaries=True,
-    name='tvsurf-console',
+    name="tvsurf-console",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -87,5 +86,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='tvsurf',
+    name="tvsurf",
 )

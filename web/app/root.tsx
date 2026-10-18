@@ -45,7 +45,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const location = useLocation();
-  const hideBanner = location.pathname === "/system-setup" || location.pathname === "/login";
+  const hideBanner =
+    location.pathname === "/system-setup" || location.pathname === "/login";
 
   return (
     <>

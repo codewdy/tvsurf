@@ -3,10 +3,14 @@ import type { FormEvent } from "react";
 import type { Route } from "./+types/user";
 import { useNavigate } from "react-router";
 import { whoami, setMyPassword } from "../api/client";
-import type { WhoamiRequest, WhoamiResponse, SetMyPasswordRequest } from "../api/types";
+import type {
+  WhoamiRequest,
+  WhoamiResponse,
+  SetMyPasswordRequest,
+} from "../api/types";
 import { hashPassword } from "../utils/password";
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "用户信息" },
     { name: "description", content: "查看当前用户信息" },
@@ -76,8 +80,14 @@ export default function User() {
 
     try {
       // 生成原始密码和新密码的哈希
-      const originalPasswordHash = await hashPassword(oldPassword, userInfo.user.username);
-      const newPasswordHash = await hashPassword(newPassword, userInfo.user.username);
+      const originalPasswordHash = await hashPassword(
+        oldPassword,
+        userInfo.user.username,
+      );
+      const newPasswordHash = await hashPassword(
+        newPassword,
+        userInfo.user.username,
+      );
 
       // 调用 API
       const request: SetMyPasswordRequest = {
@@ -104,7 +114,8 @@ export default function User() {
   const handleLogout = () => {
     if (confirm("确定要登出吗？")) {
       // 清除 cookie 中的 token
-      document.cookie = "tvsurf_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+      document.cookie =
+        "tvsurf_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
       // 跳转到登录页面
       navigate("/login", { replace: true });
     }
@@ -197,10 +208,11 @@ export default function User() {
             </label>
             <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
               <span
-                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${userInfo.single_user_mode
-                  ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
-                  : "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300"
-                  }`}
+                className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                  userInfo.single_user_mode
+                    ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300"
+                    : "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300"
+                }`}
               >
                 {userInfo.single_user_mode ? "单用户模式" : "多用户模式"}
               </span>

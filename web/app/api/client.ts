@@ -55,7 +55,7 @@ import type {
 // 基础 API 调用函数
 async function apiCall<TRequest, TResponse>(
   endpoint: string,
-  request: TRequest
+  request: TRequest,
 ): Promise<TResponse> {
   const response = await fetch(endpoint, {
     method: "POST",
@@ -75,39 +75,34 @@ async function apiCall<TRequest, TResponse>(
 
 // 获取 TV 信息列表
 export async function getTVInfos(
-  request: GetTVInfosRequest
+  request: GetTVInfosRequest,
 ): Promise<GetTVInfosResponse> {
   return apiCall<GetTVInfosRequest, GetTVInfosResponse>(
     "/api/get_tv_infos",
-    request
+    request,
   );
 }
 
 // 获取 TV 详情
 export async function getTVDetails(
-  request: GetTVDetailsRequest
+  request: GetTVDetailsRequest,
 ): Promise<GetTVDetailsResponse> {
   return apiCall<GetTVDetailsRequest, GetTVDetailsResponse>(
     "/api/get_tv_details",
-    request
+    request,
   );
 }
 
 // 设置 TV 标签
-export async function setTVTag(
-  request: SetTVTagRequest
-): Promise<void> {
+export async function setTVTag(request: SetTVTagRequest): Promise<void> {
   await apiCall<SetTVTagRequest, void>("/api/set_tv_tag", request);
 }
 
 // 搜索 TV
 export async function searchTV(
-  request: SearchTVRequest
+  request: SearchTVRequest,
 ): Promise<SearchTVResponse> {
-  return apiCall<SearchTVRequest, SearchTVResponse>(
-    "/api/search_tv",
-    request
-  );
+  return apiCall<SearchTVRequest, SearchTVResponse>("/api/search_tv", request);
 }
 
 // 添加 TV
@@ -117,205 +112,205 @@ export async function addTV(request: AddTVRequest): Promise<AddTVResponse> {
 
 // 设置观看进度
 export async function setWatchProgress(
-  request: SetWatchProgressRequest
+  request: SetWatchProgressRequest,
 ): Promise<void> {
   await apiCall<SetWatchProgressRequest, void>(
     "/api/set_watch_progress",
-    request
+    request,
   );
 }
 
 // 获取播放列表列表
 export async function getSeries(
-  request: GetSeriesRequest
+  request: GetSeriesRequest,
 ): Promise<GetSeriesResponse> {
   return apiCall<GetSeriesRequest, GetSeriesResponse>(
     "/api/get_series",
-    request
+    request,
   );
 }
 
 // 添加播放列表
 export async function addSeries(
-  request: AddSeriesRequest
+  request: AddSeriesRequest,
 ): Promise<AddSeriesResponse> {
   return apiCall<AddSeriesRequest, AddSeriesResponse>(
     "/api/add_series",
-    request
+    request,
   );
 }
 
 // 删除播放列表
 export async function removeSeries(
-  request: RemoveSeriesRequest
+  request: RemoveSeriesRequest,
 ): Promise<RemoveSeriesResponse> {
   return apiCall<RemoveSeriesRequest, RemoveSeriesResponse>(
     "/api/remove_series",
-    request
+    request,
   );
 }
 
 // 更新播放列表 TV 列表
 export async function updateSeriesTVs(
-  request: UpdateSeriesTVsRequest
+  request: UpdateSeriesTVsRequest,
 ): Promise<void> {
   await apiCall<UpdateSeriesTVsRequest, void>(
     "/api/update_series_tvs",
-    request
+    request,
   );
 }
 
 // 获取下载进度
 export async function getDownloadProgress(
-  request: GetDownloadProgressRequest = {}
+  request: GetDownloadProgressRequest = {},
 ): Promise<GetDownloadProgressResponse> {
   return apiCall<GetDownloadProgressRequest, GetDownloadProgressResponse>(
     "/api/get_download_progress",
-    request
+    request,
   );
 }
 
 // 获取错误列表
 export async function getErrors(
-  request: GetErrorsRequest = {}
+  request: GetErrorsRequest = {},
 ): Promise<GetErrorsResponse> {
   return apiCall<GetErrorsRequest, GetErrorsResponse>(
     "/api/get_errors",
-    request
+    request,
   );
 }
 
 // 删除错误
 export async function removeErrors(
-  request: RemoveErrorsRequest
+  request: RemoveErrorsRequest,
 ): Promise<void> {
   await apiCall<RemoveErrorsRequest, void>("/api/remove_errors", request);
 }
 
 // 更新 TV 源
 export async function updateTVSource(
-  request: UpdateTVSourceRequest
+  request: UpdateTVSourceRequest,
 ): Promise<UpdateTVSourceResponse> {
   return apiCall<UpdateTVSourceRequest, UpdateTVSourceResponse>(
     "/api/update_tv_source",
-    request
+    request,
   );
 }
 
 // 更新剧集源
 export async function updateEpisodeSource(
-  request: UpdateEpisodeSourceRequest
+  request: UpdateEpisodeSourceRequest,
 ): Promise<UpdateEpisodeSourceResponse> {
   return apiCall<UpdateEpisodeSourceRequest, UpdateEpisodeSourceResponse>(
     "/api/update_episode_series",
-    request
+    request,
   );
 }
 
 // 删除 TV
 export async function removeTV(
-  request: RemoveTVRequest
+  request: RemoveTVRequest,
 ): Promise<RemoveTVResponse> {
   return apiCall<RemoveTVRequest, RemoveTVResponse>("/api/remove_tv", request);
 }
 
 // 设置 TV 追更
 export async function setTVTracking(
-  request: SetTVTrackingRequest
+  request: SetTVTrackingRequest,
 ): Promise<SetTVTrackingResponse> {
   return apiCall<SetTVTrackingRequest, SetTVTrackingResponse>(
     "/api/set_tv_tracking",
-    request
+    request,
   );
 }
 
 // 重新调度剧集下载
 export async function scheduleEpisodeDownload(
-  request: ScheduleEpisodeDownloadRequest
+  request: ScheduleEpisodeDownloadRequest,
 ): Promise<ScheduleEpisodeDownloadResponse> {
-  return apiCall<ScheduleEpisodeDownloadRequest, ScheduleEpisodeDownloadResponse>(
-    "/api/schedule_episode_download",
-    request
-  );
+  return apiCall<
+    ScheduleEpisodeDownloadRequest,
+    ScheduleEpisodeDownloadResponse
+  >("/api/schedule_episode_download", request);
 }
 
 // 获取配置
 export async function getConfig(
-  request: GetConfigRequest = {}
+  request: GetConfigRequest = {},
 ): Promise<GetConfigResponse> {
   return apiCall<GetConfigRequest, GetConfigResponse>(
     "/api/get_config",
-    request
+    request,
   );
 }
 
 // 设置配置
 export async function setConfig(
-  request: SetConfigRequest
+  request: SetConfigRequest,
 ): Promise<SetConfigResponse> {
   return apiCall<SetConfigRequest, SetConfigResponse>(
     "/api/set_config",
-    request
+    request,
   );
 }
 
 // 获取当前用户信息
 export async function whoami(
-  request: WhoamiRequest = {}
+  request: WhoamiRequest = {},
 ): Promise<WhoamiResponse> {
   return apiCall<WhoamiRequest, WhoamiResponse>("/api/whoami", request);
 }
 
 // 设置我的密码
 export async function setMyPassword(
-  request: SetMyPasswordRequest
+  request: SetMyPasswordRequest,
 ): Promise<SetMyPasswordResponse> {
   return apiCall<SetMyPasswordRequest, SetMyPasswordResponse>(
     "/api/set_my_password",
-    request
+    request,
   );
 }
 
 // 获取用户列表
 export async function getUsers(
-  request: GetUsersRequest = {}
+  request: GetUsersRequest = {},
 ): Promise<GetUsersResponse> {
   return apiCall<GetUsersRequest, GetUsersResponse>("/api/get_users", request);
 }
 
 // 添加用户
 export async function addUser(
-  request: AddUserRequest
+  request: AddUserRequest,
 ): Promise<AddUserResponse> {
   return apiCall<AddUserRequest, AddUserResponse>("/api/add_user", request);
 }
 
 // 删除用户
 export async function removeUser(
-  request: RemoveUserRequest
+  request: RemoveUserRequest,
 ): Promise<RemoveUserResponse> {
   return apiCall<RemoveUserRequest, RemoveUserResponse>(
     "/api/remove_user",
-    request
+    request,
   );
 }
 
 // 更新用户组
 export async function updateUserGroup(
-  request: UpdateUserGroupRequest
+  request: UpdateUserGroupRequest,
 ): Promise<UpdateUserGroupResponse> {
   return apiCall<UpdateUserGroupRequest, UpdateUserGroupResponse>(
     "/api/update_user_group",
-    request
+    request,
   );
 }
 
 // 设置用户密码
 export async function setUserPassword(
-  request: SetUserPasswordRequest
+  request: SetUserPasswordRequest,
 ): Promise<SetUserPasswordResponse> {
   return apiCall<SetUserPasswordRequest, SetUserPasswordResponse>(
     "/api/set_user_password",
-    request
+    request,
   );
 }

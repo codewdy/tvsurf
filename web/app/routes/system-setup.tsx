@@ -5,7 +5,7 @@ import type { Route } from "./+types/system-setup";
 import { hashPassword } from "../utils/password";
 import { isValidUsername } from "../utils/username";
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "系统初始化" },
     { name: "description", content: "首次使用系统，请完成注册" },
@@ -37,7 +37,10 @@ export default function SystemSetup() {
     return "/";
   };
 
-  const handleSubmit = async (e: FormEvent, singleUserMode: boolean = false) => {
+  const handleSubmit = async (
+    e: FormEvent,
+    singleUserMode: boolean = false,
+  ) => {
     e.preventDefault();
     setError(null);
 

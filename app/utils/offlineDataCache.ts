@@ -1,625 +1,714 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getApiBaseUrl, getApiToken } from '../api/client';
-import type { TVInfo, GetTVDetailsResponse, Tag, Series, WhoamiResponse, SnapshotResponse } from '../api/types';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getApiBaseUrl, getApiToken } from "../api/client";
+import type {
+  TVInfo,
+  GetTVDetailsResponse,
+  Tag,
+  Series,
+  WhoamiResponse,
+  SnapshotResponse,
+} from "../api/types";
 
 // 存储键
-const OFFLINE_DATA_KEY = '@tvsurf_offline_data';
-const PENDING_CHANGES_KEY = '@tvsurf_pending_changes';
-const TEMP_ID_MAPPING_KEY = '@tvsurf_temp_id_mapping';
-const NEXT_TEMP_ID_KEY = '@tvsurf_next_temp_id';
+const OFFLINE_DATA_KEY = "@tvsurf_offline_data";
+const PENDING_CHANGES_KEY = "@tvsurf_pending_changes";
+const TEMP_ID_MAPPING_KEY = "@tvsurf_temp_id_mapping";
+const NEXT_TEMP_ID_KEY = "@tvsurf_next_temp_id";
 
 // 离线数据结构
 interface OfflineData {
-    tvInfos: Record<number, TVInfo>; // tvId -> TVInfo
-    tvDetails: Record<number, GetTVDetailsResponse>; // tvId -> TVDetails
-    series: Record<number, Series>; // seriesId -> Series
-    userInfo: WhoamiResponse | null; // 用户信息
-    tvInfosComplete: boolean;
-    seriesComplete: boolean;
+  tvInfos: Record<number, TVInfo>; // tvId -> TVInfo
+  tvDetails: Record<number, GetTVDetailsResponse>; // tvId -> TVDetails
+  series: Record<number, Series>; // seriesId -> Series
+  userInfo: WhoamiResponse | null; // 用户信息
+  tvInfosComplete: boolean;
+  seriesComplete: boolean;
 }
 
 function createEmptyOfflineData(): OfflineData {
-    return {
-        tvInfos: {},
-        tvDetails: {},
-        series: {},
-        userInfo: null,
-        tvInfosComplete: false,
-        seriesComplete: false,
-    };
+  return {
+    tvInfos: {},
+    tvDetails: {},
+    series: {},
+    userInfo: null,
+    tvInfosComplete: false,
+    seriesComplete: false,
+  };
 }
 
 // 操作类型
 enum OperationType {
-    WATCH_PROGRESS = 'watch_progress',
-    TAG_CHANGE = 'tag_change',
-    TRACKING_CHANGE = 'tracking_change',
-    UPDATE_SERIES_TVS = 'update_series_tvs',
-    ADD_SERIES = 'add_series',
-    REMOVE_SERIES = 'remove_series',
+  WATCH_PROGRESS = "watch_progress",
+  TAG_CHANGE = "tag_change",
+  TRACKING_CHANGE = "tracking_change",
+  UPDATE_SERIES_TVS = "update_series_tvs",
+  ADD_SERIES = "add_series",
+  REMOVE_SERIES = "remove_series",
 }
 
 // 观看进度数据
 interface WatchProgressData {
-    tvId: number;
-    episodeId: number;
-    time: number;
+  tvId: number;
+  episodeId: number;
+  time: number;
 }
 
 // 标签变更数据
 interface TagChangeData {
-    tvId: number;
-    tag: Tag;
+  tvId: number;
+  tag: Tag;
 }
 
 // 追更状态变更数据
 interface TrackingChangeData {
-    tvId: number;
-    tracking: boolean;
+  tvId: number;
+  tracking: boolean;
 }
 
 // 更新播放列表TV数据
 interface UpdateSeriesTVsData {
-    seriesId: number;  // 可能是临时ID
-    tvs: number[];
+  seriesId: number; // 可能是临时ID
+  tvs: number[];
 }
 
 // 创建播放列表数据
 interface AddSeriesData {
-    tempId: number;  // 临时ID（负数）
-    name: string;
+  tempId: number; // 临时ID（负数）
+  name: string;
 }
 
 // 删除播放列表数据
 interface RemoveSeriesData {
-    seriesId: number;  // 可能是临时ID
+  seriesId: number; // 可能是临时ID
 }
 
 // 统一操作结构
 interface Operation {
-    type: OperationType;
-    data: WatchProgressData | TagChangeData | TrackingChangeData | UpdateSeriesTVsData | AddSeriesData | RemoveSeriesData;
+  type: OperationType;
+  data:
+    | WatchProgressData
+    | TagChangeData
+    | TrackingChangeData
+    | UpdateSeriesTVsData
+    | AddSeriesData
+    | RemoveSeriesData;
 }
 
 // 操作队列存储格式
 interface OperationQueueStorage {
-    operations: Operation[];
+  operations: Operation[];
 }
 
 // 离线数据缓存类
 class OfflineDataCache {
-    private initialized = false;
-    private scope = '';
-    private initialization: Promise<void> | null = null;
+  private initialized = false;
+  private scope = "";
+  private initialization: Promise<void> | null = null;
 
-    private key(key: string): string { return `${key}:${this.scope}`; }
-    private offlineData: OfflineData = createEmptyOfflineData();
-    // 使用数组存储待上传操作，按顺序执行
-    private operations: Operation[] = [];
-    private pendingChangesCount = 0;
-    private pendingChangesListeners = new Set<() => void>();
-    private pendingChangesBatchDepth = 0;
+  private key(key: string): string {
+    return `${key}:${this.scope}`;
+  }
+  private offlineData: OfflineData = createEmptyOfflineData();
+  // 使用数组存储待上传操作，按顺序执行
+  private operations: Operation[] = [];
+  private pendingChangesCount = 0;
+  private pendingChangesListeners = new Set<() => void>();
+  private pendingChangesBatchDepth = 0;
 
-    getPendingChangesSnapshot = (): number => this.pendingChangesCount;
+  getPendingChangesSnapshot = (): number => this.pendingChangesCount;
 
-    subscribePendingChanges = (listener: () => void): (() => void) => {
-        this.pendingChangesListeners.add(listener);
-        return () => { this.pendingChangesListeners.delete(listener); };
+  subscribePendingChanges = (listener: () => void): (() => void) => {
+    this.pendingChangesListeners.add(listener);
+    return () => {
+      this.pendingChangesListeners.delete(listener);
     };
+  };
 
-    private notifyPendingChanges(): void {
-        if (this.pendingChangesBatchDepth > 0) return;
-        const count = this.operations.length;
-        if (count === this.pendingChangesCount) return;
-        this.pendingChangesCount = count;
-        this.pendingChangesListeners.forEach(listener => listener());
+  private notifyPendingChanges(): void {
+    if (this.pendingChangesBatchDepth > 0) return;
+    const count = this.operations.length;
+    if (count === this.pendingChangesCount) return;
+    this.pendingChangesCount = count;
+    this.pendingChangesListeners.forEach((listener) => listener());
+  }
+
+  // Publish the remaining queue after the immediate upload attempt, not its transient entries.
+  async batchPendingChangesNotifications<T>(
+    work: () => Promise<T>,
+  ): Promise<T> {
+    this.pendingChangesBatchDepth++;
+    try {
+      return await work();
+    } finally {
+      this.pendingChangesBatchDepth--;
+      this.notifyPendingChanges();
     }
+  }
 
-    // Publish the remaining queue after the immediate upload attempt, not its transient entries.
-    async batchPendingChangesNotifications<T>(work: () => Promise<T>): Promise<T> {
-        this.pendingChangesBatchDepth++;
-        try {
-            return await work();
-        } finally {
-            this.pendingChangesBatchDepth--;
-            this.notifyPendingChanges();
+  // 临时ID映射表：临时ID -> 真实ID（null表示尚未映射）
+  private tempIdMapping: Record<number, number | null> = {};
+  // 下一个要分配的临时ID（负数递减）
+  private nextTempSeriesId = -1;
+
+  // 初始化缓存系统
+  async initialize(): Promise<void> {
+    const scope = JSON.stringify([await getApiBaseUrl(), await getApiToken()]);
+    if (this.initialized && scope === this.scope) return;
+    if (this.initialization) await this.initialization;
+    if (this.initialized && scope === this.scope) return;
+    this.initialization = (async () => {
+      this.scope = scope;
+      this.offlineData = createEmptyOfflineData();
+      this.operations = [];
+      this.tempIdMapping = {};
+      this.nextTempSeriesId = -1;
+      // Bind the previous unscoped cache to the first account that upgrades.
+      if (
+        (await getApiBaseUrl()) &&
+        !(await AsyncStorage.getItem("@tvsurf_cache_migrated"))
+      ) {
+        for (const key of [
+          OFFLINE_DATA_KEY,
+          PENDING_CHANGES_KEY,
+          TEMP_ID_MAPPING_KEY,
+          NEXT_TEMP_ID_KEY,
+        ]) {
+          const value = await AsyncStorage.getItem(key);
+          if (value !== null) await AsyncStorage.setItem(this.key(key), value);
         }
+        await AsyncStorage.setItem("@tvsurf_cache_migrated", "true");
+      }
+      await this.loadOfflineData();
+      await this.loadPendingChanges();
+      await this.loadTempIdMapping();
+      this.initialized = true;
+      this.notifyPendingChanges();
+    })();
+    try {
+      await this.initialization;
+    } finally {
+      this.initialization = null;
     }
+  }
 
-    // 临时ID映射表：临时ID -> 真实ID（null表示尚未映射）
-    private tempIdMapping: Record<number, number | null> = {};
-    // 下一个要分配的临时ID（负数递减）
-    private nextTempSeriesId = -1;
+  // ==================== 离线数据管理 ====================
 
-    // 初始化缓存系统
-    async initialize(): Promise<void> {
-        const scope = JSON.stringify([await getApiBaseUrl(), await getApiToken()]);
-        if (this.initialized && scope === this.scope) return;
-        if (this.initialization) await this.initialization;
-        if (this.initialized && scope === this.scope) return;
-        this.initialization = (async () => {
-            this.scope = scope;
-            this.offlineData = createEmptyOfflineData();
-            this.operations = [];
-            this.tempIdMapping = {};
-            this.nextTempSeriesId = -1;
-            // Bind the previous unscoped cache to the first account that upgrades.
-            if ((await getApiBaseUrl()) && !(await AsyncStorage.getItem('@tvsurf_cache_migrated'))) {
-                for (const key of [OFFLINE_DATA_KEY, PENDING_CHANGES_KEY, TEMP_ID_MAPPING_KEY, NEXT_TEMP_ID_KEY]) {
-                    const value = await AsyncStorage.getItem(key);
-                    if (value !== null) await AsyncStorage.setItem(this.key(key), value);
-                }
-                await AsyncStorage.setItem('@tvsurf_cache_migrated', 'true');
-            }
-            await this.loadOfflineData();
-            await this.loadPendingChanges();
-            await this.loadTempIdMapping();
-            this.initialized = true;
-            this.notifyPendingChanges();
-        })();
-        try { await this.initialization; } finally { this.initialization = null; }
-    }
-
-    // ==================== 离线数据管理 ====================
-
-    // 加载离线数据
-    private async loadOfflineData(): Promise<void> {
-        try {
-            const dataStr = await AsyncStorage.getItem(this.key(OFFLINE_DATA_KEY));
-            if (dataStr) {
-                const parsed = JSON.parse(dataStr);
-                // 兼容旧数据格式（没有userInfo字段）
-                this.offlineData = {
-                    tvInfos: parsed.tvInfos || {},
-                    tvDetails: parsed.tvDetails || {},
-                    series: parsed.series || {},
-                    userInfo: parsed.userInfo || null,
-                    tvInfosComplete: parsed.tvInfosComplete ?? false,
-                    seriesComplete: parsed.seriesComplete ?? false,
-                };
-            }
-        } catch (error) {
-            console.error('加载离线数据失败:', error);
-            this.offlineData = createEmptyOfflineData();
-        }
-    }
-
-    // 保存离线数据
-    private async saveOfflineData(): Promise<void> {
-        try {
-            await AsyncStorage.setItem(this.key(OFFLINE_DATA_KEY), JSON.stringify(this.offlineData));
-        } catch (error) {
-            console.error('保存离线数据失败:', error);
-            throw error;
-        }
-    }
-
-    // 批量保存 TVInfo
-    async saveTVInfos(tvInfos: TVInfo[], complete = false): Promise<void> {
-        await this.initialize();
-        if (complete) { this.offlineData.tvInfos = {}; this.offlineData.tvInfosComplete = true; }
-        tvInfos.forEach((tvInfo) => {
-            this.offlineData.tvInfos[tvInfo.id] = tvInfo;
-        });
-        await this.saveOfflineData();
-    }
-
-    // 详情和摘要一起更新，只持久化一次。
-    async saveTVDetails(detail: GetTVDetailsResponse): Promise<void> {
-        await this.initialize();
-        this.offlineData.tvDetails[detail.tv.id] = detail;
-        this.offlineData.tvInfos[detail.info.id] = detail.info;
-        await this.saveOfflineData();
-    }
-
-    // 批量保存 Series
-    async saveSeries(seriesList: Series[], complete = false): Promise<void> {
-        await this.initialize();
-        if (complete) { this.offlineData.series = {}; this.offlineData.seriesComplete = true; }
-        seriesList.forEach((series) => {
-            this.offlineData.series[series.id] = series;
-        });
-        await this.saveOfflineData();
-    }
-
-    // Only replace the cache after the entire download succeeds.
-    async replaceOfflineData(snapshot: SnapshotResponse): Promise<void> {
-        await this.initialize();
-        const previous = this.offlineData;
+  // 加载离线数据
+  private async loadOfflineData(): Promise<void> {
+    try {
+      const dataStr = await AsyncStorage.getItem(this.key(OFFLINE_DATA_KEY));
+      if (dataStr) {
+        const parsed = JSON.parse(dataStr);
+        // 兼容旧数据格式（没有userInfo字段）
         this.offlineData = {
-            tvInfos: Object.fromEntries(snapshot.tv_details.map(detail => [detail.info.id, detail.info])),
-            tvDetails: Object.fromEntries(snapshot.tv_details.map(detail => [detail.tv.id, detail])),
-            series: Object.fromEntries(snapshot.series.map(item => [item.id, item])),
-            userInfo: snapshot.user_info,
-            tvInfosComplete: true,
-            seriesComplete: true,
+          tvInfos: parsed.tvInfos || {},
+          tvDetails: parsed.tvDetails || {},
+          series: parsed.series || {},
+          userInfo: parsed.userInfo || null,
+          tvInfosComplete: parsed.tvInfosComplete ?? false,
+          seriesComplete: parsed.seriesComplete ?? false,
         };
-        try {
-            await this.saveOfflineData();
-        } catch (error) {
-            this.offlineData = previous;
-            throw error;
-        }
+      }
+    } catch (error) {
+      console.error("加载离线数据失败:", error);
+      this.offlineData = createEmptyOfflineData();
+    }
+  }
+
+  // 保存离线数据
+  private async saveOfflineData(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(
+        this.key(OFFLINE_DATA_KEY),
+        JSON.stringify(this.offlineData),
+      );
+    } catch (error) {
+      console.error("保存离线数据失败:", error);
+      throw error;
+    }
+  }
+
+  // 批量保存 TVInfo
+  async saveTVInfos(tvInfos: TVInfo[], complete = false): Promise<void> {
+    await this.initialize();
+    if (complete) {
+      this.offlineData.tvInfos = {};
+      this.offlineData.tvInfosComplete = true;
+    }
+    tvInfos.forEach((tvInfo) => {
+      this.offlineData.tvInfos[tvInfo.id] = tvInfo;
+    });
+    await this.saveOfflineData();
+  }
+
+  // 详情和摘要一起更新，只持久化一次。
+  async saveTVDetails(detail: GetTVDetailsResponse): Promise<void> {
+    await this.initialize();
+    this.offlineData.tvDetails[detail.tv.id] = detail;
+    this.offlineData.tvInfos[detail.info.id] = detail.info;
+    await this.saveOfflineData();
+  }
+
+  // 批量保存 Series
+  async saveSeries(seriesList: Series[], complete = false): Promise<void> {
+    await this.initialize();
+    if (complete) {
+      this.offlineData.series = {};
+      this.offlineData.seriesComplete = true;
+    }
+    seriesList.forEach((series) => {
+      this.offlineData.series[series.id] = series;
+    });
+    await this.saveOfflineData();
+  }
+
+  // Only replace the cache after the entire download succeeds.
+  async replaceOfflineData(snapshot: SnapshotResponse): Promise<void> {
+    await this.initialize();
+    const previous = this.offlineData;
+    this.offlineData = {
+      tvInfos: Object.fromEntries(
+        snapshot.tv_details.map((detail) => [detail.info.id, detail.info]),
+      ),
+      tvDetails: Object.fromEntries(
+        snapshot.tv_details.map((detail) => [detail.tv.id, detail]),
+      ),
+      series: Object.fromEntries(
+        snapshot.series.map((item) => [item.id, item]),
+      ),
+      userInfo: snapshot.user_info,
+      tvInfosComplete: true,
+      seriesComplete: true,
+    };
+    try {
+      await this.saveOfflineData();
+    } catch (error) {
+      this.offlineData = previous;
+      throw error;
+    }
+  }
+
+  snapshotData(): string {
+    return JSON.stringify(this.offlineData);
+  }
+
+  async restoreData(snapshot: string): Promise<void> {
+    this.offlineData = JSON.parse(snapshot);
+    await this.saveOfflineData();
+  }
+
+  async hasTVInfos(ids: number[] | null): Promise<boolean> {
+    await this.initialize();
+    return ids === null
+      ? !!this.offlineData.tvInfosComplete ||
+          Object.keys(this.offlineData.tvInfos).length > 0
+      : ids.every((id) => !!this.offlineData.tvInfos[id]);
+  }
+
+  async hasSeries(ids: number[] | null): Promise<boolean> {
+    await this.initialize();
+    return ids === null
+      ? !!this.offlineData.seriesComplete ||
+          Object.keys(this.offlineData.series).length > 0
+      : ids.every((id) => !!this.offlineData.series[this.resolveId(id)]);
+  }
+
+  // 获取缓存的 TVInfos（支持按 ID 筛选）
+  async getTVInfos(ids: number[] | null): Promise<TVInfo[]> {
+    await this.initialize();
+    const allTvInfos = Object.values(this.offlineData.tvInfos);
+
+    if (ids === null) {
+      return allTvInfos;
     }
 
-    snapshotData(): string {
-        return JSON.stringify(this.offlineData);
+    return allTvInfos.filter((tv) => ids.includes(tv.id));
+  }
+
+  // 获取缓存的 TVDetails
+  async getTVDetails(tvId: number): Promise<GetTVDetailsResponse | null> {
+    await this.initialize();
+    return this.offlineData.tvDetails[tvId] || null;
+  }
+
+  // 获取缓存的 Series（支持按 ID 筛选）
+  async getSeries(ids: number[] | null): Promise<Series[]> {
+    await this.initialize();
+    const allSeries = Object.values(this.offlineData.series);
+
+    if (ids === null) {
+      return allSeries;
     }
 
-    async restoreData(snapshot: string): Promise<void> {
-        this.offlineData = JSON.parse(snapshot);
-        await this.saveOfflineData();
+    const resolvedIds = new Set(ids.map((id) => this.resolveId(id)));
+    return allSeries.filter((series) => resolvedIds.has(series.id));
+  }
+
+  // 保存用户信息
+  async saveUserInfo(userInfo: WhoamiResponse): Promise<void> {
+    await this.initialize();
+    this.offlineData.userInfo = userInfo;
+    await this.saveOfflineData();
+  }
+
+  // 获取缓存的用户信息
+  async getUserInfo(): Promise<WhoamiResponse | null> {
+    await this.initialize();
+    return this.offlineData.userInfo;
+  }
+
+  // ==================== 待上传变更管理 ====================
+
+  // 加载待上传变更
+  private async loadPendingChanges(): Promise<void> {
+    try {
+      const changesStr = await AsyncStorage.getItem(
+        this.key(PENDING_CHANGES_KEY),
+      );
+      if (changesStr) {
+        const storage: OperationQueueStorage = JSON.parse(changesStr);
+        this.operations = storage.operations || [];
+      }
+    } catch (error) {
+      console.error("加载待上传变更失败:", error);
+      // 数据损坏时重置
+      this.operations = [];
+    }
+  }
+
+  // 保存待上传变更
+  private async savePendingChanges(): Promise<void> {
+    try {
+      const storage: OperationQueueStorage = {
+        operations: this.operations,
+      };
+      await AsyncStorage.setItem(
+        this.key(PENDING_CHANGES_KEY),
+        JSON.stringify(storage),
+      );
+      this.notifyPendingChanges();
+    } catch (error) {
+      console.error("保存待上传变更失败:", error);
+      throw error;
+    }
+  }
+
+  // 记录观看进度变更（删除同TV的旧操作，追加新操作）
+  async recordWatchProgress(
+    tvId: number,
+    episodeId: number,
+    time: number,
+  ): Promise<void> {
+    await this.initialize();
+
+    // 用 filter 删除该TV所有旧的观看进度操作
+    this.operations = this.operations.filter(
+      (op) =>
+        !(
+          op.type === OperationType.WATCH_PROGRESS &&
+          (op.data as WatchProgressData).tvId === tvId
+        ),
+    );
+
+    // append新操作到末尾
+    this.operations.push({
+      type: OperationType.WATCH_PROGRESS,
+      data: { tvId, episodeId, time },
+    });
+
+    const newWatchProgress = {
+      episode_id: episodeId,
+      time: time,
+    };
+    const newLastUpdate = new Date().toISOString();
+
+    // 同时更新离线数据中的观看进度
+    if (this.offlineData.tvInfos[tvId]) {
+      this.offlineData.tvInfos[tvId].user_data.watch_progress =
+        newWatchProgress;
+      this.offlineData.tvInfos[tvId].user_data.last_update = newLastUpdate;
     }
 
-    async hasTVInfos(ids: number[] | null): Promise<boolean> {
-        await this.initialize();
-        return ids === null ? (!!this.offlineData.tvInfosComplete || Object.keys(this.offlineData.tvInfos).length > 0) : ids.every(id => !!this.offlineData.tvInfos[id]);
+    // 同时更新 TVDetails 中的 info
+    if (this.offlineData.tvDetails[tvId]) {
+      this.offlineData.tvDetails[tvId].info.user_data.watch_progress =
+        newWatchProgress;
+      this.offlineData.tvDetails[tvId].info.user_data.last_update =
+        newLastUpdate;
     }
 
-    async hasSeries(ids: number[] | null): Promise<boolean> {
-        await this.initialize();
-        return ids === null ? (!!this.offlineData.seriesComplete || Object.keys(this.offlineData.series).length > 0) : ids.every(id => !!this.offlineData.series[this.resolveId(id)]);
+    await this.saveOfflineData();
+    await this.savePendingChanges();
+  }
+
+  // 记录 tag 变更（删除同TV的旧操作，追加新操作）
+  async recordTagChange(tvId: number, tag: Tag): Promise<void> {
+    await this.initialize();
+
+    // 用 filter 删除该TV所有旧的标签操作
+    this.operations = this.operations.filter(
+      (op) =>
+        !(
+          op.type === OperationType.TAG_CHANGE &&
+          (op.data as TagChangeData).tvId === tvId
+        ),
+    );
+
+    // append新操作到末尾
+    this.operations.push({
+      type: OperationType.TAG_CHANGE,
+      data: { tvId, tag },
+    });
+
+    const newLastUpdate = new Date().toISOString();
+
+    // 同时更新离线数据中的 tag
+    if (this.offlineData.tvInfos[tvId]) {
+      this.offlineData.tvInfos[tvId].user_data.tag = tag;
+      this.offlineData.tvInfos[tvId].user_data.last_update = newLastUpdate;
     }
 
-    // 获取缓存的 TVInfos（支持按 ID 筛选）
-    async getTVInfos(ids: number[] | null): Promise<TVInfo[]> {
-        await this.initialize();
-        const allTvInfos = Object.values(this.offlineData.tvInfos);
-
-        if (ids === null) {
-            return allTvInfos;
-        }
-
-        return allTvInfos.filter((tv) => ids.includes(tv.id));
+    // 同时更新 TVDetails 中的 info
+    if (this.offlineData.tvDetails[tvId]) {
+      this.offlineData.tvDetails[tvId].info.user_data.tag = tag;
+      this.offlineData.tvDetails[tvId].info.user_data.last_update =
+        newLastUpdate;
     }
 
-    // 获取缓存的 TVDetails
-    async getTVDetails(tvId: number): Promise<GetTVDetailsResponse | null> {
-        await this.initialize();
-        return this.offlineData.tvDetails[tvId] || null;
+    await this.saveOfflineData();
+    await this.savePendingChanges();
+  }
+
+  // 记录追更状态变更（删除同TV的旧操作，追加新操作）
+  async recordTrackingChange(tvId: number, tracking: boolean): Promise<void> {
+    await this.initialize();
+
+    // 用 filter 删除该TV所有旧的追更状态操作
+    this.operations = this.operations.filter(
+      (op) =>
+        !(
+          op.type === OperationType.TRACKING_CHANGE &&
+          (op.data as TrackingChangeData).tvId === tvId
+        ),
+    );
+
+    // append新操作到末尾
+    this.operations.push({
+      type: OperationType.TRACKING_CHANGE,
+      data: { tvId, tracking },
+    });
+
+    const newLastUpdate = new Date().toISOString();
+
+    // 同时更新离线数据中的追更状态
+    if (this.offlineData.tvDetails[tvId]) {
+      this.offlineData.tvDetails[tvId].tv.track.tracking = tracking;
+      this.offlineData.tvDetails[tvId].tv.track.last_update = newLastUpdate;
     }
 
-    // 获取缓存的 Series（支持按 ID 筛选）
-    async getSeries(ids: number[] | null): Promise<Series[]> {
-        await this.initialize();
-        const allSeries = Object.values(this.offlineData.series);
+    await this.saveOfflineData();
+    await this.savePendingChanges();
+  }
 
-        if (ids === null) {
-            return allSeries;
-        }
+  // 获取所有操作（按顺序）
+  async getAllOperationsInOrder(): Promise<Operation[]> {
+    await this.initialize();
+    // 返回数组副本，避免外部直接修改内部状态
+    return [...this.operations];
+  }
 
-        const resolvedIds = new Set(ids.map(id => this.resolveId(id)));
-        return allSeries.filter(series => resolvedIds.has(series.id));
+  // 按索引删除操作
+  async removeOperationAt(index: number): Promise<void> {
+    await this.initialize();
+    if (index >= 0 && index < this.operations.length) {
+      this.operations.splice(index, 1);
+      await this.savePendingChanges();
+    }
+  }
+
+  // ==================== 临时ID映射表管理 ====================
+
+  // 加载临时ID映射表
+  private async loadTempIdMapping(): Promise<void> {
+    try {
+      const mappingStr = await AsyncStorage.getItem(
+        this.key(TEMP_ID_MAPPING_KEY),
+      );
+      if (mappingStr) {
+        this.tempIdMapping = JSON.parse(mappingStr);
+      }
+
+      const nextIdStr = await AsyncStorage.getItem(this.key(NEXT_TEMP_ID_KEY));
+      if (nextIdStr) {
+        this.nextTempSeriesId = parseInt(nextIdStr, 10);
+      }
+    } catch (error) {
+      console.error("加载临时ID映射失败:", error);
+      // 数据损坏时重置
+      this.tempIdMapping = {};
+      this.nextTempSeriesId = -1;
+    }
+  }
+
+  // 保存临时ID映射表
+  private async saveTempIdMapping(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(
+        this.key(TEMP_ID_MAPPING_KEY),
+        JSON.stringify(this.tempIdMapping),
+      );
+      await AsyncStorage.setItem(
+        this.key(NEXT_TEMP_ID_KEY),
+        this.nextTempSeriesId.toString(),
+      );
+    } catch (error) {
+      console.error("保存临时ID映射失败:", error);
+      throw error;
+    }
+  }
+
+  // 生成新的临时ID
+  async generateTempSeriesId(): Promise<number> {
+    await this.initialize();
+    const tempId = this.nextTempSeriesId--;
+    this.tempIdMapping[tempId] = null; // 初始映射为 null
+    await this.saveTempIdMapping();
+    return tempId;
+  }
+
+  // 判断是否是临时ID
+  private isTempId(id: number): boolean {
+    return id < 0;
+  }
+
+  // 保存真实 ID，并迁移对应的播放列表缓存。
+  async setRealId(tempId: number, realId: number): Promise<void> {
+    await this.initialize();
+    if (!this.isTempId(tempId)) {
+      throw new Error(`${tempId} 不是临时ID`);
+    }
+    if (!(tempId in this.tempIdMapping)) {
+      throw new Error(`临时ID ${tempId} 不在映射表中`);
     }
 
-    // 保存用户信息
-    async saveUserInfo(userInfo: WhoamiResponse): Promise<void> {
-        await this.initialize();
-        this.offlineData.userInfo = userInfo;
-        await this.saveOfflineData();
+    this.tempIdMapping[tempId] = realId;
+    await this.saveTempIdMapping();
+
+    const series = this.offlineData.series[tempId];
+    if (series) {
+      this.offlineData.series[realId] = { ...series, id: realId };
+      delete this.offlineData.series[tempId];
+      await this.saveOfflineData();
+    }
+  }
+
+  // 已上传的临时 ID 映射到服务端 ID。
+  resolveId(id: number): number {
+    return this.tempIdMapping[id] ?? id;
+  }
+
+  // ==================== Series 编辑操作记录 ====================
+
+  // 记录更新播放列表TV操作
+  async recordUpdateSeriesTVs(seriesId: number, tvs: number[]): Promise<void> {
+    await this.initialize();
+    seriesId = this.resolveId(seriesId);
+
+    // 删除该Series之前的所有更新操作（去重）
+    this.operations = this.operations.filter(
+      (op) =>
+        !(
+          op.type === OperationType.UPDATE_SERIES_TVS &&
+          (op.data as UpdateSeriesTVsData).seriesId === seriesId
+        ),
+    );
+
+    // 追加新操作
+    this.operations.push({
+      type: OperationType.UPDATE_SERIES_TVS,
+      data: { seriesId, tvs },
+    });
+
+    // 更新本地缓存
+    if (this.offlineData.series[seriesId]) {
+      this.offlineData.series[seriesId].tvs = tvs;
+      this.offlineData.series[seriesId].last_update = new Date().toISOString();
     }
 
-    // 获取缓存的用户信息
-    async getUserInfo(): Promise<WhoamiResponse | null> {
-        await this.initialize();
-        return this.offlineData.userInfo;
+    await this.saveOfflineData();
+    await this.savePendingChanges();
+  }
+
+  // 记录创建播放列表操作
+  async recordAddSeries(tempId: number, name: string): Promise<void> {
+    await this.initialize();
+
+    if (!this.isTempId(tempId)) {
+      throw new Error(`${tempId} 不是临时ID`);
     }
 
-    // ==================== 待上传变更管理 ====================
+    // 追加操作
+    this.operations.push({
+      type: OperationType.ADD_SERIES,
+      data: { tempId, name },
+    });
 
-    // 加载待上传变更
-    private async loadPendingChanges(): Promise<void> {
-        try {
-            const changesStr = await AsyncStorage.getItem(this.key(PENDING_CHANGES_KEY));
-            if (changesStr) {
-                const storage: OperationQueueStorage = JSON.parse(changesStr);
-                this.operations = storage.operations || [];
-            }
-        } catch (error) {
-            console.error('加载待上传变更失败:', error);
-            // 数据损坏时重置
-            this.operations = [];
-        }
+    // 添加到本地缓存
+    const newSeries: Series = {
+      id: tempId,
+      name,
+      tvs: [],
+      last_update: new Date().toISOString(),
+    };
+    this.offlineData.series[tempId] = newSeries;
+
+    await this.saveOfflineData();
+    await this.savePendingChanges();
+  }
+
+  // 记录删除播放列表操作
+  async recordRemoveSeries(seriesId: number): Promise<void> {
+    await this.initialize();
+    seriesId = this.resolveId(seriesId);
+
+    // 删除该Series之前的所有操作（包括创建、更新）
+    this.operations = this.operations.filter((op) => {
+      if (op.type === OperationType.ADD_SERIES) {
+        return (op.data as AddSeriesData).tempId !== seriesId;
+      }
+      if (op.type === OperationType.UPDATE_SERIES_TVS) {
+        return (op.data as UpdateSeriesTVsData).seriesId !== seriesId;
+      }
+      if (op.type === OperationType.REMOVE_SERIES) {
+        return (op.data as RemoveSeriesData).seriesId !== seriesId;
+      }
+      return true;
+    });
+
+    // 如果是临时ID且从未上传过（即只存在ADD操作），则不需要记录删除操作
+    const wasNeverUploaded =
+      this.isTempId(seriesId) && this.tempIdMapping[seriesId] === null;
+
+    if (!wasNeverUploaded) {
+      // 追加删除操作
+      this.operations.push({
+        type: OperationType.REMOVE_SERIES,
+        data: { seriesId },
+      });
     }
 
-    // 保存待上传变更
-    private async savePendingChanges(): Promise<void> {
-        try {
-            const storage: OperationQueueStorage = {
-                operations: this.operations,
-            };
-            await AsyncStorage.setItem(this.key(PENDING_CHANGES_KEY), JSON.stringify(storage));
-            this.notifyPendingChanges();
-        } catch (error) {
-            console.error('保存待上传变更失败:', error);
-            throw error;
-        }
+    // 从本地缓存中删除
+    delete this.offlineData.series[seriesId];
+
+    // 如果是临时ID，从映射表中删除
+    if (this.isTempId(seriesId)) {
+      delete this.tempIdMapping[seriesId];
+      await this.saveTempIdMapping();
     }
 
-    // 记录观看进度变更（删除同TV的旧操作，追加新操作）
-    async recordWatchProgress(tvId: number, episodeId: number, time: number): Promise<void> {
-        await this.initialize();
-
-        // 用 filter 删除该TV所有旧的观看进度操作
-        this.operations = this.operations.filter(op =>
-            !(op.type === OperationType.WATCH_PROGRESS && (op.data as WatchProgressData).tvId === tvId)
-        );
-
-        // append新操作到末尾
-        this.operations.push({
-            type: OperationType.WATCH_PROGRESS,
-            data: { tvId, episodeId, time },
-        });
-
-        const newWatchProgress = {
-            episode_id: episodeId,
-            time: time,
-        };
-        const newLastUpdate = new Date().toISOString();
-
-        // 同时更新离线数据中的观看进度
-        if (this.offlineData.tvInfos[tvId]) {
-            this.offlineData.tvInfos[tvId].user_data.watch_progress = newWatchProgress;
-            this.offlineData.tvInfos[tvId].user_data.last_update = newLastUpdate;
-        }
-
-        // 同时更新 TVDetails 中的 info
-        if (this.offlineData.tvDetails[tvId]) {
-            this.offlineData.tvDetails[tvId].info.user_data.watch_progress = newWatchProgress;
-            this.offlineData.tvDetails[tvId].info.user_data.last_update = newLastUpdate;
-        }
-
-        await this.saveOfflineData();
-        await this.savePendingChanges();
-    }
-
-    // 记录 tag 变更（删除同TV的旧操作，追加新操作）
-    async recordTagChange(tvId: number, tag: Tag): Promise<void> {
-        await this.initialize();
-
-        // 用 filter 删除该TV所有旧的标签操作
-        this.operations = this.operations.filter(op =>
-            !(op.type === OperationType.TAG_CHANGE && (op.data as TagChangeData).tvId === tvId)
-        );
-
-        // append新操作到末尾
-        this.operations.push({
-            type: OperationType.TAG_CHANGE,
-            data: { tvId, tag },
-        });
-
-        const newLastUpdate = new Date().toISOString();
-
-        // 同时更新离线数据中的 tag
-        if (this.offlineData.tvInfos[tvId]) {
-            this.offlineData.tvInfos[tvId].user_data.tag = tag;
-            this.offlineData.tvInfos[tvId].user_data.last_update = newLastUpdate;
-        }
-
-        // 同时更新 TVDetails 中的 info
-        if (this.offlineData.tvDetails[tvId]) {
-            this.offlineData.tvDetails[tvId].info.user_data.tag = tag;
-            this.offlineData.tvDetails[tvId].info.user_data.last_update = newLastUpdate;
-        }
-
-        await this.saveOfflineData();
-        await this.savePendingChanges();
-    }
-
-    // 记录追更状态变更（删除同TV的旧操作，追加新操作）
-    async recordTrackingChange(tvId: number, tracking: boolean): Promise<void> {
-        await this.initialize();
-
-        // 用 filter 删除该TV所有旧的追更状态操作
-        this.operations = this.operations.filter(op =>
-            !(op.type === OperationType.TRACKING_CHANGE && (op.data as TrackingChangeData).tvId === tvId)
-        );
-
-        // append新操作到末尾
-        this.operations.push({
-            type: OperationType.TRACKING_CHANGE,
-            data: { tvId, tracking },
-        });
-
-        const newLastUpdate = new Date().toISOString();
-
-        // 同时更新离线数据中的追更状态
-        if (this.offlineData.tvDetails[tvId]) {
-            this.offlineData.tvDetails[tvId].tv.track.tracking = tracking;
-            this.offlineData.tvDetails[tvId].tv.track.last_update = newLastUpdate;
-        }
-
-        await this.saveOfflineData();
-        await this.savePendingChanges();
-    }
-
-    // 获取所有操作（按顺序）
-    async getAllOperationsInOrder(): Promise<Operation[]> {
-        await this.initialize();
-        // 返回数组副本，避免外部直接修改内部状态
-        return [...this.operations];
-    }
-
-    // 按索引删除操作
-    async removeOperationAt(index: number): Promise<void> {
-        await this.initialize();
-        if (index >= 0 && index < this.operations.length) {
-            this.operations.splice(index, 1);
-            await this.savePendingChanges();
-        }
-    }
-
-    // ==================== 临时ID映射表管理 ====================
-
-    // 加载临时ID映射表
-    private async loadTempIdMapping(): Promise<void> {
-        try {
-            const mappingStr = await AsyncStorage.getItem(this.key(TEMP_ID_MAPPING_KEY));
-            if (mappingStr) {
-                this.tempIdMapping = JSON.parse(mappingStr);
-            }
-
-            const nextIdStr = await AsyncStorage.getItem(this.key(NEXT_TEMP_ID_KEY));
-            if (nextIdStr) {
-                this.nextTempSeriesId = parseInt(nextIdStr, 10);
-            }
-        } catch (error) {
-            console.error('加载临时ID映射失败:', error);
-            // 数据损坏时重置
-            this.tempIdMapping = {};
-            this.nextTempSeriesId = -1;
-        }
-    }
-
-    // 保存临时ID映射表
-    private async saveTempIdMapping(): Promise<void> {
-        try {
-            await AsyncStorage.setItem(this.key(TEMP_ID_MAPPING_KEY), JSON.stringify(this.tempIdMapping));
-            await AsyncStorage.setItem(this.key(NEXT_TEMP_ID_KEY), this.nextTempSeriesId.toString());
-        } catch (error) {
-            console.error('保存临时ID映射失败:', error);
-            throw error;
-        }
-    }
-
-    // 生成新的临时ID
-    async generateTempSeriesId(): Promise<number> {
-        await this.initialize();
-        const tempId = this.nextTempSeriesId--;
-        this.tempIdMapping[tempId] = null;  // 初始映射为 null
-        await this.saveTempIdMapping();
-        return tempId;
-    }
-
-    // 判断是否是临时ID
-    private isTempId(id: number): boolean {
-        return id < 0;
-    }
-
-    // 保存真实 ID，并迁移对应的播放列表缓存。
-    async setRealId(tempId: number, realId: number): Promise<void> {
-        await this.initialize();
-        if (!this.isTempId(tempId)) {
-            throw new Error(`${tempId} 不是临时ID`);
-        }
-        if (!(tempId in this.tempIdMapping)) {
-            throw new Error(`临时ID ${tempId} 不在映射表中`);
-        }
-
-        this.tempIdMapping[tempId] = realId;
-        await this.saveTempIdMapping();
-
-        const series = this.offlineData.series[tempId];
-        if (series) {
-            this.offlineData.series[realId] = { ...series, id: realId };
-            delete this.offlineData.series[tempId];
-            await this.saveOfflineData();
-        }
-    }
-
-    // 已上传的临时 ID 映射到服务端 ID。
-    resolveId(id: number): number {
-        return this.tempIdMapping[id] ?? id;
-    }
-
-    // ==================== Series 编辑操作记录 ====================
-
-    // 记录更新播放列表TV操作
-    async recordUpdateSeriesTVs(seriesId: number, tvs: number[]): Promise<void> {
-        await this.initialize();
-        seriesId = this.resolveId(seriesId);
-
-        // 删除该Series之前的所有更新操作（去重）
-        this.operations = this.operations.filter(op =>
-            !(op.type === OperationType.UPDATE_SERIES_TVS &&
-                (op.data as UpdateSeriesTVsData).seriesId === seriesId)
-        );
-
-        // 追加新操作
-        this.operations.push({
-            type: OperationType.UPDATE_SERIES_TVS,
-            data: { seriesId, tvs },
-        });
-
-        // 更新本地缓存
-        if (this.offlineData.series[seriesId]) {
-            this.offlineData.series[seriesId].tvs = tvs;
-            this.offlineData.series[seriesId].last_update = new Date().toISOString();
-        }
-
-        await this.saveOfflineData();
-        await this.savePendingChanges();
-    }
-
-    // 记录创建播放列表操作
-    async recordAddSeries(tempId: number, name: string): Promise<void> {
-        await this.initialize();
-
-        if (!this.isTempId(tempId)) {
-            throw new Error(`${tempId} 不是临时ID`);
-        }
-
-        // 追加操作
-        this.operations.push({
-            type: OperationType.ADD_SERIES,
-            data: { tempId, name },
-        });
-
-        // 添加到本地缓存
-        const newSeries: Series = {
-            id: tempId,
-            name,
-            tvs: [],
-            last_update: new Date().toISOString(),
-        };
-        this.offlineData.series[tempId] = newSeries;
-
-        await this.saveOfflineData();
-        await this.savePendingChanges();
-    }
-
-    // 记录删除播放列表操作
-    async recordRemoveSeries(seriesId: number): Promise<void> {
-        await this.initialize();
-        seriesId = this.resolveId(seriesId);
-
-        // 删除该Series之前的所有操作（包括创建、更新）
-        this.operations = this.operations.filter(op => {
-            if (op.type === OperationType.ADD_SERIES) {
-                return (op.data as AddSeriesData).tempId !== seriesId;
-            }
-            if (op.type === OperationType.UPDATE_SERIES_TVS) {
-                return (op.data as UpdateSeriesTVsData).seriesId !== seriesId;
-            }
-            if (op.type === OperationType.REMOVE_SERIES) {
-                return (op.data as RemoveSeriesData).seriesId !== seriesId;
-            }
-            return true;
-        });
-
-        // 如果是临时ID且从未上传过（即只存在ADD操作），则不需要记录删除操作
-        const wasNeverUploaded = this.isTempId(seriesId) && this.tempIdMapping[seriesId] === null;
-
-        if (!wasNeverUploaded) {
-            // 追加删除操作
-            this.operations.push({
-                type: OperationType.REMOVE_SERIES,
-                data: { seriesId },
-            });
-        }
-
-        // 从本地缓存中删除
-        delete this.offlineData.series[seriesId];
-
-        // 如果是临时ID，从映射表中删除
-        if (this.isTempId(seriesId)) {
-            delete this.tempIdMapping[seriesId];
-            await this.saveTempIdMapping();
-        }
-
-        await this.saveOfflineData();
-        await this.savePendingChanges();
-    }
+    await this.saveOfflineData();
+    await this.savePendingChanges();
+  }
 }
 
 // 导出单例

@@ -76,7 +76,9 @@ def _wrap_login(
                 response_data = await func(request_obj)
                 response = web.json_response(text=response_data.model_dump_json())
                 response.set_cookie(
-                    TOKEN, response_data.token, max_age=60 * 60 * 24 * 365  # 1 year
+                    TOKEN,
+                    response_data.token,
+                    max_age=60 * 60 * 24 * 365,  # 1 year
                 )
                 return response
         except Exception as e:

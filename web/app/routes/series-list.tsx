@@ -12,7 +12,7 @@ interface SeriesWithTVs extends Series {
   tvInfos: TVInfo[];
 }
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "播放列表列表" },
     { name: "description", content: "所有播放列表列表" },
@@ -56,12 +56,14 @@ export default function SeriesList() {
       });
 
       // 组合播放列表和 TV 信息
-      const seriesWithTVs: SeriesWithTVs[] = seriesData.series.map((series) => ({
-        ...series,
-        tvInfos: series.tvs
-          .map((tvId) => tvMap.get(tvId))
-          .filter((tv): tv is TVInfo => tv !== undefined),
-      }));
+      const seriesWithTVs: SeriesWithTVs[] = seriesData.series.map(
+        (series) => ({
+          ...series,
+          tvInfos: series.tvs
+            .map((tvId) => tvMap.get(tvId))
+            .filter((tv): tv is TVInfo => tv !== undefined),
+        }),
+      );
 
       // 计算每个播放列表的最大更新时间并缓存
       const maxTimeCache = new Map<number, number>();
@@ -126,9 +128,7 @@ export default function SeriesList() {
     }
 
     // 检查TV名字是否匹配
-    return series.tvInfos.some((tv) =>
-      tv.name.toLowerCase().includes(keyword)
-    );
+    return series.tvInfos.some((tv) => tv.name.toLowerCase().includes(keyword));
   });
 
   // 监听 ESC 键关闭添加播放列表模态框
@@ -168,7 +168,7 @@ export default function SeriesList() {
       return;
     }
 
-    const exists = seriesList.some(series => series.name === name);
+    const exists = seriesList.some((series) => series.name === name);
     if (exists) {
       setNameError(`播放列表名称 '${name}' 已存在`);
     } else {
@@ -376,9 +376,7 @@ export default function SeriesList() {
 
       {/* 添加播放列表模态框 */}
       {showAddSeriesModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-        >
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div
             className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full"
             onClick={(e) => e.stopPropagation()}
@@ -415,10 +413,11 @@ export default function SeriesList() {
                   }
                 }}
                 placeholder="输入播放列表名称..."
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${nameError
-                  ? "border-red-500 focus:ring-red-500 dark:border-red-500"
-                  : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
-                  }`}
+                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 ${
+                  nameError
+                    ? "border-red-500 focus:ring-red-500 dark:border-red-500"
+                    : "border-gray-300 dark:border-gray-600 focus:ring-blue-500"
+                }`}
                 autoFocus
               />
               {nameError && (

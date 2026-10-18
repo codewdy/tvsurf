@@ -77,13 +77,55 @@ export function Banner() {
   }, []);
 
   const allNavItems = [
-    { path: "/", label: "主页", badge: undefined, badgeColor: undefined, requireAdmin: false },
-    { path: "/add-tv", label: "添加TV", badge: undefined, badgeColor: undefined, requireAdmin: false },
-    { path: "/series-list", label: "播放列表", badge: undefined, badgeColor: undefined, requireAdmin: false },
-    { path: "/downloads", label: "下载", badge: monitor.download_count, badgeColor: "bg-blue-500", requireAdmin: false },
-    { path: "/errors", label: "错误日志", badge: monitor.error_count, badgeColor: "bg-red-500", requireAdmin: false },
-    { path: "/config", label: "系统配置", badge: undefined, badgeColor: undefined, requireAdmin: true },
-    { path: "/user-management", label: "用户管理", badge: undefined, badgeColor: undefined, requireAdmin: true },
+    {
+      path: "/",
+      label: "主页",
+      badge: undefined,
+      badgeColor: undefined,
+      requireAdmin: false,
+    },
+    {
+      path: "/add-tv",
+      label: "添加TV",
+      badge: undefined,
+      badgeColor: undefined,
+      requireAdmin: false,
+    },
+    {
+      path: "/series-list",
+      label: "播放列表",
+      badge: undefined,
+      badgeColor: undefined,
+      requireAdmin: false,
+    },
+    {
+      path: "/downloads",
+      label: "下载",
+      badge: monitor.download_count,
+      badgeColor: "bg-blue-500",
+      requireAdmin: false,
+    },
+    {
+      path: "/errors",
+      label: "错误日志",
+      badge: monitor.error_count,
+      badgeColor: "bg-red-500",
+      requireAdmin: false,
+    },
+    {
+      path: "/config",
+      label: "系统配置",
+      badge: undefined,
+      badgeColor: undefined,
+      requireAdmin: true,
+    },
+    {
+      path: "/user-management",
+      label: "用户管理",
+      badge: undefined,
+      badgeColor: undefined,
+      requireAdmin: true,
+    },
   ];
 
   // 根据用户权限过滤导航项
@@ -110,17 +152,22 @@ export function Banner() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${isActive
-                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
-                    }`}
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
+                    isActive
+                      ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+                  }`}
                 >
                   {item.label}
-                  {item.badge !== undefined && item.badge > 0 && item.badgeColor && (
-                    <span className={`absolute -top-1 -right-1 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[1.25rem] ${item.badgeColor}`}>
-                      {item.badge > 99 ? "99+" : item.badge}
-                    </span>
-                  )}
+                  {item.badge !== undefined &&
+                    item.badge > 0 &&
+                    item.badgeColor && (
+                      <span
+                        className={`absolute -top-1 -right-1 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center min-w-[1.25rem] ${item.badgeColor}`}
+                      >
+                        {item.badge > 99 ? "99+" : item.badge}
+                      </span>
+                    )}
                 </Link>
               );
             })}
@@ -133,20 +180,22 @@ export function Banner() {
             ) : userInfo ? (
               <Link
                 to="/user"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === "/user"
-                  ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
-                  }`}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  location.pathname === "/user"
+                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+                }`}
               >
                 {userInfo.user.username}
               </Link>
             ) : (
               <Link
                 to="/login"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === "/login"
-                  ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
-                  : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
-                  }`}
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                  location.pathname === "/login"
+                    ? "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300"
+                    : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-900 dark:hover:text-white"
+                }`}
               >
                 登录
               </Link>

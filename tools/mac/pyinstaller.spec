@@ -1,10 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 
 winapp = Analysis(
-    ['../../winapp/main.py'],
-    pathex=['../..'],
-    binaries=[
-    ],
+    ["../../winapp/main.py"],
+    pathex=["../.."],
+    binaries=[],
     datas=[
         ("../../deps", "deps"),
         ("../../web/build/client", "web"),
@@ -12,7 +11,7 @@ winapp = Analysis(
         ("../../winapp/icon.ico", "assets"),
         ("../../winapp/mac_icon.ico", "assets"),
         ("../../config.yaml", "assets"),
-        ],
+    ],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},
@@ -29,7 +28,7 @@ winapp_exe = EXE(
     [],
     icon="../../winapp/icon.ico",
     exclude_binaries=True,
-    name='tvsurf',
+    name="tvsurf",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -49,13 +48,13 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='tvsurf',
+    name="tvsurf",
 )
 
 app = BUNDLE(
     coll,
-    name='tvsurf.app',
-    icon='../../winapp/icon.icns',
-    bundle_identifier='com.codewdy.tvsurf',
-    info_plist={"LSBackgroundOnly":True},
+    name="tvsurf.app",
+    icon="../../winapp/icon.icns",
+    bundle_identifier="com.codewdy.tvsurf",
+    info_plist={"LSBackgroundOnly": True},
 )

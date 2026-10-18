@@ -3,13 +3,13 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 # 同一时刻只允许一个 workflow run，避免多个 tag 同时触发时并行执行
 concurrency:
   group: build-and-release
-  cancel-in-progress: false  # 不取消正在跑的，新触发的排队等待
+  cancel-in-progress: false # 不取消正在跑的，新触发的排队等待
 
 jobs:
   build-linux:
@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Update version
         if: startsWith(github.ref, 'refs/tags/v')
@@ -32,8 +32,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
           cache-dependency-path: web/package-lock.json
 
       - name: Install system dependencies
@@ -67,7 +67,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Update version
         if: startsWith(github.ref, 'refs/tags/v')
@@ -77,8 +77,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
           cache-dependency-path: web/package-lock.json
 
       - name: Install system dependencies
@@ -112,7 +112,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Update version
         if: startsWith(github.ref, 'refs/tags/v')
@@ -123,8 +123,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
           cache-dependency-path: web/package-lock.json
 
       - name: Build
@@ -155,7 +155,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Update version
         if: startsWith(github.ref, 'refs/tags/v')
@@ -165,8 +165,8 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
           cache-dependency-path: web/package-lock.json
 
       - name: Build
@@ -197,7 +197,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: "3.11"
 
       - name: Update version
         if: startsWith(github.ref, 'refs/tags/v')
@@ -207,21 +207,21 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
           cache-dependency-path: app/package-lock.json
 
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
           # The legacy "tools" package is no longer available in the SDK repository.
-          packages: 'platform-tools'
+          packages: "platform-tools"
 
       - name: Verify Android environment
         run: |
@@ -321,7 +321,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           python tools/version/update-version.py ${{ github.ref_name }}
-  
+
       - name: Prepare build context for amd64
         run: |
           rm -rf dist/tvsurf
@@ -363,23 +363,24 @@ jobs:
       - name: Create and push multi-arch manifest
         run: |
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          
+
           # 直接使用已构建的镜像标签引用创建多架构 manifest
           AMD64_REF="ghcr.io/${{ github.repository }}:amd64-${{ steps.version.outputs.version }}"
           ARM64_REF="ghcr.io/${{ github.repository }}:arm64-${{ steps.version.outputs.version }}"
-          
+
           # 使用镜像引用创建多架构 manifest
           docker buildx imagetools create -t ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }} \
             $AMD64_REF \
             $ARM64_REF
-          
+
           docker buildx imagetools create -t ghcr.io/${{ github.repository }}:latest \
             $AMD64_REF \
             $ARM64_REF
 
   release:
     name: Create Release
-    needs: [build-linux, build-linux-arm64, build-windows, build-mac, build-android]
+    needs:
+      [build-linux, build-linux-arm64, build-windows, build-mac, build-android]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:

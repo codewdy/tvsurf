@@ -20,7 +20,7 @@ import type {
 } from "../api/types";
 import { hashPassword } from "../utils/password";
 
-export function meta({ }: Route.MetaArgs) {
+export function meta({}: Route.MetaArgs) {
   return [
     { title: "用户管理" },
     { name: "description", content: "管理系统用户" },
@@ -49,7 +49,9 @@ export default function UserManagement() {
   const [updatingGroups, setUpdatingGroups] = useState(false);
 
   // 重置密码相关状态
-  const [resettingPassword, setResettingPassword] = useState<string | null>(null);
+  const [resettingPassword, setResettingPassword] = useState<string | null>(
+    null,
+  );
   const [newPasswordForUser, setNewPasswordForUser] = useState("");
   const [confirmPasswordForUser, setConfirmPasswordForUser] = useState("");
   const [resetting, setResetting] = useState(false);
@@ -510,7 +512,7 @@ export default function UserManagement() {
                                   checked={editingGroups.includes(group)}
                                   onChange={() =>
                                     setEditingGroups(
-                                      toggleGroup(editingGroups, group)
+                                      toggleGroup(editingGroups, group),
                                     )
                                   }
                                   disabled={updatingGroups}
@@ -579,7 +581,9 @@ export default function UserManagement() {
                             </div>
                             <div className="flex gap-2">
                               <button
-                                onClick={() => handleResetPassword(user.username)}
+                                onClick={() =>
+                                  handleResetPassword(user.username)
+                                }
                                 disabled={resetting}
                                 className="px-3 py-1 bg-green-500 text-white rounded hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
                               >
@@ -609,13 +613,17 @@ export default function UserManagement() {
                                   编辑组
                                 </button>
                                 <button
-                                  onClick={() => handleStartResetPassword(user.username)}
+                                  onClick={() =>
+                                    handleStartResetPassword(user.username)
+                                  }
                                   className="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition-colors text-xs"
                                 >
                                   重置密码
                                 </button>
                                 <button
-                                  onClick={() => handleRemoveUser(user.username)}
+                                  onClick={() =>
+                                    handleRemoveUser(user.username)
+                                  }
                                   className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-xs"
                                 >
                                   删除

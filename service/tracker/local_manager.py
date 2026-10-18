@@ -66,8 +66,9 @@ class TVDownloadManager:
 
     async def cancel_episode(self, tv_id: int, episode_id: int) -> None:
         await self.task_manager.remove_filtered_task(
-            lambda metadata: metadata["tv_id"] == tv_id
-            and metadata["episode_id"] == episode_id
+            lambda metadata: (
+                metadata["tv_id"] == tv_id and metadata["episode_id"] == episode_id
+            )
         )
 
     def get_download_progress(self) -> list[DownloadProgressWithName]:

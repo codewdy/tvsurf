@@ -127,13 +127,15 @@ class TaskDownloadManager:
             if task.task:
                 task.task.cancel()
         await asyncio.gather(
-            *[task.task for task in remove_tasks], return_exceptions=True  # type: ignore
+            *[task.task for task in remove_tasks],
+            return_exceptions=True,  # type: ignore
         )
 
     def get_progress(self) -> list[DownloadProgressWithName]:
         return [
             DownloadProgressWithName(
-                name=task.name, progress=task.downloader.get_progress()  # type: ignore
+                name=task.name,
+                progress=task.downloader.get_progress(),  # type: ignore
             )
             for task in self.tasks
         ]

@@ -2,13 +2,14 @@ import asyncio
 from aiohttp import ClientSession, ClientConnectorError
 from service.schema.api import Echo
 
+
 async def test_echo_client():
     """测试客户端：访问 echo API"""
     async with ClientSession() as session:
         # 构造请求数据
         request_data = Echo.Request(message="Hello, Echo API!")
         url = "http://localhost:9399/api/echo"
-        
+
         try:
             async with session.post(url, json=request_data.model_dump()) as resp:
                 if resp.status == 200:
@@ -26,6 +27,6 @@ async def test_echo_client():
         except Exception as e:
             print(f"✗ Echo API 测试出错: {e}")
 
+
 if __name__ == "__main__":
     asyncio.run(test_echo_client())
-

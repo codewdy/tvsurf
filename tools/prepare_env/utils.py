@@ -11,13 +11,16 @@ def pretty_download(desc: str, url: str, file_path: str):
         total_size = int(response.headers.get("Content-Length", 0))
 
         # 下载文件并显示进度条
-        with open(file_path, "wb") as out_file, tqdm(
-            desc=desc,
-            total=total_size if total_size > 0 else None,
-            unit="B",
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as pbar:
+        with (
+            open(file_path, "wb") as out_file,
+            tqdm(
+                desc=desc,
+                total=total_size if total_size > 0 else None,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+            ) as pbar,
+        ):
             while True:
                 chunk = response.read(8192)  # 8KB chunks
                 if not chunk:
